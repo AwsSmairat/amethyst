@@ -347,6 +347,24 @@ class AppLocalizationsAr extends AppLocalizations {
   String get myExpenses => 'مصاريفي';
 
   @override
+  String get gasolineExpenses => 'مصاريف بانزين';
+
+  @override
+  String get carRepairExpenses => 'مصاريف تصليح السيارة';
+
+  @override
+  String get otherExpenses => 'مصاريف أخرى';
+
+  @override
+  String get chooseExpenseCategory => 'اختر نوع المصروف';
+
+  @override
+  String get expenseDetailOptional => 'تفاصيل إضافية (اختياري)';
+
+  @override
+  String get otherExpenseDescriptionOptional => 'وصف المصروف (اختياري)';
+
+  @override
   String get addExpense => 'إضافة مصروف';
 
   @override
@@ -389,7 +407,22 @@ class AppLocalizationsAr extends AppLocalizations {
   String get notesAndSummary => 'ملاحظات وملخص';
 
   @override
+  String get driverNotesTitle => 'ملاحظات';
+
+  @override
+  String get driverNotesFieldHint => 'اكتب ملاحظاتك هنا…';
+
+  @override
   String get currentLoads => 'التحميلات الحالية';
+
+  @override
+  String get todaysLoadsSection => 'تحميلات اليوم';
+
+  @override
+  String get todaysLoadsExpandHint => 'اضغط لعرض المحمّل المسجّل لتاريخ اليوم';
+
+  @override
+  String get noLoadsForToday => 'لا تحميلات مفتوحة لتاريخ اليوم.';
 
   @override
   String get product => 'منتج';
@@ -489,7 +522,7 @@ class AppLocalizationsAr extends AppLocalizations {
   String get enterValidAmount => 'أدخل مبلغاً صالحاً';
 
   @override
-  String get newVehicleSale => 'بيع مركبة جديد';
+  String get newVehicleSale => 'تسجيل بيع من المركبة';
 
   @override
   String get quantity => 'الكمية';
@@ -598,4 +631,31 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get loadsRecorded => 'تم تسجيل التحميلات';
+
+  @override
+  String get couponProduct => 'دفتر كوبون';
+
+  @override
+  String get vehicleSalesRecorded => 'تم تسجيل مبيعات المركبة';
+
+  @override
+  String get vehicleSaleChoosePlaceTitle => 'وجهة البيع';
+
+  @override
+  String get vehicleSaleTapToChoosePlace => 'اضغط لاختيار المنزل أو المتجر';
+
+  @override
+  String get vehicleSalePlaceHome => 'منزل';
+
+  @override
+  String get vehicleSalePlaceStore => 'متجر';
+
+  @override
+  String get vehicleSaleFromHome => 'البيع من: منزل';
+
+  @override
+  String get vehicleSaleFromStore => 'البيع من: متجر';
+
+  @override
+  String get couponButton => 'كوبون';
 }

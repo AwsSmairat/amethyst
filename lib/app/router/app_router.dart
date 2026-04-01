@@ -1,5 +1,6 @@
 import 'package:amethyst/core/l10n/context_l10n.dart';
 import 'package:amethyst/core/data/amethyst_api.dart';
+import 'package:amethyst/core/widgets/expense_category_hints_section.dart';
 import 'package:amethyst/di/injection.dart';
 import 'package:amethyst/features/admin/presentation/widgets/add_vehicle_load_sheet.dart';
 import 'package:amethyst/features/auth/presentation/cubit/auth_cubit.dart';
@@ -205,7 +206,12 @@ GoRouter createAppRouter(AuthCubit authCubit) {
                   create: (_) =>
                       JsonListCubit(() => sl<AmethystApi>().listExpenses())
                         ..load(),
-                  child: JsonListPage(title: context.l10n.titleExpenses),
+                  child: JsonListPage(
+                    title: context.l10n.titleExpenses,
+                    topSection: const ExpenseCategoryHintsSection(),
+                    titleBuilder: _expenseListTitle,
+                    subtitleBuilder: _expenseListSubtitle,
+                  ),
                 ),
               ),
               GoRoute(
@@ -310,6 +316,20 @@ GoRouter createAppRouter(AuthCubit authCubit) {
                 ),
               ),
               GoRoute(
+                path: 'expenses',
+                builder: (BuildContext context, _) => BlocProvider(
+                  create: (_) =>
+                      JsonListCubit(() => sl<AmethystApi>().listExpenses())
+                        ..load(),
+                  child: JsonListPage(
+                    title: context.l10n.titleExpenses,
+                    topSection: const ExpenseCategoryHintsSection(),
+                    titleBuilder: _expenseListTitle,
+                    subtitleBuilder: _expenseListSubtitle,
+                  ),
+                ),
+              ),
+              GoRoute(
                 path: 'profile',
                 builder: (_, __) => const ProfilePage(),
               ),
@@ -395,3 +415,16 @@ String _vehicleSubtitle(BuildContext context, Map<String, dynamic> m) =>
     m['driverId'] != null ? context.l10n.driverAssigned : context.l10n.noDriver;
 
 bool _isAdminRole(Map<String, dynamic> m) => m['role'] == 'admin';
+
+String _expenseListTitle(BuildContext context, Map<String, dynamic> m) {
+  final driver = m['driver'] as Map<String, dynamic>?;
+  final name = driver?['fullName']?.toString().trim() ?? '';
+  final amount = m['amount']?.toString() ?? '';
+  if (name.isEmpty) return amount;
+  return '$name · $amount';
+}
+
+String _expenseListSubtitle(BuildContext context, Map<String, dynamic> m) {
+  final note = m['note']?.toString().trim() ?? '';
+  return note;
+}

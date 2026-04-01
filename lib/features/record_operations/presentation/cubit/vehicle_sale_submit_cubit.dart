@@ -26,4 +26,24 @@ final class VehicleSaleSubmitCubit extends Cubit<SubmitState> {
       emit(SubmitFailure(e.toString()));
     }
   }
+
+  Future<void> submitLines({
+    required String vehicleId,
+    required List<({String productId, int quantity, double unitPrice})> lines,
+  }) async {
+    emit(const SubmitLoading());
+    try {
+      for (final line in lines) {
+        await _useCase(
+          vehicleId: vehicleId,
+          productId: line.productId,
+          quantity: line.quantity,
+          unitPrice: line.unitPrice,
+        );
+      }
+      emit(const SubmitSuccess());
+    } on Object catch (e) {
+      emit(SubmitFailure(e.toString()));
+    }
+  }
 }

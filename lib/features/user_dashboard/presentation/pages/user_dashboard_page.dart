@@ -1,13 +1,11 @@
 import 'package:amethyst/core/l10n/context_l10n.dart';
 import 'package:amethyst/core/theme/app_colors.dart';
-import 'package:amethyst/core/widgets/glass_container.dart';
 import 'package:amethyst/di/injection.dart';
 import 'package:amethyst/features/auth/presentation/cubit/auth_cubit.dart';
 import 'package:amethyst/features/auth/presentation/cubit/auth_state.dart';
 import 'package:amethyst/features/user_dashboard/domain/entities/driver_dashboard.dart';
 import 'package:amethyst/features/user_dashboard/presentation/cubit/user_dashboard_cubit.dart';
 import 'package:amethyst/features/user_dashboard/presentation/cubit/user_dashboard_state.dart';
-import 'package:amethyst/features/user_dashboard/presentation/widgets/primary_gradient_card.dart';
 import 'package:amethyst/features/user_dashboard/presentation/widgets/quick_action_button.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -73,15 +71,10 @@ class _UserDashboardView extends StatelessWidget {
             final dashboard = (state as UserDashboardLoaded).dashboard;
             return CustomScrollView(
               slivers: <Widget>[
-                SliverToBoxAdapter(
-                  child: _TopAppBar(title: dashboard.title),
-                ),
                 SliverPadding(
                   padding: const EdgeInsets.fromLTRB(20, 18, 20, 32),
                   sliver: SliverList(
                     delegate: SliverChildListDelegate.fixed(<Widget>[
-                      _DriverStatusCard(dashboard: dashboard),
-                      const SizedBox(height: 14),
                       _QuickActionsRow(),
                       const SizedBox(height: 22),
                       _InventorySection(items: dashboard.inventory),
@@ -90,193 +83,12 @@ class _UserDashboardView extends StatelessWidget {
                         expensesTotal: dashboard.expensesTotal,
                         expenseNote: dashboard.expenseNote,
                       ),
-                      const SizedBox(height: 16),
-                      _RouteMapCard(),
                     ]),
                   ),
                 ),
               ],
             );
           },
-        ),
-      ),
-    );
-  }
-}
-
-class _TopAppBar extends StatelessWidget {
-  const _TopAppBar({required this.title});
-
-  final String title;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 10, 16, 10),
-      child: GlassContainer(
-        borderRadius: BorderRadius.circular(18),
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-        child: Row(
-          children: <Widget>[
-            Container(
-              width: 40,
-              height: 40,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                border: Border.all(color: AppColors.primaryContainer, width: 2),
-                color: AppColors.surfaceContainerHigh,
-              ),
-              child: const Icon(Icons.person, color: AppColors.primary),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Text(
-                title,
-                style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      color: AppColors.primaryContainer,
-                      fontWeight: FontWeight.w800,
-                    ),
-              ),
-            ),
-            IconButton(
-              onPressed: () {},
-              icon: const Icon(Icons.notifications_outlined),
-              color: AppColors.onSurfaceVariant,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _DriverStatusCard extends StatelessWidget {
-  const _DriverStatusCard({required this.dashboard});
-
-  final DriverDashboard dashboard;
-
-  @override
-  Widget build(BuildContext context) {
-    final labelStyle = Theme.of(context).textTheme.labelSmall?.copyWith(
-          fontSize: 10,
-          color: Colors.white.withValues(alpha: 0.80),
-          letterSpacing: 1.2,
-        );
-    return PrimaryGradientCard(
-      child: Stack(
-        children: <Widget>[
-          Positioned(
-            right: -10,
-            bottom: -14,
-            child: Icon(
-              Icons.water_drop,
-              size: 110,
-              color: Colors.white.withValues(alpha: 0.12),
-            ),
-          ),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: <Widget>[
-              Row(
-                children: <Widget>[
-                  const Icon(Icons.directions_car, size: 14),
-                  const SizedBox(width: 6),
-                  Text(context.l10n.currentVehicle, style: labelStyle),
-                ],
-              ),
-              const SizedBox(height: 6),
-              Text(
-                dashboard.vehicleLabel,
-                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w800,
-                    ),
-              ),
-              const SizedBox(height: 14),
-              Row(
-                children: <Widget>[
-                  _MiniInfoPill(
-                    title: context.l10n.shiftTime,
-                    value: dashboard.shiftRemaining,
-                  ),
-                  const SizedBox(width: 10),
-                  _MiniInfoPill(
-                    title: context.l10n.statusLabel,
-                    value: dashboard.isActive
-                        ? context.l10n.active
-                        : context.l10n.inactive,
-                    leading: Container(
-                      width: 8,
-                      height: 8,
-                      decoration: const BoxDecoration(
-                        color: AppColors.success,
-                        shape: BoxShape.circle,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _MiniInfoPill extends StatelessWidget {
-  const _MiniInfoPill({
-    required this.title,
-    required this.value,
-    this.leading,
-  });
-
-  final String title;
-  final String value;
-  final Widget? leading;
-
-  @override
-  Widget build(BuildContext context) {
-    return Expanded(
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: 0.20),
-          borderRadius: BorderRadius.circular(14),
-        ),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: <Widget>[
-              Text(
-                title.toUpperCase(),
-                style: const TextStyle(
-                  fontSize: 10,
-                  fontWeight: FontWeight.w800,
-                  color: Colors.white70,
-                ),
-              ),
-              const SizedBox(height: 4),
-              Row(
-                children: <Widget>[
-                  if (leading != null) ...<Widget>[
-                    leading!,
-                    const SizedBox(width: 6),
-                  ],
-                  Expanded(
-                    child: Text(
-                      value,
-                      style: const TextStyle(
-                        fontWeight: FontWeight.w700,
-                        color: Colors.white,
-                      ),
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
         ),
       ),
     );
@@ -319,73 +131,120 @@ class _QuickActionsRow extends StatelessWidget {
   }
 }
 
-class _InventorySection extends StatelessWidget {
+class _InventorySection extends StatefulWidget {
   const _InventorySection({required this.items});
 
   final List<InventoryItem> items;
 
   @override
+  State<_InventorySection> createState() => _InventorySectionState();
+}
+
+class _InventorySectionState extends State<_InventorySection> {
+  bool _expanded = false;
+
+  @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: <Widget>[
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 4),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: <Widget>[
-              Text(
-                context.l10n.todaysInventory,
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w800,
-                    ),
-              ),
-              Text(
-                context.l10n.updatedAgo,
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: AppColors.onSurfaceVariant,
-                    ),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 12),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 8),
-          child: Row(
-            children: <Widget>[
-              _HeaderCell(context.l10n.itemHeader, flex: 3, align: TextAlign.left),
-              _HeaderCell(context.l10n.loaded, flex: 2),
-              _HeaderCell(context.l10n.sold, flex: 2),
-              _HeaderCell(context.l10n.left, flex: 2),
-            ],
-          ),
-        ),
-        const SizedBox(height: 10),
         DecoratedBox(
           decoration: BoxDecoration(
             color: AppColors.surfaceLowest,
-            borderRadius: BorderRadius.circular(18),
-            boxShadow: const <BoxShadow>[
-              BoxShadow(
-                color: Color.fromRGBO(10, 37, 64, 0.06),
-                blurRadius: 18,
-                offset: Offset(0, 10),
-              ),
-            ],
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: AppColors.outlineVariant),
           ),
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              children: items
-                  .map((e) => Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 10),
-                        child: _InventoryRow(item: e),
-                      ))
-                  .toList(growable: false),
+          child: Material(
+            color: Colors.transparent,
+            child: InkWell(
+              onTap: () => setState(() => _expanded = !_expanded),
+              borderRadius: BorderRadius.circular(14),
+              child: Padding(
+                padding: const EdgeInsetsDirectional.symmetric(
+                  horizontal: 16,
+                  vertical: 14,
+                ),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: <Widget>[
+                          Text(
+                            l10n.todaysInventory,
+                            style: Theme.of(context)
+                                .textTheme
+                                .titleMedium
+                                ?.copyWith(
+                                  fontWeight: FontWeight.w800,
+                                ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            l10n.updatedAgo,
+                            style: Theme.of(context)
+                                .textTheme
+                                .bodySmall
+                                ?.copyWith(
+                                  color: AppColors.onSurfaceVariant,
+                                ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Icon(
+                      _expanded ? Icons.expand_less : Icons.expand_more,
+                      color: AppColors.onSurfaceVariant,
+                    ),
+                  ],
+                ),
+              ),
             ),
           ),
         ),
+        if (_expanded) ...<Widget>[
+          const SizedBox(height: 12),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8),
+            child: Row(
+              children: <Widget>[
+                _HeaderCell(l10n.itemHeader, flex: 3, align: TextAlign.left),
+                _HeaderCell(l10n.loaded, flex: 2),
+                _HeaderCell(l10n.sold, flex: 2),
+                _HeaderCell(l10n.left, flex: 2),
+              ],
+            ),
+          ),
+          const SizedBox(height: 10),
+          DecoratedBox(
+            decoration: BoxDecoration(
+              color: AppColors.surfaceLowest,
+              borderRadius: BorderRadius.circular(18),
+              boxShadow: const <BoxShadow>[
+                BoxShadow(
+                  color: Color.fromRGBO(10, 37, 64, 0.06),
+                  blurRadius: 18,
+                  offset: Offset(0, 10),
+                ),
+              ],
+            ),
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                children: widget.items
+                    .map(
+                      (InventoryItem e) => Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 10),
+                        child: _InventoryRow(item: e),
+                      ),
+                    )
+                    .toList(growable: false),
+              ),
+            ),
+          ),
+        ],
       ],
     );
   }
@@ -581,132 +440,74 @@ class _ExpenseAndNotesRow extends StatelessWidget {
         ),
         const SizedBox(width: 14),
         Expanded(
-          child: DecoratedBox(
-            decoration: BoxDecoration(
-              color: AppColors.surfaceContainerLow,
+          child: Material(
+            color: Colors.transparent,
+            child: InkWell(
+              onTap: () => context.go('/driver/notes'),
               borderRadius: BorderRadius.circular(24),
-              border: Border.all(
-                color: AppColors.outlineVariant.withValues(alpha: 0.30),
-                width: 2,
-              ),
-            ),
-            child: Padding(
-              padding: const EdgeInsets.all(18),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: <Widget>[
-                  Row(
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  color: AppColors.surfaceContainerLow,
+                  borderRadius: BorderRadius.circular(24),
+                  border: Border.all(
+                    color: AppColors.outlineVariant.withValues(alpha: 0.30),
+                    width: 2,
+                  ),
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.all(18),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: <Widget>[
-                      Icon(Icons.edit_note,
-                          color: AppColors.onSurfaceVariant
-                              .withValues(alpha: 0.6)),
-                      const SizedBox(width: 8),
+                      Row(
+                        children: <Widget>[
+                          Icon(
+                            Icons.edit_note,
+                            color: AppColors.onSurfaceVariant
+                                .withValues(alpha: 0.6),
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            context.l10n.dailyNotesUpper,
+                            style: Theme.of(context)
+                                .textTheme
+                                .labelSmall
+                                ?.copyWith(
+                                  fontSize: 10,
+                                  letterSpacing: 1.2,
+                                  color: AppColors.onSurfaceVariant,
+                                  fontWeight: FontWeight.w800,
+                                ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 10),
                       Text(
-                        context.l10n.dailyNotesUpper,
-                        style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                              fontSize: 10,
-                              letterSpacing: 1.2,
+                        context.l10n.noCriticalUpdatesToday,
+                        style: Theme.of(context)
+                            .textTheme
+                            .bodySmall
+                            ?.copyWith(
                               color: AppColors.onSurfaceVariant,
-                              fontWeight: FontWeight.w800,
+                              fontStyle: FontStyle.italic,
                             ),
+                      ),
+                      const SizedBox(height: 10),
+                      Align(
+                        alignment: Alignment.bottomRight,
+                        child: Icon(
+                          Icons.add_circle,
+                          color: AppColors.primary,
+                        ),
                       ),
                     ],
                   ),
-                  const SizedBox(height: 10),
-                  Text(
-                    context.l10n.noCriticalUpdatesToday,
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: AppColors.onSurfaceVariant,
-                          fontStyle: FontStyle.italic,
-                        ),
-                  ),
-                  const SizedBox(height: 10),
-                  Align(
-                    alignment: Alignment.bottomRight,
-                    child: Icon(Icons.add_circle, color: AppColors.primary),
-                  ),
-                ],
+                ),
               ),
             ),
           ),
         ),
       ],
-    );
-  }
-}
-
-class _RouteMapCard extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: AppColors.surfaceContainerHigh,
-        borderRadius: BorderRadius.circular(24),
-        boxShadow: const <BoxShadow>[
-          BoxShadow(
-            color: Color.fromRGBO(10, 37, 64, 0.06),
-            blurRadius: 18,
-            offset: Offset(0, 10),
-          ),
-        ],
-      ),
-      child: SizedBox(
-        height: 160,
-        child: Stack(
-          children: <Widget>[
-            Positioned.fill(
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(24),
-                child: DecoratedBox(
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
-                      colors: <Color>[
-                        AppColors.tertiaryFixed.withValues(alpha: 0.45),
-                        AppColors.primaryContainer.withValues(alpha: 0.45),
-                      ],
-                    ),
-                  ),
-                  child: const SizedBox.expand(),
-                ),
-              ),
-            ),
-            Positioned.fill(
-              child: DecoratedBox(
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(24),
-                  gradient: const LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: <Color>[
-                      Colors.transparent,
-                      Color.fromRGBO(0, 0, 0, 0.50),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-            Positioned(
-              left: 16,
-              bottom: 16,
-              child: Row(
-                children: <Widget>[
-                  const Icon(Icons.map, color: Colors.white),
-                  const SizedBox(width: 8),
-                  Text(
-                    context.l10n.routeMapTitle,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w800,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
     );
   }
 }

@@ -238,7 +238,7 @@ export async function closeVehicleLoad(id, actor) {
   return load;
 }
 
-/** Open loads for the driver's assigned vehicle (today optional). */
+/** Open loads for the driver's assigned vehicle for the current calendar day only. */
 export async function getDriverCurrentLoads(actor) {
   if (actor.role !== 'driver') {
     throw new AppError('Drivers only', 403, 'FORBIDDEN');
@@ -250,11 +250,19 @@ export async function getDriverCurrentLoads(actor) {
     return { vehicle: null, loads: [] };
   }
 
+  const now = new Date();
+  const dayStart = startOfDay(now);
+  const dayEnd = endOfDay(now);
+
   const loads = await prisma.vehicleLoad.findMany({
     where: {
       vehicleId: vehicle.id,
       driverId: actor.id,
       status: 'open',
+      loadDate: {
+        gte: dayStart,
+        lte: dayEnd,
+      },
     },
     include: { product: true },
     orderBy: { createdAt: 'asc' },

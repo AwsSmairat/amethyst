@@ -742,6 +742,42 @@ abstract class AppLocalizations {
   /// **'مصاريفي'**
   String get myExpenses;
 
+  /// No description provided for @gasolineExpenses.
+  ///
+  /// In ar, this message translates to:
+  /// **'مصاريف بانزين'**
+  String get gasolineExpenses;
+
+  /// No description provided for @carRepairExpenses.
+  ///
+  /// In ar, this message translates to:
+  /// **'مصاريف تصليح السيارة'**
+  String get carRepairExpenses;
+
+  /// No description provided for @otherExpenses.
+  ///
+  /// In ar, this message translates to:
+  /// **'مصاريف أخرى'**
+  String get otherExpenses;
+
+  /// No description provided for @chooseExpenseCategory.
+  ///
+  /// In ar, this message translates to:
+  /// **'اختر نوع المصروف'**
+  String get chooseExpenseCategory;
+
+  /// No description provided for @expenseDetailOptional.
+  ///
+  /// In ar, this message translates to:
+  /// **'تفاصيل إضافية (اختياري)'**
+  String get expenseDetailOptional;
+
+  /// No description provided for @otherExpenseDescriptionOptional.
+  ///
+  /// In ar, this message translates to:
+  /// **'وصف المصروف (اختياري)'**
+  String get otherExpenseDescriptionOptional;
+
   /// No description provided for @addExpense.
   ///
   /// In ar, this message translates to:
@@ -826,11 +862,41 @@ abstract class AppLocalizations {
   /// **'ملاحظات وملخص'**
   String get notesAndSummary;
 
+  /// No description provided for @driverNotesTitle.
+  ///
+  /// In ar, this message translates to:
+  /// **'ملاحظات'**
+  String get driverNotesTitle;
+
+  /// No description provided for @driverNotesFieldHint.
+  ///
+  /// In ar, this message translates to:
+  /// **'اكتب ملاحظاتك هنا…'**
+  String get driverNotesFieldHint;
+
   /// No description provided for @currentLoads.
   ///
   /// In ar, this message translates to:
   /// **'التحميلات الحالية'**
   String get currentLoads;
+
+  /// No description provided for @todaysLoadsSection.
+  ///
+  /// In ar, this message translates to:
+  /// **'تحميلات اليوم'**
+  String get todaysLoadsSection;
+
+  /// No description provided for @todaysLoadsExpandHint.
+  ///
+  /// In ar, this message translates to:
+  /// **'اضغط لعرض المحمّل المسجّل لتاريخ اليوم'**
+  String get todaysLoadsExpandHint;
+
+  /// No description provided for @noLoadsForToday.
+  ///
+  /// In ar, this message translates to:
+  /// **'لا تحميلات مفتوحة لتاريخ اليوم.'**
+  String get noLoadsForToday;
 
   /// No description provided for @product.
   ///
@@ -996,7 +1062,7 @@ abstract class AppLocalizations {
   /// No description provided for @newVehicleSale.
   ///
   /// In ar, this message translates to:
-  /// **'بيع مركبة جديد'**
+  /// **'تسجيل بيع من المركبة'**
   String get newVehicleSale;
 
   /// No description provided for @quantity.
@@ -1202,6 +1268,60 @@ abstract class AppLocalizations {
   /// In ar, this message translates to:
   /// **'تم تسجيل التحميلات'**
   String get loadsRecorded;
+
+  /// No description provided for @couponProduct.
+  ///
+  /// In ar, this message translates to:
+  /// **'دفتر كوبون'**
+  String get couponProduct;
+
+  /// No description provided for @vehicleSalesRecorded.
+  ///
+  /// In ar, this message translates to:
+  /// **'تم تسجيل مبيعات المركبة'**
+  String get vehicleSalesRecorded;
+
+  /// No description provided for @vehicleSaleChoosePlaceTitle.
+  ///
+  /// In ar, this message translates to:
+  /// **'وجهة البيع'**
+  String get vehicleSaleChoosePlaceTitle;
+
+  /// No description provided for @vehicleSaleTapToChoosePlace.
+  ///
+  /// In ar, this message translates to:
+  /// **'اضغط لاختيار المنزل أو المتجر'**
+  String get vehicleSaleTapToChoosePlace;
+
+  /// No description provided for @vehicleSalePlaceHome.
+  ///
+  /// In ar, this message translates to:
+  /// **'منزل'**
+  String get vehicleSalePlaceHome;
+
+  /// No description provided for @vehicleSalePlaceStore.
+  ///
+  /// In ar, this message translates to:
+  /// **'متجر'**
+  String get vehicleSalePlaceStore;
+
+  /// No description provided for @vehicleSaleFromHome.
+  ///
+  /// In ar, this message translates to:
+  /// **'البيع من: منزل'**
+  String get vehicleSaleFromHome;
+
+  /// No description provided for @vehicleSaleFromStore.
+  ///
+  /// In ar, this message translates to:
+  /// **'البيع من: متجر'**
+  String get vehicleSaleFromStore;
+
+  /// No description provided for @couponButton.
+  ///
+  /// In ar, this message translates to:
+  /// **'كوبون'**
+  String get couponButton;
 }
 
 class _AppLocalizationsDelegate

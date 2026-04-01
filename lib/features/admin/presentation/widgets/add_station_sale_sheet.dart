@@ -36,11 +36,7 @@ class _AddStationSaleBodyState extends State<_AddStationSaleBody> {
     'Water Carton',
   ];
 
-  final List<TextEditingController> _qtyCtrls =
-      List<TextEditingController>.generate(
-    _colCount,
-    (_) => TextEditingController(),
-  );
+  final List<int> _quantities = List<int>.filled(_colCount, 0);
   final List<String?> _productIds = List<String?>.filled(_colCount, null);
   final List<String> _productLabels = List<String>.filled(_colCount, '');
   final List<double?> _unitPrices = List<double?>.filled(_colCount, null);
@@ -89,12 +85,11 @@ class _AddStationSaleBodyState extends State<_AddStationSaleBody> {
     }
   }
 
-  @override
-  void dispose() {
-    for (final TextEditingController c in _qtyCtrls) {
-      c.dispose();
-    }
-    super.dispose();
+  void _adjustQuantity(int index, int delta) {
+    setState(() {
+      final int next = _quantities[index] + delta;
+      _quantities[index] = next < 0 ? 0 : next;
+    });
   }
 
   List<({String productId, int quantity, double unitPrice})>? _collectLines() {
@@ -103,9 +98,9 @@ class _AddStationSaleBodyState extends State<_AddStationSaleBody> {
         <({String productId, int quantity, double unitPrice})>[];
     for (var i = 0; i < _colCount; i++) {
       final String? pid = _productIds[i];
-      final String raw = _qtyCtrls[i].text.trim();
+      final int q = _quantities[i];
       final double? unit = _unitPrices[i];
-      if (pid == null && raw.isEmpty) {
+      if (q <= 0) {
         continue;
       }
       if (pid == null) {
@@ -114,14 +109,7 @@ class _AddStationSaleBodyState extends State<_AddStationSaleBody> {
         );
         return null;
       }
-      final int? q = int.tryParse(raw);
-      if (q == null || q < 1) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(l10n.vehicleLoadInvalidRow)),
-        );
-        return null;
-      }
-      if (unit == null || unit <= 0) {
+      if (unit == null || unit < 0) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(l10n.checkQtyPrice)),
         );
@@ -213,7 +201,9 @@ class _AddStationSaleBodyState extends State<_AddStationSaleBody> {
                           child: _StationSaleColumn(
                             index: i,
                             productLabel: _productLabels[i],
-                            quantityController: _qtyCtrls[i],
+                            quantity: _quantities[i],
+                            onDecrement: () => _adjustQuantity(i, -1),
+                            onIncrement: () => _adjustQuantity(i, 1),
                             busy: busy,
                           ),
                         ),
@@ -258,18 +248,23 @@ class _StationSaleColumn extends StatelessWidget {
   const _StationSaleColumn({
     required this.index,
     required this.productLabel,
-    required this.quantityController,
+    required this.quantity,
+    required this.onDecrement,
+    required this.onIncrement,
     required this.busy,
   });
 
   final int index;
   final String productLabel;
-  final TextEditingController quantityController;
+  final int quantity;
+  final VoidCallback onDecrement;
+  final VoidCallback onIncrement;
   final bool busy;
 
   @override
   Widget build(BuildContext context) {
     final l10n = context.l10n;
+    final ThemeData theme = Theme.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       mainAxisSize: MainAxisSize.min,
@@ -277,7 +272,7 @@ class _StationSaleColumn extends StatelessWidget {
         Text(
           l10n.productRow(index + 1),
           textAlign: TextAlign.center,
-          style: Theme.of(context).textTheme.labelSmall?.copyWith(
+          style: theme.textTheme.labelSmall?.copyWith(
                 color: AppColors.onSurfaceVariant,
                 fontWeight: FontWeight.w600,
               ),
@@ -288,25 +283,59 @@ class _StationSaleColumn extends StatelessWidget {
           textAlign: TextAlign.center,
           maxLines: 2,
           overflow: TextOverflow.ellipsis,
-          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+          style: theme.textTheme.bodySmall?.copyWith(
                 fontWeight: FontWeight.w700,
                 color: AppColors.primaryText,
               ),
         ),
         const SizedBox(height: 10),
-        TextField(
-          controller: quantityController,
-          enabled: !busy,
-          keyboardType: TextInputType.number,
+        Text(
+          l10n.quantity,
           textAlign: TextAlign.center,
-          decoration: InputDecoration(
-            labelText: l10n.quantity,
-            isDense: true,
-            contentPadding: const EdgeInsets.symmetric(
-              horizontal: 8,
-              vertical: 10,
+          style: theme.textTheme.labelSmall?.copyWith(
+                color: AppColors.onSurfaceVariant,
+                fontWeight: FontWeight.w600,
+              ),
+        ),
+        const SizedBox(height: 6),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: <Widget>[
+            IconButton.filledTonal(
+              onPressed: busy || quantity <= 0 ? null : onDecrement,
+              icon: const Icon(Icons.remove, size: 16),
+              iconSize: 16,
+              style: IconButton.styleFrom(
+                visualDensity: VisualDensity.compact,
+                padding: EdgeInsets.zero,
+                minimumSize: const Size(26, 26),
+                fixedSize: const Size(26, 26),
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              ),
             ),
-          ),
+            Expanded(
+              child: Text(
+                '$quantity',
+                textAlign: TextAlign.center,
+                style: theme.textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w800,
+                      color: AppColors.primaryText,
+                    ),
+              ),
+            ),
+            IconButton.filledTonal(
+              onPressed: busy ? null : onIncrement,
+              icon: const Icon(Icons.add, size: 16),
+              iconSize: 16,
+              style: IconButton.styleFrom(
+                visualDensity: VisualDensity.compact,
+                padding: EdgeInsets.zero,
+                minimumSize: const Size(26, 26),
+                fixedSize: const Size(26, 26),
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              ),
+            ),
+          ],
         ),
       ],
     );

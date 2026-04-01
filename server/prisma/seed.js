@@ -128,6 +128,14 @@ async function main() {
     isActive: true,
   });
 
+  const coupon = await ensureProduct({
+    name: 'Coupon',
+    unitType: 'coupon',
+    price: 0,
+    stationStock: 0,
+    isActive: true,
+  });
+
   const v1 = await prisma.vehicle.upsert({
     where: { vehicleNumber: 'V-001' },
     update: { driverId: driver1.id },
@@ -143,7 +151,7 @@ async function main() {
     superAdmin: superAdmin.email,
     admin: admin.email,
     drivers: [driver1.email],
-    products: [bottle.name, carton.name, gallon.name],
+    products: [bottle.name, carton.name, gallon.name, coupon.name],
     vehicles: [v1.vehicleNumber],
   });
 }

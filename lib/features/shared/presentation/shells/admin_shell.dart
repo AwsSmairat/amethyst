@@ -74,6 +74,7 @@ class AdminShell extends StatelessWidget {
             _tile(context, path, '/admin/vehicle-sales', Icons.receipt_long, context.l10n.vehicleSales),
             _tile(context, path, '/admin/products', Icons.inventory_2, context.l10n.inventoryMenu),
             _tile(context, path, '/admin/returns', Icons.assignment_return, context.l10n.returns),
+            _tile(context, path, '/admin/expenses', Icons.payments, context.l10n.expenses),
           ],
         ),
       ),

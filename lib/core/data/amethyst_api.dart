@@ -54,7 +54,8 @@ final class AmethystApi {
   Future<Map<String, dynamic>> getDashboardDriver() async {
     try {
       final res = await _dio.get<Map<String, dynamic>>('/dashboard/driver');
-      return DioClient.unwrapMap(res);
+      final map = DioClient.unwrapMap(res);
+      return _flattenDriverDashboard(map);
     } on DioException catch (e) {
       _client.throwFromDio(e);
     }
@@ -309,4 +310,26 @@ final class AmethystApi {
       _client.throwFromDio(e);
     }
   }
+}
+
+/// `/dashboard/driver` is normalized to `{ role, metrics, details }` on the
+/// server. Call sites expect the former flat payload (e.g. `assignedVehicle`).
+Map<String, dynamic> _flattenDriverDashboard(Map<String, dynamic> root) {
+  final Object? details = root['details'];
+  final Object? metrics = root['metrics'];
+  if (details is! Map<String, dynamic> || metrics is! Map<String, dynamic>) {
+    return root;
+  }
+  return <String, dynamic>{
+    ...root,
+    'assignedVehicle': details['assignedVehicle'],
+    'remainingQuantities': details['remainingQuantities'],
+    'notesSummary': details['notesSummary'],
+    'productsLoadedToday': details['productsLoadedToday'],
+    'soldQuantitiesToday': details['soldQuantitiesToday'],
+    'returnedQuantitiesToday': details['returnedQuantitiesToday'],
+    'totalExpensesToday': metrics['totalExpensesToday'],
+    'vehicleSalesAmountToday': metrics['vehicleSalesToday'],
+    'remainingOnVehicle': metrics['remainingOnVehicle'],
+  };
 }

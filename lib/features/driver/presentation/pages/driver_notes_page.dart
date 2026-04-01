@@ -1,7 +1,11 @@
-import 'package:amethyst/core/data/amethyst_api.dart';
+import 'dart:async';
+
 import 'package:amethyst/core/l10n/context_l10n.dart';
-import 'package:amethyst/di/injection.dart';
+import 'package:amethyst/features/auth/presentation/cubit/auth_cubit.dart';
+import 'package:amethyst/features/auth/presentation/cubit/auth_state.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class DriverNotesPage extends StatefulWidget {
   const DriverNotesPage({super.key});
@@ -11,93 +15,100 @@ class DriverNotesPage extends StatefulWidget {
 }
 
 class _DriverNotesPageState extends State<DriverNotesPage> {
-  bool _loading = true;
-  String? _error;
-  Map<String, dynamic>? _dash;
+  final TextEditingController _controller = TextEditingController();
+  Timer? _debounce;
+  bool _ready = false;
+
+  String _storageKey(BuildContext context) {
+    final AuthState auth = context.read<AuthCubit>().state;
+    if (auth is AuthAuthenticated) {
+      return 'amethyst_driver_notes_${auth.user.id}';
+    }
+    return 'amethyst_driver_notes';
+  }
 
   @override
   void initState() {
     super.initState();
-    _load();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _loadNotes());
   }
 
-  Future<void> _load() async {
-    setState(() {
-      _loading = true;
-      _error = null;
-    });
-    try {
-      final d = await sl<AmethystApi>().getDashboardDriver();
-      if (!mounted) return;
-      setState(() {
-        _dash = d;
-        _loading = false;
-      });
-    } on Object catch (e) {
-      if (!mounted) return;
-      setState(() {
-        _error = e.toString();
-        _loading = false;
-      });
-    }
+  Future<void> _loadNotes() async {
+    if (!mounted) return;
+    final String key = _storageKey(context);
+    final SharedPreferences p = await SharedPreferences.getInstance();
+    final String text = p.getString(key) ?? '';
+    if (!mounted) return;
+    _controller.text = text;
+    _controller.addListener(_scheduleSave);
+    setState(() => _ready = true);
+  }
+
+  void _scheduleSave() {
+    _debounce?.cancel();
+    _debounce = Timer(const Duration(milliseconds: 500), _saveNotes);
+  }
+
+  Future<void> _saveNotes() async {
+    if (!mounted) return;
+    final String key = _storageKey(context);
+    final SharedPreferences p = await SharedPreferences.getInstance();
+    await p.setString(key, _controller.text);
+  }
+
+  Future<void> _reloadFromStorage() async {
+    if (!mounted) return;
+    final String key = _storageKey(context);
+    final SharedPreferences p = await SharedPreferences.getInstance();
+    final String text = p.getString(key) ?? '';
+    if (!mounted) return;
+    _controller.removeListener(_scheduleSave);
+    _controller.text = text;
+    _controller.addListener(_scheduleSave);
+  }
+
+  @override
+  void dispose() {
+    _debounce?.cancel();
+    _controller.removeListener(_scheduleSave);
+    _saveNotes();
+    _controller.dispose();
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     return Scaffold(
       appBar: AppBar(
-        title: Text(context.l10n.notesAndSummary),
+        title: Text(l10n.driverNotesTitle),
         actions: <Widget>[
-          IconButton(onPressed: _load, icon: const Icon(Icons.refresh)),
+          IconButton(
+            onPressed: _ready ? _reloadFromStorage : null,
+            icon: const Icon(Icons.refresh),
+          ),
         ],
       ),
-      body: _loading
+      body: !_ready
           ? const Center(child: CircularProgressIndicator())
-          : _error != null
-              ? Center(child: Text(_error!))
-              : _buildContent(context),
-    );
-  }
-
-  Widget _buildContent(BuildContext context) {
-    final l10n = context.l10n;
-    final notes = (_dash?['notesSummary'] as List<dynamic>? ?? <dynamic>[])
-        .whereType<Map<String, dynamic>>()
-        .toList(growable: false);
-    final sold = _dash?['soldQuantitiesToday'];
-    final amt = _dash?['vehicleSalesAmountToday'];
-    final exp = _dash?['totalExpensesToday'];
-    return ListView(
-      padding: const EdgeInsets.all(20),
-      children: <Widget>[
-        Text(
-          l10n.sectionToday,
-          style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                fontWeight: FontWeight.w800,
+          : SingleChildScrollView(
+              padding: const EdgeInsets.all(16),
+              child: TextField(
+                controller: _controller,
+                minLines: 16,
+                maxLines: null,
+                textAlignVertical: TextAlignVertical.top,
+                keyboardType: TextInputType.multiline,
+                decoration: InputDecoration(
+                  alignLabelWithHint: true,
+                  hintText: l10n.driverNotesFieldHint,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  filled: true,
+                ),
               ),
-        ),
-        const SizedBox(height: 8),
-        Text(l10n.unitsSoldLine('$sold')),
-        Text(l10n.salesAmountLine('$amt')),
-        Text(l10n.expensesLine('$exp')),
-        const SizedBox(height: 24),
-        Text(
-          l10n.notesFromExpenses,
-          style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.w800,
-              ),
-        ),
-        const SizedBox(height: 8),
-        if (notes.isEmpty)
-          Text(l10n.noNotesYet)
-        else
-          ...notes.map(
-            (n) => ListTile(
-              title: Text(n['note']?.toString() ?? ''),
-              subtitle: Text(n['at']?.toString() ?? ''),
             ),
-          ),
-      ],
     );
   }
 }

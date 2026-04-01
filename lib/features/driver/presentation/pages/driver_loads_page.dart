@@ -4,6 +4,7 @@ import 'package:amethyst/core/theme/app_colors.dart';
 import 'package:amethyst/di/injection.dart';
 import 'package:amethyst/features/driver/presentation/widgets/add_return_sheet.dart';
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 
 class DriverLoadsPage extends StatefulWidget {
   const DriverLoadsPage({super.key});
@@ -16,6 +17,7 @@ class _DriverLoadsPageState extends State<DriverLoadsPage> {
   bool _loading = true;
   String? _error;
   Map<String, dynamic>? _data;
+  bool _loadsExpanded = false;
 
   @override
   void initState() {
@@ -76,34 +78,110 @@ class _DriverLoadsPageState extends State<DriverLoadsPage> {
     if (vehicle == null) {
       return Center(child: Text(l10n.noVehicleAssignedFull));
     }
+    final String locale = Localizations.localeOf(context).toString();
+    final String dayLabel =
+        DateFormat.yMMMEd(locale).format(DateTime.now());
+
     return ListView(
       padding: const EdgeInsets.all(20),
       children: <Widget>[
-        Text(
-          l10n.vehicleWithNumber('${vehicle['vehicleNumber'] ?? ''}'),
-          style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                fontWeight: FontWeight.w800,
-              ),
-        ),
-        const SizedBox(height: 16),
-        if (loads.isEmpty)
-          Text(l10n.noOpenLoads)
-        else
-          ...loads.map(
-            (l) => Card(
-              child: ListTile(
-                title: Text(l['product']?['name']?.toString() ?? l10n.product),
-                subtitle: Text(
-                  l10n.loadQuantitiesLine(
-                    '${l['quantityLoaded']}',
-                    '${l['quantitySold']}',
-                    '${l['quantityReturned']}',
-                    '${l['remaining']}',
-                  ),
+        DecoratedBox(
+          decoration: BoxDecoration(
+            color: AppColors.surfaceLowest,
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: AppColors.outlineVariant),
+          ),
+          child: Material(
+            color: Colors.transparent,
+            child: InkWell(
+              onTap: () => setState(() => _loadsExpanded = !_loadsExpanded),
+              borderRadius: BorderRadius.circular(14),
+              child: Padding(
+                padding: const EdgeInsetsDirectional.symmetric(
+                  horizontal: 16,
+                  vertical: 14,
+                ),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: <Widget>[
+                          Text(
+                            l10n.todaysLoadsSection,
+                            style: Theme.of(context)
+                                .textTheme
+                                .titleMedium
+                                ?.copyWith(
+                                  fontWeight: FontWeight.w800,
+                                ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            dayLabel,
+                            style: Theme.of(context)
+                                .textTheme
+                                .titleSmall
+                                ?.copyWith(
+                                  fontWeight: FontWeight.w700,
+                                  color: Theme.of(context).colorScheme.primary,
+                                ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            l10n.todaysLoadsExpandHint,
+                            style: Theme.of(context)
+                                .textTheme
+                                .bodySmall
+                                ?.copyWith(
+                                  color: AppColors.onSurfaceVariant,
+                                ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Icon(
+                      _loadsExpanded
+                          ? Icons.expand_less
+                          : Icons.expand_more,
+                      color: AppColors.onSurfaceVariant,
+                    ),
+                  ],
                 ),
               ),
             ),
           ),
+        ),
+        if (_loadsExpanded) ...<Widget>[
+          const SizedBox(height: 16),
+          Text(
+            l10n.vehicleWithNumber('${vehicle['vehicleNumber'] ?? ''}'),
+            style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                  fontWeight: FontWeight.w800,
+                ),
+          ),
+          const SizedBox(height: 16),
+          if (loads.isEmpty)
+            Text(l10n.noLoadsForToday)
+          else
+            ...loads.map(
+              (Map<String, dynamic> l) => Card(
+                child: ListTile(
+                  title:
+                      Text(l['product']?['name']?.toString() ?? l10n.product),
+                  subtitle: Text(
+                    l10n.loadQuantitiesLine(
+                      '${l['quantityLoaded']}',
+                      '${l['quantitySold']}',
+                      '${l['quantityReturned']}',
+                      '${l['remaining']}',
+                    ),
+                  ),
+                ),
+              ),
+            ),
+        ],
       ],
     );
   }
