@@ -125,6 +125,26 @@ final class AmethystApi {
   Future<Map<String, dynamic>> listStationSales({int page = 1, int limit = 100}) =>
       _getPaginated('/station-sales', page: page, limit: limit);
 
+  Future<Map<String, dynamic>> createStationSale({
+    required String productId,
+    required int quantity,
+    required double unitPrice,
+  }) async {
+    try {
+      final res = await _dio.post<Map<String, dynamic>>(
+        '/station-sales',
+        data: <String, dynamic>{
+          'productId': productId,
+          'quantity': quantity,
+          'unitPrice': unitPrice,
+        },
+      );
+      return DioClient.unwrapMap(res);
+    } on DioException catch (e) {
+      _client.throwFromDio(e);
+    }
+  }
+
   Future<Map<String, dynamic>> listVehicleSales({int page = 1, int limit = 100}) =>
       _getPaginated('/vehicle-sales', page: page, limit: limit);
 

@@ -7,6 +7,18 @@ final class RecordOperationsRepositoryImpl implements RecordOperationsRepository
   final AmethystApi _api;
 
   @override
+  Future<void> createStationSale({
+    required String productId,
+    required int quantity,
+    required double unitPrice,
+  }) =>
+      _api.createStationSale(
+        productId: productId,
+        quantity: quantity,
+        unitPrice: unitPrice,
+      );
+
+  @override
   Future<void> createVehicleSale({
     required String vehicleId,
     required String productId,

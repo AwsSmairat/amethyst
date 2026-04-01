@@ -7,6 +7,9 @@ import 'package:amethyst/features/auth/presentation/cubit/auth_state.dart';
 import 'package:amethyst/features/auth/presentation/pages/login_page.dart';
 import 'package:amethyst/features/catalog/presentation/cubit/json_list_cubit.dart';
 import 'package:amethyst/features/catalog/presentation/pages/json_list_page.dart';
+import 'package:amethyst/features/admin/presentation/widgets/add_station_sale_sheet.dart';
+import 'package:amethyst/features/catalog/presentation/pages/station_sales_list_page.dart';
+import 'package:amethyst/features/catalog/presentation/pages/vehicle_loads_list_page.dart';
 import 'package:amethyst/features/dashboard/presentation/pages/admin_dashboard_page.dart';
 import 'package:amethyst/features/dashboard/presentation/pages/reports_page.dart';
 import 'package:amethyst/features/dashboard/presentation/pages/sales_working_days_page.dart';
@@ -169,9 +172,8 @@ GoRouter createAppRouter(AuthCubit authCubit) {
                   create: (_) =>
                       JsonListCubit(() => sl<AmethystApi>().listVehicleLoads())
                         ..load(),
-                  child: JsonListPage(
+                  child: VehicleLoadsListPage(
                     title: context.l10n.titleVehicleLoads,
-                    subtitleBuilder: _loadSubtitle,
                   ),
                 ),
               ),
@@ -182,7 +184,9 @@ GoRouter createAppRouter(AuthCubit authCubit) {
                       JsonListCubit(
                         () => sl<AmethystApi>().listStationSales(),
                       )..load(),
-                  child: JsonListPage(title: context.l10n.titleStationSales),
+                  child: StationSalesListPage(
+                    title: context.l10n.titleStationSales,
+                  ),
                 ),
               ),
               GoRoute(
@@ -242,9 +246,8 @@ GoRouter createAppRouter(AuthCubit authCubit) {
                       JsonListCubit(
                         () => sl<AmethystApi>().listVehicleLoads(),
                       )..load(),
-                  child: JsonListPageWithFab(
+                  child: VehicleLoadsListPage(
                     title: context.l10n.titleVehicleLoads,
-                    subtitleBuilder: _loadSubtitle,
                     fab: Builder(
                       builder: (BuildContext context) {
                         return FloatingActionButton.extended(
@@ -264,7 +267,18 @@ GoRouter createAppRouter(AuthCubit authCubit) {
                       JsonListCubit(
                         () => sl<AmethystApi>().listStationSales(),
                       )..load(),
-                  child: JsonListPage(title: context.l10n.titleStationSales),
+                  child: StationSalesListPage(
+                    title: context.l10n.titleStationSales,
+                    fab: Builder(
+                      builder: (BuildContext context) {
+                        return FloatingActionButton.extended(
+                          onPressed: () => showAddStationSaleSheet(context),
+                          icon: const Icon(Icons.add),
+                          label: Text(context.l10n.addStationSale),
+                        );
+                      },
+                    ),
+                  ),
                 ),
               ),
               GoRoute(
@@ -379,11 +393,5 @@ String _userSubtitle(BuildContext context, Map<String, dynamic> m) =>
 
 String _vehicleSubtitle(BuildContext context, Map<String, dynamic> m) =>
     m['driverId'] != null ? context.l10n.driverAssigned : context.l10n.noDriver;
-
-String _loadSubtitle(BuildContext context, Map<String, dynamic> m) =>
-    context.l10n.loadSubtitle(
-      '${m['status'] ?? ''}',
-      '${m['quantityLoaded'] ?? ''}',
-    );
 
 bool _isAdminRole(Map<String, dynamic> m) => m['role'] == 'admin';

@@ -1,5 +1,6 @@
 import 'package:amethyst/core/data/amethyst_api.dart';
 import 'package:amethyst/core/l10n/context_l10n.dart';
+import 'package:amethyst/core/theme/app_colors.dart';
 import 'package:amethyst/di/injection.dart';
 import 'package:amethyst/features/record_operations/domain/usecases/record_operation_usecases.dart';
 import 'package:amethyst/features/record_operations/presentation/cubit/submit_state.dart';
@@ -29,14 +30,28 @@ class _AddVehicleLoadBody extends StatefulWidget {
 }
 
 class _AddVehicleLoadBodyState extends State<_AddVehicleLoadBody> {
-  final _qty = TextEditingController();
+  static const int _rowCount = 3;
+
+  /// ترتيب ثابت لأسماء المنتجات (كما في الخادم) — بدون قوائم اختيار.
+  static const List<String> _kFixedProductNames = <String>[
+    'Water Gallon',
+    'Water Bottle',
+    'Water Carton',
+  ];
+
+  final List<TextEditingController> _qtyCtrls =
+      List<TextEditingController>.generate(
+    _rowCount,
+    (_) => TextEditingController(),
+  );
+  final List<String?> _productIds = List<String?>.filled(_rowCount, null);
+  final List<String> _productLabels = List<String>.filled(_rowCount, '');
+
   String? _vehicleId;
   String? _driverId;
-  String? _productId;
   DateTime _date = DateTime.now();
   List<Map<String, dynamic>> _vehicles = <Map<String, dynamic>>[];
   List<Map<String, dynamic>> _drivers = <Map<String, dynamic>>[];
-  List<Map<String, dynamic>> _products = <Map<String, dynamic>>[];
   bool _loading = true;
   String? _error;
 
@@ -64,14 +79,26 @@ class _AddVehicleLoadBodyState extends State<_AddVehicleLoadBody> {
           .whereType<Map<String, dynamic>>()
           .toList(growable: false);
       if (!mounted) return;
+      final Map<String, Map<String, dynamic>> byName =
+          <String, Map<String, dynamic>>{};
+      for (final Map<String, dynamic> pr in products) {
+        final String? n = pr['name']?.toString();
+        if (n != null) byName[n] = pr;
+      }
       setState(() {
         _vehicles = vehicles;
         _drivers = drivers;
-        _products = products;
         _vehicleId = vehicles.isNotEmpty ? vehicles.first['id'] as String? : null;
         _driverId = drivers.isNotEmpty ? drivers.first['id'] as String? : null;
-        _productId =
-            products.isNotEmpty ? products.first['id'] as String? : null;
+        for (var i = 0; i < _rowCount; i++) {
+          final String fixedName =
+              i < _kFixedProductNames.length ? _kFixedProductNames[i] : '';
+          final Map<String, dynamic>? match =
+              fixedName.isNotEmpty ? byName[fixedName] : null;
+          _productIds[i] = match?['id'] as String?;
+          _productLabels[i] =
+              match?['name']?.toString() ?? fixedName;
+        }
         _loading = false;
       });
     } on Object catch (e) {
@@ -85,8 +112,43 @@ class _AddVehicleLoadBodyState extends State<_AddVehicleLoadBody> {
 
   @override
   void dispose() {
-    _qty.dispose();
+    for (final c in _qtyCtrls) {
+      c.dispose();
+    }
     super.dispose();
+  }
+
+  List<({String productId, int quantityLoaded})>? _collectLines() {
+    final l10n = context.l10n;
+    final lines = <({String productId, int quantityLoaded})>[];
+    for (var i = 0; i < _rowCount; i++) {
+      final String? pid = _productIds[i];
+      final String raw = _qtyCtrls[i].text.trim();
+      if (pid == null && raw.isEmpty) {
+        continue;
+      }
+      if (pid == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(l10n.vehicleLoadInvalidRow)),
+        );
+        return null;
+      }
+      final int? q = int.tryParse(raw);
+      if (q == null || q < 1) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(l10n.vehicleLoadInvalidRow)),
+        );
+        return null;
+      }
+      lines.add((productId: pid, quantityLoaded: q));
+    }
+    if (lines.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(l10n.vehicleLoadNeedOneLine)),
+      );
+      return null;
+    }
+    return lines;
   }
 
   @override
@@ -99,7 +161,7 @@ class _AddVehicleLoadBodyState extends State<_AddVehicleLoadBody> {
           if (state is SubmitSuccess) {
             Navigator.of(context).pop();
             ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text(context.l10n.loadCreated)),
+              SnackBar(content: Text(context.l10n.loadsRecorded)),
             );
           }
           if (state is SubmitFailure) {
@@ -164,30 +226,49 @@ class _AddVehicleLoadBodyState extends State<_AddVehicleLoadBody> {
                       ? null
                       : (v) => setState(() => _driverId = v),
                 ),
-                const SizedBox(height: 12),
-                DropdownButtonFormField<String>(
-                  value: _productId,
-                  decoration: InputDecoration(labelText: l10n.product),
-                  items: _products
-                      .map(
-                        (x) => DropdownMenuItem<String>(
-                          value: x['id'] as String,
-                          child: Text(x['name']?.toString() ?? ''),
-                        ),
-                      )
-                      .toList(growable: false),
-                  onChanged: busy
-                      ? null
-                      : (v) => setState(() => _productId = v),
+                const SizedBox(height: 20),
+                Text(
+                  l10n.vehicleLoadProductsSection,
+                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.w800,
+                        color: Theme.of(context).colorScheme.primary,
+                      ),
                 ),
                 const SizedBox(height: 12),
-                TextField(
-                  controller: _qty,
-                  keyboardType: TextInputType.number,
-                  decoration: InputDecoration(labelText: l10n.quantityLoaded),
-                ),
+                for (var i = 0; i < _rowCount; i++) ...<Widget>[
+                  InputDecorator(
+                    decoration: InputDecoration(
+                      labelText: l10n.productRow(i + 1),
+                      alignLabelWithHint: true,
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.only(top: 4, bottom: 2),
+                      child: Text(
+                        _productLabels[i].isNotEmpty
+                            ? _productLabels[i]
+                            : '—',
+                        textAlign: TextAlign.right,
+                        style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                              fontWeight: FontWeight.w600,
+                              color: AppColors.primaryText,
+                            ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  TextField(
+                    controller: _qtyCtrls[i],
+                    keyboardType: TextInputType.number,
+                    textAlign: TextAlign.right,
+                    decoration: InputDecoration(
+                      labelText: l10n.quantityLoaded,
+                    ),
+                  ),
+                  if (i < _rowCount - 1) const SizedBox(height: 16),
+                ],
                 const SizedBox(height: 12),
                 ListTile(
+                  contentPadding: EdgeInsets.zero,
                   title: Text(l10n.loadDate),
                   subtitle: Text(dateStr),
                   trailing: const Icon(Icons.calendar_today),
@@ -210,23 +291,20 @@ class _AddVehicleLoadBodyState extends State<_AddVehicleLoadBody> {
                   onPressed: busy
                       ? null
                       : () {
-                          final q = int.tryParse(_qty.text.trim());
-                          if (q == null ||
-                              q < 1 ||
-                              _vehicleId == null ||
-                              _driverId == null ||
-                              _productId == null) {
+                          if (_vehicleId == null ||
+                              _driverId == null) {
                             ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(content: Text(context.l10n.fillAllFields)),
+                              SnackBar(content: Text(l10n.fillAllFields)),
                             );
                             return;
                           }
-                          context.read<VehicleLoadSubmitCubit>().submit(
+                          final lines = _collectLines();
+                          if (lines == null) return;
+                          context.read<VehicleLoadSubmitCubit>().submitLines(
                                 vehicleId: _vehicleId!,
                                 driverId: _driverId!,
-                                productId: _productId!,
-                                quantityLoaded: q,
                                 loadDate: dateStr,
+                                lines: lines,
                               );
                         },
                   child: busy
@@ -235,7 +313,7 @@ class _AddVehicleLoadBodyState extends State<_AddVehicleLoadBody> {
                           width: 22,
                           child: CircularProgressIndicator(strokeWidth: 2),
                         )
-                      : Text(context.l10n.createLoad),
+                      : Text(l10n.createLoad),
                 ),
               ],
             ),

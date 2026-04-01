@@ -1088,6 +1088,120 @@ abstract class AppLocalizations {
   /// In ar, this message translates to:
   /// **'مدير'**
   String get adminDrawerFallback;
+
+  /// No description provided for @openVehicleLoadsList.
+  ///
+  /// In ar, this message translates to:
+  /// **'عرض قائمة التحميلات'**
+  String get openVehicleLoadsList;
+
+  /// No description provided for @loadStatusOpen.
+  ///
+  /// In ar, this message translates to:
+  /// **'مفتوح'**
+  String get loadStatusOpen;
+
+  /// No description provided for @loadStatusClosed.
+  ///
+  /// In ar, this message translates to:
+  /// **'مغلق'**
+  String get loadStatusClosed;
+
+  /// No description provided for @exportVehicleLoads.
+  ///
+  /// In ar, this message translates to:
+  /// **'تصدير ملف'**
+  String get exportVehicleLoads;
+
+  /// No description provided for @exportNoLoadsToday.
+  ///
+  /// In ar, this message translates to:
+  /// **'لا توجد تحميلات لهذا اليوم للتصدير.'**
+  String get exportNoLoadsToday;
+
+  /// No description provided for @stationInsideSales.
+  ///
+  /// In ar, this message translates to:
+  /// **'البيع داخل المحطة'**
+  String get stationInsideSales;
+
+  /// No description provided for @newStationSale.
+  ///
+  /// In ar, this message translates to:
+  /// **'تسجيل بيع من المحطة'**
+  String get newStationSale;
+
+  /// No description provided for @addStationSale.
+  ///
+  /// In ar, this message translates to:
+  /// **'إضافة بيع'**
+  String get addStationSale;
+
+  /// No description provided for @openStationSalesList.
+  ///
+  /// In ar, this message translates to:
+  /// **'عرض قائمة مبيعات المحطة'**
+  String get openStationSalesList;
+
+  /// No description provided for @stationSaleRecorded.
+  ///
+  /// In ar, this message translates to:
+  /// **'تم تسجيل بيع المحطة'**
+  String get stationSaleRecorded;
+
+  /// No description provided for @stationSalesRecorded.
+  ///
+  /// In ar, this message translates to:
+  /// **'تم تسجيل مبيعات المحطة'**
+  String get stationSalesRecorded;
+
+  /// No description provided for @operationDateLabel.
+  ///
+  /// In ar, this message translates to:
+  /// **'تاريخ العملية'**
+  String get operationDateLabel;
+
+  /// No description provided for @sellerLabel.
+  ///
+  /// In ar, this message translates to:
+  /// **'البائع'**
+  String get sellerLabel;
+
+  /// No description provided for @totalAmountLabel.
+  ///
+  /// In ar, this message translates to:
+  /// **'الإجمالي'**
+  String get totalAmountLabel;
+
+  /// No description provided for @vehicleLoadProductsSection.
+  ///
+  /// In ar, this message translates to:
+  /// **'المنتجات والكميات المحمّلة'**
+  String get vehicleLoadProductsSection;
+
+  /// No description provided for @productRow.
+  ///
+  /// In ar, this message translates to:
+  /// **'منتج {n}'**
+  String productRow(int n);
+
+  /// No description provided for @vehicleLoadInvalidRow.
+  ///
+  /// In ar, this message translates to:
+  /// **'أكمل المنتج والكمية (رقم ≥ 1) لكل صف تستخدمه.'**
+  String get vehicleLoadInvalidRow;
+
+  /// No description provided for @vehicleLoadNeedOneLine.
+  ///
+  /// In ar, this message translates to:
+  /// **'أضف منتجاً واحداً على الأقل مع كمية محمّلة.'**
+  String get vehicleLoadNeedOneLine;
+
+  /// No description provided for @loadsRecorded.
+  ///
+  /// In ar, this message translates to:
+  /// **'تم تسجيل التحميلات'**
+  String get loadsRecorded;
 }
 
 class _AppLocalizationsDelegate

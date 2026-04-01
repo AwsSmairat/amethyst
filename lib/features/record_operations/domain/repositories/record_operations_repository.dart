@@ -1,4 +1,10 @@
 abstract class RecordOperationsRepository {
+  Future<void> createStationSale({
+    required String productId,
+    required int quantity,
+    required double unitPrice,
+  });
+
   Future<void> createVehicleSale({
     required String vehicleId,
     required String productId,

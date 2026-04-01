@@ -232,5 +232,27 @@
   "dailyNotesUpper": "ملاحظات اليوم",
   "noCriticalUpdatesToday": "لا تحديثات مهمة لليوم بعد...",
   "superAdminDrawerFallback": "مسؤول عام",
-  "adminDrawerFallback": "مدير"
+  "adminDrawerFallback": "مدير",
+  "openVehicleLoadsList": "عرض قائمة التحميلات",
+  "loadStatusOpen": "مفتوح",
+  "loadStatusClosed": "مغلق",
+  "exportVehicleLoads": "تصدير ملف",
+  "exportNoLoadsToday": "لا توجد تحميلات لهذا اليوم للتصدير.",
+  "stationInsideSales": "البيع داخل المحطة",
+  "newStationSale": "تسجيل بيع من المحطة",
+  "addStationSale": "إضافة بيع",
+  "openStationSalesList": "عرض قائمة مبيعات المحطة",
+  "stationSaleRecorded": "تم تسجيل بيع المحطة",
+  "stationSalesRecorded": "تم تسجيل مبيعات المحطة",
+  "operationDateLabel": "تاريخ العملية",
+  "sellerLabel": "البائع",
+  "totalAmountLabel": "الإجمالي",
+  "vehicleLoadProductsSection": "المنتجات والكميات المحمّلة",
+  "productRow": "منتج {n}",
+  "@productRow": {
+    "placeholders": {"n": {"type": "int"}}
+  },
+  "vehicleLoadInvalidRow": "أكمل المنتج والكمية (رقم ≥ 1) لكل صف تستخدمه.",
+  "vehicleLoadNeedOneLine": "أضف منتجاً واحداً على الأقل مع كمية محمّلة.",
+  "loadsRecorded": "تم تسجيل التحميلات"
 }

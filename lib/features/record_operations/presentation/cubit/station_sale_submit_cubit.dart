@@ -2,26 +2,22 @@ import 'package:amethyst/features/record_operations/domain/usecases/record_opera
 import 'package:amethyst/features/record_operations/presentation/cubit/submit_state.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-final class VehicleLoadSubmitCubit extends Cubit<SubmitState> {
-  VehicleLoadSubmitCubit(this._useCase) : super(const SubmitIdle());
+final class StationSaleSubmitCubit extends Cubit<SubmitState> {
+  StationSaleSubmitCubit(this._useCase) : super(const SubmitIdle());
 
-  final CreateVehicleLoadUseCase _useCase;
+  final CreateStationSaleUseCase _useCase;
 
   Future<void> submit({
-    required String vehicleId,
-    required String driverId,
     required String productId,
-    required int quantityLoaded,
-    required String loadDate,
+    required int quantity,
+    required double unitPrice,
   }) async {
     emit(const SubmitLoading());
     try {
       await _useCase(
-        vehicleId: vehicleId,
-        driverId: driverId,
         productId: productId,
-        quantityLoaded: quantityLoaded,
-        loadDate: loadDate,
+        quantity: quantity,
+        unitPrice: unitPrice,
       );
       emit(const SubmitSuccess());
     } on Object catch (e) {
@@ -29,22 +25,17 @@ final class VehicleLoadSubmitCubit extends Cubit<SubmitState> {
     }
   }
 
-  /// عدة منتجات في نفس التاريخ والمركبة والسائق (طلب API لكل سطر).
+  /// عدة منتجات (طلب API لكل سطر بنفس سعر الوحدة المحفوظ للمنتج).
   Future<void> submitLines({
-    required String vehicleId,
-    required String driverId,
-    required String loadDate,
-    required List<({String productId, int quantityLoaded})> lines,
+    required List<({String productId, int quantity, double unitPrice})> lines,
   }) async {
     emit(const SubmitLoading());
     try {
       for (final line in lines) {
         await _useCase(
-          vehicleId: vehicleId,
-          driverId: driverId,
           productId: line.productId,
-          quantityLoaded: line.quantityLoaded,
-          loadDate: loadDate,
+          quantity: line.quantity,
+          unitPrice: line.unitPrice,
         );
       }
       emit(const SubmitSuccess());

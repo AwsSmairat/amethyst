@@ -1,5 +1,22 @@
 import 'package:amethyst/features/record_operations/domain/repositories/record_operations_repository.dart';
 
+final class CreateStationSaleUseCase {
+  CreateStationSaleUseCase(this._repository);
+
+  final RecordOperationsRepository _repository;
+
+  Future<void> call({
+    required String productId,
+    required int quantity,
+    required double unitPrice,
+  }) =>
+      _repository.createStationSale(
+        productId: productId,
+        quantity: quantity,
+        unitPrice: unitPrice,
+      );
+}
+
 final class CreateVehicleSaleUseCase {
   CreateVehicleSaleUseCase(this._repository);
 

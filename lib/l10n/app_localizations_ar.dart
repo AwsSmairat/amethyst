@@ -537,4 +537,65 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get adminDrawerFallback => 'مدير';
+
+  @override
+  String get openVehicleLoadsList => 'عرض قائمة التحميلات';
+
+  @override
+  String get loadStatusOpen => 'مفتوح';
+
+  @override
+  String get loadStatusClosed => 'مغلق';
+
+  @override
+  String get exportVehicleLoads => 'تصدير ملف';
+
+  @override
+  String get exportNoLoadsToday => 'لا توجد تحميلات لهذا اليوم للتصدير.';
+
+  @override
+  String get stationInsideSales => 'البيع داخل المحطة';
+
+  @override
+  String get newStationSale => 'تسجيل بيع من المحطة';
+
+  @override
+  String get addStationSale => 'إضافة بيع';
+
+  @override
+  String get openStationSalesList => 'عرض قائمة مبيعات المحطة';
+
+  @override
+  String get stationSaleRecorded => 'تم تسجيل بيع المحطة';
+
+  @override
+  String get stationSalesRecorded => 'تم تسجيل مبيعات المحطة';
+
+  @override
+  String get operationDateLabel => 'تاريخ العملية';
+
+  @override
+  String get sellerLabel => 'البائع';
+
+  @override
+  String get totalAmountLabel => 'الإجمالي';
+
+  @override
+  String get vehicleLoadProductsSection => 'المنتجات والكميات المحمّلة';
+
+  @override
+  String productRow(int n) {
+    return 'منتج $n';
+  }
+
+  @override
+  String get vehicleLoadInvalidRow =>
+      'أكمل المنتج والكمية (رقم ≥ 1) لكل صف تستخدمه.';
+
+  @override
+  String get vehicleLoadNeedOneLine =>
+      'أضف منتجاً واحداً على الأقل مع كمية محمّلة.';
+
+  @override
+  String get loadsRecorded => 'تم تسجيل التحميلات';
 }
