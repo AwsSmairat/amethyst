@@ -62,8 +62,33 @@ export async function getExpenseById(id, actor) {
 }
 
 export async function createExpense(body, actor) {
+  if (actor.role === 'admin' || actor.role === 'super_admin') {
+    const expense = await prisma.expense.create({
+      data: {
+        driverId: null,
+        vehicleId: null,
+        amount: body.amount,
+        note: body.note?.trim() || null,
+      },
+      include: {
+        vehicle: true,
+        driver: { select: { id: true, fullName: true, phone: true } },
+      },
+    });
+
+    await auditLog({
+      userId: actor.id,
+      action: 'EXPENSE_CREATE',
+      entityType: 'Expense',
+      entityId: expense.id,
+      details: { amount: Number(expense.amount), station: true },
+    });
+
+    return mapExpense(expense);
+  }
+
   if (actor.role !== 'driver') {
-    throw new AppError('Only drivers record expenses', 403, 'FORBIDDEN');
+    throw new AppError('Forbidden', 403, 'FORBIDDEN');
   }
   if (body.vehicleId) {
     const v = await prisma.vehicle.findUnique({ where: { id: body.vehicleId } });

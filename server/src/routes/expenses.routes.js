@@ -22,7 +22,12 @@ r.get(
   ctrl.list
 );
 r.get('/:id', authorize('super_admin', 'admin', 'driver'), validate(uuidParam, 'params'), ctrl.getById);
-r.post('/', authorize('driver'), validate(expenseCreateSchema), ctrl.create);
+r.post(
+  '/',
+  authorize('driver', 'admin', 'super_admin'),
+  validate(expenseCreateSchema),
+  ctrl.create
+);
 r.put(
   '/:id',
   authorize('driver'),

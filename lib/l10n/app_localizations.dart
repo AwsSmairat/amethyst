@@ -778,6 +778,84 @@ abstract class AppLocalizations {
   /// **'وصف المصروف (اختياري)'**
   String get otherExpenseDescriptionOptional;
 
+  /// No description provided for @stationExpenses.
+  ///
+  /// In ar, this message translates to:
+  /// **'مصاريف المحطة'**
+  String get stationExpenses;
+
+  /// No description provided for @expenseTankWater.
+  ///
+  /// In ar, this message translates to:
+  /// **'تنك مي'**
+  String get expenseTankWater;
+
+  /// No description provided for @expenseCartons.
+  ///
+  /// In ar, this message translates to:
+  /// **'كراتين'**
+  String get expenseCartons;
+
+  /// No description provided for @expenseCartonsWater.
+  ///
+  /// In ar, this message translates to:
+  /// **'كراتين مي'**
+  String get expenseCartonsWater;
+
+  /// No description provided for @expenseStaffSalaries.
+  ///
+  /// In ar, this message translates to:
+  /// **'رواتب موظفين'**
+  String get expenseStaffSalaries;
+
+  /// No description provided for @expenseWorkersWages.
+  ///
+  /// In ar, this message translates to:
+  /// **'رواتب عمال'**
+  String get expenseWorkersWages;
+
+  /// No description provided for @stationExpenseNeedOneAmount.
+  ///
+  /// In ar, this message translates to:
+  /// **'أدخل مبلغاً في حقل واحد على الأقل'**
+  String get stationExpenseNeedOneAmount;
+
+  /// No description provided for @amountDinars.
+  ///
+  /// In ar, this message translates to:
+  /// **'{amount} دينار'**
+  String amountDinars(String amount);
+
+  /// No description provided for @expenseReportTotal.
+  ///
+  /// In ar, this message translates to:
+  /// **'الإجمالي: {amount} دينار'**
+  String expenseReportTotal(String amount);
+
+  /// No description provided for @expenseReportStationSource.
+  ///
+  /// In ar, this message translates to:
+  /// **'المحطة'**
+  String get expenseReportStationSource;
+
+  /// No description provided for @recordStationExpense.
+  ///
+  /// In ar, this message translates to:
+  /// **'تسجيل مصاريف المحطة'**
+  String get recordStationExpense;
+
+  /// No description provided for @openExpensesList.
+  ///
+  /// In ar, this message translates to:
+  /// **'عرض قائمة المصاريف'**
+  String get openExpensesList;
+
+  /// No description provided for @newStationExpense.
+  ///
+  /// In ar, this message translates to:
+  /// **'مصروف محطة جديد'**
+  String get newStationExpense;
+
   /// No description provided for @addExpense.
   ///
   /// In ar, this message translates to:

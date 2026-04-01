@@ -7,6 +7,7 @@ import 'package:amethyst/features/auth/presentation/cubit/auth_cubit.dart';
 import 'package:amethyst/features/auth/presentation/cubit/auth_state.dart';
 import 'package:amethyst/features/auth/presentation/pages/login_page.dart';
 import 'package:amethyst/features/catalog/presentation/cubit/json_list_cubit.dart';
+import 'package:amethyst/features/catalog/presentation/pages/expense_category_report_page.dart';
 import 'package:amethyst/features/catalog/presentation/pages/json_list_page.dart';
 import 'package:amethyst/features/admin/presentation/widgets/add_station_sale_sheet.dart';
 import 'package:amethyst/features/catalog/presentation/pages/station_sales_list_page.dart';
@@ -201,6 +202,13 @@ GoRouter createAppRouter(AuthCubit authCubit) {
                 ),
               ),
               GoRoute(
+                path: 'expenses/report/:category',
+                builder: (BuildContext context, GoRouterState state) =>
+                    ExpenseCategoryReportPage(
+                  categoryKey: state.pathParameters['category'] ?? '',
+                ),
+              ),
+              GoRoute(
                 path: 'expenses',
                 builder: (BuildContext context, _) => BlocProvider(
                   create: (_) =>
@@ -208,7 +216,11 @@ GoRouter createAppRouter(AuthCubit authCubit) {
                         ..load(),
                   child: JsonListPage(
                     title: context.l10n.titleExpenses,
-                    topSection: const ExpenseCategoryHintsSection(),
+                    topSection: ExpenseCategoryHintsSection(
+                      includeStationExpense: true,
+                      onCategoryTap: (String key) =>
+                          context.push('/super-admin/expenses/report/$key'),
+                    ),
                     titleBuilder: _expenseListTitle,
                     subtitleBuilder: _expenseListSubtitle,
                   ),
@@ -316,6 +328,13 @@ GoRouter createAppRouter(AuthCubit authCubit) {
                 ),
               ),
               GoRoute(
+                path: 'expenses/report/:category',
+                builder: (BuildContext context, GoRouterState state) =>
+                    ExpenseCategoryReportPage(
+                  categoryKey: state.pathParameters['category'] ?? '',
+                ),
+              ),
+              GoRoute(
                 path: 'expenses',
                 builder: (BuildContext context, _) => BlocProvider(
                   create: (_) =>
@@ -323,7 +342,11 @@ GoRouter createAppRouter(AuthCubit authCubit) {
                         ..load(),
                   child: JsonListPage(
                     title: context.l10n.titleExpenses,
-                    topSection: const ExpenseCategoryHintsSection(),
+                    topSection: ExpenseCategoryHintsSection(
+                      includeStationExpense: true,
+                      onCategoryTap: (String key) =>
+                          context.push('/admin/expenses/report/$key'),
+                    ),
                     titleBuilder: _expenseListTitle,
                     subtitleBuilder: _expenseListSubtitle,
                   ),
@@ -417,9 +440,12 @@ String _vehicleSubtitle(BuildContext context, Map<String, dynamic> m) =>
 bool _isAdminRole(Map<String, dynamic> m) => m['role'] == 'admin';
 
 String _expenseListTitle(BuildContext context, Map<String, dynamic> m) {
+  final amount = m['amount']?.toString() ?? '';
+  if (m['driverId'] == null) {
+    return '${context.l10n.stationExpenses} · $amount';
+  }
   final driver = m['driver'] as Map<String, dynamic>?;
   final name = driver?['fullName']?.toString().trim() ?? '';
-  final amount = m['amount']?.toString() ?? '';
   if (name.isEmpty) return amount;
   return '$name · $amount';
 }

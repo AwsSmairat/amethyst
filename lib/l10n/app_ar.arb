@@ -144,6 +144,29 @@
   "chooseExpenseCategory": "اختر نوع المصروف",
   "expenseDetailOptional": "تفاصيل إضافية (اختياري)",
   "otherExpenseDescriptionOptional": "وصف المصروف (اختياري)",
+  "stationExpenses": "مصاريف المحطة",
+  "expenseTankWater": "تنك مي",
+  "expenseCartons": "كراتين",
+  "expenseCartonsWater": "كراتين مي",
+  "expenseStaffSalaries": "رواتب موظفين",
+  "expenseWorkersWages": "رواتب عمال",
+  "stationExpenseNeedOneAmount": "أدخل مبلغاً في حقل واحد على الأقل",
+  "amountDinars": "{amount} دينار",
+  "@amountDinars": {
+    "placeholders": {
+      "amount": {"type": "String"}
+    }
+  },
+  "expenseReportTotal": "الإجمالي: {amount} دينار",
+  "@expenseReportTotal": {
+    "placeholders": {
+      "amount": {"type": "String"}
+    }
+  },
+  "expenseReportStationSource": "المحطة",
+  "recordStationExpense": "تسجيل مصاريف المحطة",
+  "openExpensesList": "عرض قائمة المصاريف",
+  "newStationExpense": "مصروف محطة جديد",
   "addExpense": "إضافة مصروف",
   "newExpense": "مصروف جديد",
   "amount": "المبلغ",

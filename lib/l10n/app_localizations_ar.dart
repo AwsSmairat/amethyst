@@ -365,6 +365,49 @@ class AppLocalizationsAr extends AppLocalizations {
   String get otherExpenseDescriptionOptional => 'وصف المصروف (اختياري)';
 
   @override
+  String get stationExpenses => 'مصاريف المحطة';
+
+  @override
+  String get expenseTankWater => 'تنك مي';
+
+  @override
+  String get expenseCartons => 'كراتين';
+
+  @override
+  String get expenseCartonsWater => 'كراتين مي';
+
+  @override
+  String get expenseStaffSalaries => 'رواتب موظفين';
+
+  @override
+  String get expenseWorkersWages => 'رواتب عمال';
+
+  @override
+  String get stationExpenseNeedOneAmount => 'أدخل مبلغاً في حقل واحد على الأقل';
+
+  @override
+  String amountDinars(String amount) {
+    return '$amount دينار';
+  }
+
+  @override
+  String expenseReportTotal(String amount) {
+    return 'الإجمالي: $amount دينار';
+  }
+
+  @override
+  String get expenseReportStationSource => 'المحطة';
+
+  @override
+  String get recordStationExpense => 'تسجيل مصاريف المحطة';
+
+  @override
+  String get openExpensesList => 'عرض قائمة المصاريف';
+
+  @override
+  String get newStationExpense => 'مصروف محطة جديد';
+
+  @override
   String get addExpense => 'إضافة مصروف';
 
   @override

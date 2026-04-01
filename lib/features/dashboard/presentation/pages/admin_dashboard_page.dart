@@ -1,5 +1,6 @@
 import 'package:amethyst/core/l10n/context_l10n.dart';
 import 'package:amethyst/core/theme/app_colors.dart';
+import 'package:amethyst/features/admin/presentation/widgets/add_station_expense_sheet.dart';
 import 'package:amethyst/features/admin/presentation/widgets/add_station_sale_sheet.dart';
 import 'package:amethyst/features/admin/presentation/widgets/add_vehicle_load_sheet.dart';
 import 'package:flutter/material.dart';
@@ -128,6 +129,61 @@ class AdminDashboardPage extends StatelessWidget {
                     child: TextButton(
                       onPressed: () => context.push('/admin/station-sales'),
                       child: Text(l10n.openStationSalesList),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+          Card(
+            elevation: 0,
+            color: AppColors.surfaceLowest,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: <Widget>[
+                  Row(
+                    children: <Widget>[
+                      Icon(
+                        Icons.payments_outlined,
+                        color: AppColors.primary,
+                        size: 28,
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          l10n.stationExpenses,
+                          style: theme.textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    l10n.recordStationExpense,
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: AppColors.onSurfaceVariant,
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  FilledButton.icon(
+                    onPressed: () => showAddStationExpenseSheet(context),
+                    icon: const Icon(Icons.add),
+                    label: Text(l10n.addExpense),
+                  ),
+                  const SizedBox(height: 4),
+                  Align(
+                    alignment: AlignmentDirectional.centerStart,
+                    child: TextButton(
+                      onPressed: () => context.push('/admin/expenses'),
+                      child: Text(l10n.openExpensesList),
                     ),
                   ),
                 ],
