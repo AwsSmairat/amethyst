@@ -1,6 +1,8 @@
 import 'package:amethyst/core/theme/app_colors.dart';
 import 'package:amethyst/core/widgets/glass_container.dart';
 import 'package:amethyst/di/injection.dart';
+import 'package:amethyst/features/auth/presentation/cubit/auth_cubit.dart';
+import 'package:amethyst/features/auth/presentation/cubit/auth_state.dart';
 import 'package:amethyst/features/user_dashboard/domain/entities/driver_dashboard.dart';
 import 'package:amethyst/features/user_dashboard/presentation/cubit/user_dashboard_cubit.dart';
 import 'package:amethyst/features/user_dashboard/presentation/cubit/user_dashboard_state.dart';
@@ -8,16 +10,45 @@ import 'package:amethyst/features/user_dashboard/presentation/widgets/primary_gr
 import 'package:amethyst/features/user_dashboard/presentation/widgets/quick_action_button.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
 
-class UserDashboardPage extends StatelessWidget {
-  const UserDashboardPage({super.key});
+class DriverDashboardPage extends StatelessWidget {
+  const DriverDashboardPage({super.key});
 
   @override
   Widget build(BuildContext context) {
     return BlocProvider<UserDashboardCubit>(
-      create: (_) => sl<UserDashboardCubit>()..load(),
-      child: const _UserDashboardView(),
+      create: (_) => sl<UserDashboardCubit>(),
+      child: const _DriverDashboardLoader(),
     );
+  }
+}
+
+class _DriverDashboardLoader extends StatefulWidget {
+  const _DriverDashboardLoader();
+
+  @override
+  State<_DriverDashboardLoader> createState() => _DriverDashboardLoaderState();
+}
+
+class _DriverDashboardLoaderState extends State<_DriverDashboardLoader> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) {
+        return;
+      }
+      final AuthState auth = context.read<AuthCubit>().state;
+      final String name =
+          auth is AuthAuthenticated ? auth.user.fullName : 'Driver';
+      context.read<UserDashboardCubit>().load(driverDisplayName: name);
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return const _UserDashboardView();
   }
 }
 
@@ -45,7 +76,7 @@ class _UserDashboardView extends StatelessWidget {
                   child: _TopAppBar(title: dashboard.title),
                 ),
                 SliverPadding(
-                  padding: const EdgeInsets.fromLTRB(20, 18, 20, 140),
+                  padding: const EdgeInsets.fromLTRB(20, 18, 20, 32),
                   sliver: SliverList(
                     delegate: SliverChildListDelegate.fixed(<Widget>[
                       _DriverStatusCard(dashboard: dashboard),
@@ -68,7 +99,6 @@ class _UserDashboardView extends StatelessWidget {
           },
         ),
       ),
-      bottomNavigationBar: const _BottomNavBar(),
     );
   }
 }
@@ -260,7 +290,7 @@ class _QuickActionsRow extends StatelessWidget {
             icon: Icons.add_shopping_cart,
             label: 'Add Sale',
             tint: AppColors.success,
-            onTap: () {},
+            onTap: () => context.go('/driver/sales'),
           ),
         ),
         const SizedBox(width: 12),
@@ -269,7 +299,7 @@ class _QuickActionsRow extends StatelessWidget {
             icon: Icons.payments,
             label: 'Add Expense',
             tint: AppColors.error,
-            onTap: () {},
+            onTap: () => context.go('/driver/expenses'),
           ),
         ),
         const SizedBox(width: 12),
@@ -278,7 +308,7 @@ class _QuickActionsRow extends StatelessWidget {
             icon: Icons.assignment_return,
             label: 'Log Return',
             tint: AppColors.primary,
-            onTap: () {},
+            onTap: () => context.go('/driver/loads'),
           ),
         ),
       ],
@@ -677,103 +707,3 @@ class _RouteMapCard extends StatelessWidget {
     );
   }
 }
-
-class _BottomNavBar extends StatelessWidget {
-  const _BottomNavBar();
-
-  @override
-  Widget build(BuildContext context) {
-    return GlassContainer(
-      borderRadius: const BorderRadius.only(
-        topLeft: Radius.circular(24),
-        topRight: Radius.circular(24),
-      ),
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 22),
-      blurSigma: 12,
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceAround,
-        children: <Widget>[
-          _NavItem(
-            label: 'Dashboard',
-            icon: Icons.dashboard,
-            selected: true,
-          ),
-          const _NavItem(label: 'Sales', icon: Icons.receipt_long),
-          const _NavItem(label: 'Expenses', icon: Icons.payments),
-          const _NavItem(label: 'Notes', icon: Icons.description),
-        ],
-      ),
-    );
-  }
-}
-
-class _NavItem extends StatelessWidget {
-  const _NavItem({
-    required this.label,
-    required this.icon,
-    this.selected = false,
-  });
-
-  final String label;
-  final IconData icon;
-  final bool selected;
-
-  @override
-  Widget build(BuildContext context) {
-    if (selected) {
-      return DecoratedBox(
-        decoration: BoxDecoration(
-          gradient: AppColors.primaryGradient,
-          borderRadius: BorderRadius.circular(16),
-          boxShadow: const <BoxShadow>[
-            BoxShadow(
-              color: Color.fromRGBO(11, 111, 164, 0.20),
-              blurRadius: 20,
-              offset: Offset(0, 10),
-            ),
-          ],
-        ),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: <Widget>[
-              Icon(icon, color: Colors.white),
-              const SizedBox(height: 4),
-              Text(
-                label.toUpperCase(),
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 10,
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: 0.8,
-                ),
-              ),
-            ],
-          ),
-        ),
-      );
-    }
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 8),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: <Widget>[
-          Icon(icon, color: AppColors.onSurfaceVariant.withValues(alpha: 0.55)),
-          const SizedBox(height: 4),
-          Text(
-            label.toUpperCase(),
-            style: TextStyle(
-              color: AppColors.onSurfaceVariant.withValues(alpha: 0.55),
-              fontSize: 10,
-              fontWeight: FontWeight.w700,
-              letterSpacing: 0.8,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-

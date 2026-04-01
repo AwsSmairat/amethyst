@@ -1,4 +1,15 @@
-import 'package:amethyst/features/user_dashboard/data/datasources/user_dashboard_local_datasource.dart';
+import 'package:amethyst/core/data/amethyst_api.dart';
+import 'package:amethyst/core/network/dio_client.dart';
+import 'package:amethyst/core/storage/secure_token_storage.dart';
+import 'package:amethyst/features/auth/data/repositories/auth_repository_impl.dart';
+import 'package:amethyst/features/auth/domain/repositories/auth_repository.dart';
+import 'package:amethyst/features/auth/domain/usecases/load_session_usecase.dart';
+import 'package:amethyst/features/auth/domain/usecases/login_usecase.dart';
+import 'package:amethyst/features/auth/domain/usecases/logout_usecase.dart';
+import 'package:amethyst/features/auth/presentation/cubit/auth_cubit.dart';
+import 'package:amethyst/features/record_operations/data/repositories/record_operations_repository_impl.dart';
+import 'package:amethyst/features/record_operations/domain/repositories/record_operations_repository.dart';
+import 'package:amethyst/features/record_operations/domain/usecases/record_operation_usecases.dart';
 import 'package:amethyst/features/user_dashboard/data/repositories/user_dashboard_repository_impl.dart';
 import 'package:amethyst/features/user_dashboard/domain/repositories/user_dashboard_repository.dart';
 import 'package:amethyst/features/user_dashboard/domain/usecases/get_driver_dashboard_usecase.dart';
@@ -8,22 +19,75 @@ import 'package:get_it/get_it.dart';
 final GetIt sl = GetIt.instance;
 
 void setupDependencies() {
-  // User Dashboard - data
-  sl.registerLazySingleton<UserDashboardLocalDataSource>(
-    () => const UserDashboardLocalDataSource(),
+  sl.registerLazySingleton<TokenStorage>(FallbackTokenStorage.new);
+
+  sl.registerLazySingleton<DioClient>(
+    () => DioClient(
+      tokenStorage: sl<TokenStorage>(),
+      onUnauthorized: () {
+        if (sl.isRegistered<AuthCubit>()) {
+          sl<AuthCubit>().handleUnauthorized();
+        }
+      },
+    ),
   );
+
+  sl.registerLazySingleton<AmethystApi>(
+    () => AmethystApi(sl<DioClient>()),
+  );
+
+  sl.registerLazySingleton<AuthRepository>(
+    () => AuthRepositoryImpl(
+      api: sl<AmethystApi>(),
+      tokenStorage: sl<TokenStorage>(),
+    ),
+  );
+
+  sl.registerLazySingleton<LoginUseCase>(
+    () => LoginUseCase(sl<AuthRepository>()),
+  );
+  sl.registerLazySingleton<LoadSessionUseCase>(
+    () => LoadSessionUseCase(sl<AuthRepository>()),
+  );
+  sl.registerLazySingleton<LogoutUseCase>(
+    () => LogoutUseCase(sl<AuthRepository>()),
+  );
+
+  sl.registerLazySingleton<AuthCubit>(
+    () => AuthCubit(
+      loginUseCase: sl<LoginUseCase>(),
+      loadSessionUseCase: sl<LoadSessionUseCase>(),
+      logoutUseCase: sl<LogoutUseCase>(),
+      tokenStorage: sl<TokenStorage>(),
+    ),
+  );
+
+  sl.registerLazySingleton<RecordOperationsRepository>(
+    () => RecordOperationsRepositoryImpl(sl<AmethystApi>()),
+  );
+
+  sl.registerLazySingleton<CreateVehicleSaleUseCase>(
+    () => CreateVehicleSaleUseCase(sl<RecordOperationsRepository>()),
+  );
+  sl.registerLazySingleton<CreateExpenseUseCase>(
+    () => CreateExpenseUseCase(sl<RecordOperationsRepository>()),
+  );
+  sl.registerLazySingleton<CreateReturnUseCase>(
+    () => CreateReturnUseCase(sl<RecordOperationsRepository>()),
+  );
+  sl.registerLazySingleton<CreateVehicleLoadUseCase>(
+    () => CreateVehicleLoadUseCase(sl<RecordOperationsRepository>()),
+  );
+
   sl.registerLazySingleton<UserDashboardRepository>(
-    () => UserDashboardRepositoryImpl(localDataSource: sl()),
+    () => UserDashboardRepositoryImpl(api: sl<AmethystApi>()),
   );
 
-  // User Dashboard - domain
   sl.registerLazySingleton<GetDriverDashboardUseCase>(
-    () => GetDriverDashboardUseCase(repository: sl()),
+    () => GetDriverDashboardUseCase(repository: sl<UserDashboardRepository>()),
   );
 
-  // User Dashboard - presentation
   sl.registerFactory<UserDashboardCubit>(
-    () => UserDashboardCubit(getDashboard: sl()),
+    () => UserDashboardCubit(getDashboard: sl<GetDriverDashboardUseCase>()),
   );
 }
-

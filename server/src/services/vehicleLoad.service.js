@@ -20,15 +20,14 @@ export async function listVehicleLoads(query, actor) {
 
   const where = {};
   if (actor.role === 'driver') {
-    where.driverId = actor.id;
-  }
-  if (query.vehicleId) where.vehicleId = query.vehicleId;
-  if (query.driverId) {
-    if (actor.role === 'driver' && query.driverId !== actor.id) {
+    if (query.driverId && query.driverId !== actor.id) {
       throw new AppError('Forbidden', 403, 'FORBIDDEN');
     }
+    where.driverId = actor.id;
+  } else if (query.driverId) {
     where.driverId = query.driverId;
   }
+  if (query.vehicleId) where.vehicleId = query.vehicleId;
   if (query.productId) where.productId = query.productId;
   if (query.status) where.status = query.status;
 

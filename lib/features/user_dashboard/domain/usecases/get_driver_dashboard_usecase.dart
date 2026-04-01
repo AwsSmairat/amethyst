@@ -7,6 +7,7 @@ class GetDriverDashboardUseCase {
 
   final UserDashboardRepository _repository;
 
-  Future<DriverDashboard> call() => _repository.getDriverDashboard();
+  Future<DriverDashboard> call({required String driverDisplayName}) =>
+      _repository.getDriverDashboard(driverDisplayName: driverDisplayName);
 }
 

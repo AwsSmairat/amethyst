@@ -9,10 +9,10 @@ class UserDashboardCubit extends Cubit<UserDashboardState> {
 
   final GetDriverDashboardUseCase _getDashboard;
 
-  Future<void> load() async {
+  Future<void> load({required String driverDisplayName}) async {
     emit(const UserDashboardLoading());
     try {
-      final dashboard = await _getDashboard();
+      final dashboard = await _getDashboard(driverDisplayName: driverDisplayName);
       emit(UserDashboardLoaded(dashboard));
     } catch (e) {
       emit(UserDashboardError(e.toString()));

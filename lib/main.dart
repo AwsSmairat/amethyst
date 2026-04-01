@@ -1,24 +1,26 @@
-import 'package:flutter/material.dart';
-
-import 'package:amethyst/core/theme/app_theme.dart';
+import 'package:amethyst/app/app.dart';
+import 'package:amethyst/app/router/app_router.dart';
 import 'package:amethyst/di/injection.dart';
-import 'package:amethyst/features/user_dashboard/presentation/pages/user_dashboard_page.dart';
+import 'package:amethyst/features/auth/presentation/cubit/auth_cubit.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
 
-void main() {
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
   setupDependencies();
-  runApp(const MyApp());
-}
-
-class MyApp extends StatelessWidget {
-  const MyApp({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Amethyst',
-      debugShowCheckedModeBanner: false,
-      theme: AppTheme.light(),
-      home: const UserDashboardPage(),
-    );
+  final AuthCubit authCubit = sl<AuthCubit>();
+  try {
+    await authCubit.checkSession();
+  } on Object catch (e, st) {
+    debugPrint('checkSession failed: $e\n$st');
+    await authCubit.logout();
   }
+  final GoRouter router = createAppRouter(authCubit);
+  runApp(
+    BlocProvider<AuthCubit>.value(
+      value: authCubit,
+      child: AmethystApp(router: router),
+    ),
+  );
 }

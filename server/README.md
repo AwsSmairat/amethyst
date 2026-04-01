@@ -58,11 +58,15 @@ Base path for JSON resources: **`/api`**
    npm run dev
    ```
 
-7. **Smoke-test public routes** (with the server running)
+7. **Smoke-test routes** (with the server running — from the `server` directory)
 
    ```bash
    npm run verify:routes
+   npm run verify:protected
    ```
+
+   - `verify:routes` — public endpoints (`/`, `/api/health`, `/api/docs`, OpenAPI).
+   - `verify:protected` — login as seeded **super_admin**, **admin**, **driver**; checks `/auth/me`, RBAC on dashboards/users, driver isolation on vehicle sales / expenses / loads. Requires DB seed.
 
 ## URLs
 
@@ -73,6 +77,7 @@ Base path for JSON resources: **`/api`**
 | `GET /api/health` | API health JSON |
 | `GET /api/docs` | **Swagger UI** |
 | `GET /api/openapi.json` | OpenAPI document |
+| **Swagger UI** | **[http://localhost:4000/api/docs](http://localhost:4000/api/docs)** — try endpoints with **Authorize** (Bearer JWT from login) |
 
 ## Seeded accounts
 
@@ -180,9 +185,74 @@ All dashboard endpoints return:
 
 ## Security behavior (summary)
 
+| Role | Access |
+|------|--------|
+| **super_admin** | All management routes; `POST /users`; `DELETE /users`; `GET /dashboard/super-admin`; can also use `GET /dashboard/admin`. |
+| **admin** | Operations + `GET /dashboard/admin`; **cannot** `POST /users`, `DELETE /users`, or `GET /dashboard/super-admin` / `GET /dashboard/driver`. User list excludes `super_admin`. |
+| **driver** | Vehicle/expense/sales flows for **own** data; `GET /dashboard/driver`; **cannot** list users or station sales. |
+
 - **Driver**: list/detail endpoints for sales, expenses, loads, vehicles filter to the authenticated driver (`driverId === req.user.id`) or assigned vehicle where required.
-- **Admin**: cannot create `super_admin`; user lists exclude `super_admin`; cannot manage other admins except self where enforced in services.
-- **Super admin**: full system access where routes allow.
+- **Admin**: cannot create users (`POST /users` is super_admin-only); cannot delete users; user lists exclude `super_admin`; cannot change another admin’s account (service rules).
+- **Super admin**: full management access where routes allow.
+
+## Common test flow
+
+1. Start Postgres, run migrations, **seed** (`npx prisma db seed`).
+2. `npm run dev` in `server/`.
+3. `npm run verify:routes` then `npm run verify:protected`.
+4. Open **[http://localhost:4000/api/docs](http://localhost:4000/api/docs)** → **Authorize** → `Bearer <token>` from `POST /auth/login`.
+5. Exercise modules (users, products, vehicles, loads, sales, expenses, dashboards) from Swagger or curl below.
+
+## Example curl commands
+
+Set the base URL and token after login:
+
+```bash
+export API=http://localhost:4000/api
+
+# Login (super admin)
+curl -s -X POST "$API/auth/login" \
+  -H "Content-Type: application/json" \
+  -d '{"email":"super@amethyst.local","password":"SuperAdmin123!"}'
+
+export TOKEN="<paste data.token from response>"
+
+# Me
+curl -s "$API/auth/me" -H "Authorization: Bearer $TOKEN"
+
+# List products
+curl -s "$API/products?page=1&limit=10" -H "Authorization: Bearer $TOKEN"
+
+# Create product (admin or super_admin token)
+curl -s -X POST "$API/products" \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"name":"Water Bottle","type":"bottle","price":1.5,"stock":100}'
+
+# Create vehicle load — replace UUIDs from GET /vehicles, GET /users (driver), GET /products
+curl -s -X POST "$API/vehicle-loads" \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"vehicleId":"<uuid>","driverId":"<uuid>","productId":"<uuid>","quantityLoaded":20,"loadDate":"2026-04-01"}'
+
+# Vehicle sale — use driver token; vehicle must belong to that driver
+export DRIVER_TOKEN="<login as driver1@amethyst.local>"
+curl -s -X POST "$API/vehicle-sales" \
+  -H "Authorization: Bearer $DRIVER_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"vehicleId":"<uuid>","productId":"<uuid>","quantity":1,"unitPrice":1.5}'
+
+# Expense (driver)
+curl -s -X POST "$API/expenses" \
+  -H "Authorization: Bearer $DRIVER_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"amount":10,"note":"Fuel","vehicleId":"<uuid>"}'
+
+# Dashboards
+curl -s "$API/dashboard/super-admin" -H "Authorization: Bearer $TOKEN"
+curl -s "$API/dashboard/admin" -H "Authorization: Bearer $TOKEN"
+curl -s "$API/dashboard/driver" -H "Authorization: Bearer $DRIVER_TOKEN"
+```
 
 ## Example requests & responses
 
@@ -246,6 +316,7 @@ Import **`docs/postman_collection.json`**. Set variables `baseUrl` = `http://loc
 | `npm run dev` | Dev server with watch |
 | `npm start` | Production start |
 | `npm run verify:routes` | Public route smoke test |
+| `npm run verify:protected` | Auth + RBAC + driver isolation (needs seed + running server) |
 | `npx prisma studio` | DB browser |
 | `npx prisma migrate dev` | Create/apply migrations |
 

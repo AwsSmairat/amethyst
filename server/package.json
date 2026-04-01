@@ -12,7 +12,8 @@
     "db:push": "prisma db push",
     "db:seed": "node prisma/seed.js",
     "db:studio": "prisma studio",
-    "verify:routes": "node scripts/verify-routes.mjs"
+    "verify:routes": "node scripts/verify-routes.mjs",
+    "verify:protected": "node scripts/verify-protected.mjs"
   },
   "engines": {
     "node": ">=18"
