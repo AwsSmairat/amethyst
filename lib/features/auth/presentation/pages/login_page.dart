@@ -1,3 +1,4 @@
+import 'package:amethyst/core/l10n/context_l10n.dart';
 import 'package:amethyst/core/theme/app_colors.dart';
 import 'package:amethyst/core/widgets/brand_mark.dart';
 import 'package:amethyst/features/auth/presentation/cubit/auth_cubit.dart';
@@ -94,7 +95,7 @@ class _LoginStoreLogo extends StatelessWidget {
   Widget build(BuildContext context) {
     return Center(
       child: Semantics(
-        label: 'Amethyst',
+        label: context.l10n.brandSemantic,
         child: Container(
           width: _size,
           height: _size,
@@ -167,7 +168,7 @@ class _LoginFormPanel extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: <Widget>[
             Text(
-              'Sign in',
+              context.l10n.signIn,
               textAlign: TextAlign.center,
               style: textTheme.titleLarge?.copyWith(
                 fontWeight: FontWeight.w800,
@@ -176,7 +177,7 @@ class _LoginFormPanel extends StatelessWidget {
             ),
             const SizedBox(height: 6),
             Text(
-              'Use your Amethyst account',
+              context.l10n.signInSubtitle,
               textAlign: TextAlign.center,
               style: textTheme.bodySmall?.copyWith(
                 color: AppColors.onSurfaceVariant,
@@ -188,12 +189,12 @@ class _LoginFormPanel extends StatelessWidget {
               keyboardType: TextInputType.emailAddress,
               autocorrect: false,
               textInputAction: TextInputAction.next,
-              decoration: const InputDecoration(
-                labelText: 'Email',
-                prefixIcon: Icon(Icons.email_outlined),
+              decoration: InputDecoration(
+                labelText: context.l10n.email,
+                prefixIcon: const Icon(Icons.email_outlined),
               ),
               validator: (String? v) =>
-                  v == null || v.trim().isEmpty ? 'Enter email' : null,
+                  v == null || v.trim().isEmpty ? context.l10n.enterEmail : null,
             ),
             const SizedBox(height: 16),
             TextFormField(
@@ -201,12 +202,12 @@ class _LoginFormPanel extends StatelessWidget {
               obscureText: true,
               textInputAction: TextInputAction.done,
               onFieldSubmitted: (_) => onSubmit(),
-              decoration: const InputDecoration(
-                labelText: 'Password',
-                prefixIcon: Icon(Icons.lock_outline),
+              decoration: InputDecoration(
+                labelText: context.l10n.password,
+                prefixIcon: const Icon(Icons.lock_outline),
               ),
               validator: (String? v) =>
-                  v == null || v.isEmpty ? 'Enter password' : null,
+                  v == null || v.isEmpty ? context.l10n.enterPassword : null,
             ),
             const SizedBox(height: 24),
             BlocConsumer<AuthCubit, AuthState>(
@@ -237,7 +238,7 @@ class _LoginFormPanel extends StatelessWidget {
                             color: Colors.white,
                           ),
                         )
-                      : const Text('Sign in'),
+                      : Text(context.l10n.signIn),
                 );
               },
             ),

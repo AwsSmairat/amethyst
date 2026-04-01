@@ -1,3 +1,4 @@
+import 'package:amethyst/core/l10n/context_l10n.dart';
 import 'package:amethyst/core/theme/app_colors.dart';
 import 'package:amethyst/core/widgets/brand_mark.dart';
 import 'package:amethyst/features/auth/presentation/cubit/auth_cubit.dart';
@@ -18,20 +19,20 @@ class AdminShell extends StatelessWidget {
       appBar: AppBar(
         title: Row(
           mainAxisSize: MainAxisSize.min,
-          children: const <Widget>[
-            BrandMarkSmall(size: 32),
-            SizedBox(width: 10),
-            Text('Admin'),
+          children: <Widget>[
+            const BrandMarkSmall(size: 32),
+            const SizedBox(width: 10),
+            Text(context.l10n.admin),
           ],
         ),
         actions: <Widget>[
           IconButton(
-            tooltip: 'Profile',
+            tooltip: context.l10n.profileTooltip,
             onPressed: () => context.go('/admin/profile'),
             icon: const Icon(Icons.person_outline),
           ),
           IconButton(
-            tooltip: 'Sign out',
+            tooltip: context.l10n.signOutTooltip,
             onPressed: () => context.read<AuthCubit>().logout(),
             icon: const Icon(Icons.logout),
           ),
@@ -51,8 +52,9 @@ class AdminShell extends StatelessWidget {
                   const SizedBox(height: 12),
                   BlocBuilder<AuthCubit, AuthState>(
                     builder: (context, state) {
-                      final name =
-                          state is AuthAuthenticated ? state.user.fullName : 'Admin';
+                      final name = state is AuthAuthenticated
+                          ? state.user.fullName
+                          : context.l10n.adminDrawerFallback;
                       return Text(
                         name,
                         style: const TextStyle(
@@ -66,12 +68,12 @@ class AdminShell extends StatelessWidget {
                 ],
               ),
             ),
-            _tile(context, path, '/admin/dashboard', Icons.dashboard, 'Dashboard'),
-            _tile(context, path, '/admin/vehicle-loads', Icons.upload, 'Vehicle loads'),
-            _tile(context, path, '/admin/station-sales', Icons.storefront, 'Station sales'),
-            _tile(context, path, '/admin/vehicle-sales', Icons.receipt_long, 'Vehicle sales'),
-            _tile(context, path, '/admin/products', Icons.inventory_2, 'Inventory'),
-            _tile(context, path, '/admin/returns', Icons.assignment_return, 'Returns'),
+            _tile(context, path, '/admin/dashboard', Icons.dashboard, context.l10n.dashboard),
+            _tile(context, path, '/admin/vehicle-loads', Icons.upload, context.l10n.vehicleLoads),
+            _tile(context, path, '/admin/station-sales', Icons.storefront, context.l10n.stationSales),
+            _tile(context, path, '/admin/vehicle-sales', Icons.receipt_long, context.l10n.vehicleSales),
+            _tile(context, path, '/admin/products', Icons.inventory_2, context.l10n.inventoryMenu),
+            _tile(context, path, '/admin/returns', Icons.assignment_return, context.l10n.returns),
           ],
         ),
       ),

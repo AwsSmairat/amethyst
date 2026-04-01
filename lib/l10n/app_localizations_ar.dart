@@ -1,0 +1,540 @@
+// ignore: unused_import
+import 'package:intl/intl.dart' as intl;
+import 'app_localizations.dart';
+
+// ignore_for_file: type=lint
+
+/// The translations for Arabic (`ar`).
+class AppLocalizationsAr extends AppLocalizations {
+  AppLocalizationsAr([String locale = 'ar']) : super(locale);
+
+  @override
+  String get appTitle => 'أماتيست';
+
+  @override
+  String get retry => 'إعادة المحاولة';
+
+  @override
+  String get notFound => 'غير موجود';
+
+  @override
+  String get unknownReport => 'تقرير غير معروف';
+
+  @override
+  String get nothingHereYet => 'لا يوجد شيء بعد.';
+
+  @override
+  String get noSalesDaysRecorded => 'لا توجد أيام مبيعات مسجّلة بعد.';
+
+  @override
+  String get signIn => 'تسجيل الدخول';
+
+  @override
+  String get signInSubtitle => 'استخدم حساب أماتيست';
+
+  @override
+  String get email => 'البريد الإلكتروني';
+
+  @override
+  String get password => 'كلمة المرور';
+
+  @override
+  String get enterEmail => 'أدخل البريد الإلكتروني';
+
+  @override
+  String get enterPassword => 'أدخل كلمة المرور';
+
+  @override
+  String get profile => 'الملف الشخصي';
+
+  @override
+  String get notSignedIn => 'غير مسجّل الدخول';
+
+  @override
+  String get name => 'الاسم';
+
+  @override
+  String get emailLabel => 'البريد';
+
+  @override
+  String get role => 'الدور';
+
+  @override
+  String get phone => 'الهاتف';
+
+  @override
+  String get status => 'الحالة';
+
+  @override
+  String get active => 'نشط';
+
+  @override
+  String get inactive => 'غير نشط';
+
+  @override
+  String get superAdmin => 'مسؤول عام';
+
+  @override
+  String get admin => 'مدير';
+
+  @override
+  String get driver => 'سائق';
+
+  @override
+  String get dashboard => 'لوحة التحكم';
+
+  @override
+  String get users => 'المستخدمون';
+
+  @override
+  String get admins => 'المديرون';
+
+  @override
+  String get products => 'المنتجات';
+
+  @override
+  String get vehicles => 'المركبات';
+
+  @override
+  String get vehicleLoads => 'تحميلات المركبات';
+
+  @override
+  String get stationSales => 'مبيعات المحطة';
+
+  @override
+  String get vehicleSales => 'مبيعات المركبات';
+
+  @override
+  String get expenses => 'المصاريف';
+
+  @override
+  String get reports => 'التقارير';
+
+  @override
+  String get inventoryMenu => 'المخزون';
+
+  @override
+  String get returns => 'المرتجعات';
+
+  @override
+  String get signOut => 'تسجيل الخروج';
+
+  @override
+  String get profileTooltip => 'الملف الشخصي';
+
+  @override
+  String get overview => 'نظرة عامة';
+
+  @override
+  String get operations => 'العمليات';
+
+  @override
+  String get stockSnapshot => 'المخزون';
+
+  @override
+  String get remainingStock => 'المخزون المتبقي';
+
+  @override
+  String stockLine(String station, String vehicle) {
+    return 'المحطة: $station · على المركبات: $vehicle';
+  }
+
+  @override
+  String get kpiUsers => 'المستخدمون';
+
+  @override
+  String get kpiAdmins => 'المديرون';
+
+  @override
+  String get kpiDrivers => 'السائقون';
+
+  @override
+  String get kpiVehicles => 'المركبات';
+
+  @override
+  String get salesToday => 'مبيعات اليوم';
+
+  @override
+  String get profitToday => 'ربح اليوم';
+
+  @override
+  String get expensesToday => 'مصاريف اليوم';
+
+  @override
+  String get monthlyExpenses => 'المصاريف الشهرية';
+
+  @override
+  String get monthlySales => 'المبيعات الشهرية';
+
+  @override
+  String get chipSalesToday => 'مبيعات اليوم';
+
+  @override
+  String get chipStation => 'المحطة';
+
+  @override
+  String get chipVehicle => 'المركبة';
+
+  @override
+  String get chipReturnsQty => 'المرتجعات (كمية)';
+
+  @override
+  String get chipMonthlySales => 'المبيعات الشهرية';
+
+  @override
+  String get chipActiveDrivers => 'السائقون النشطون';
+
+  @override
+  String get chipLoadsToday => 'التحميلات اليوم';
+
+  @override
+  String get revenue => 'الإيرادات';
+
+  @override
+  String get netProfit => 'صافي الربح';
+
+  @override
+  String get noExpensesPeriod => 'لا مصاريف في هذه الفترة.';
+
+  @override
+  String stationSalesAmount(String amount) {
+    return 'مبيعات المحطة: $amount';
+  }
+
+  @override
+  String vehicleSalesAmount(String amount) {
+    return 'مبيعات المركبات: $amount';
+  }
+
+  @override
+  String combinedSales(String amount) {
+    return 'الإجمالي: $amount';
+  }
+
+  @override
+  String transactionsSummary(int stationCount, int vehicleCount) {
+    return 'معاملات: $stationCount محطة · $vehicleCount مركبة';
+  }
+
+  @override
+  String salesTotal(String amount) {
+    return 'إجمالي المبيعات: $amount';
+  }
+
+  @override
+  String get daysWithSales => 'أيام المبيعات';
+
+  @override
+  String get titleUsers => 'المستخدمون';
+
+  @override
+  String get titleAdmins => 'المديرون';
+
+  @override
+  String get titleProducts => 'المنتجات';
+
+  @override
+  String get titleVehicles => 'المركبات';
+
+  @override
+  String get titleVehicleLoads => 'تحميلات المركبات';
+
+  @override
+  String get titleStationSales => 'مبيعات المحطة';
+
+  @override
+  String get titleVehicleSales => 'مبيعات المركبات';
+
+  @override
+  String get titleExpenses => 'المصاريف';
+
+  @override
+  String get titleInventoryProducts => 'المخزون · المنتجات';
+
+  @override
+  String get titleReturns => 'المرتجعات';
+
+  @override
+  String get addLoad => 'إضافة تحميل';
+
+  @override
+  String get driverAssigned => 'سائق معيّن';
+
+  @override
+  String get noDriver => 'بدون سائق';
+
+  @override
+  String loadSubtitle(String status, String qty) {
+    return '$status · كمية $qty';
+  }
+
+  @override
+  String get reportsTitle => 'التقارير';
+
+  @override
+  String get inventory => 'المخزون';
+
+  @override
+  String get profitLoss => 'الأرباح والخسائر';
+
+  @override
+  String get currentVehicle => 'المركبة الحالية';
+
+  @override
+  String get shiftTime => 'الوردية';
+
+  @override
+  String get statusLabel => 'الحالة';
+
+  @override
+  String get quickAddSale => 'بيع';
+
+  @override
+  String get quickAddExpense => 'مصروف';
+
+  @override
+  String get quickLogReturn => 'إرجاع';
+
+  @override
+  String get todaysInventory => 'مخزون اليوم';
+
+  @override
+  String get updatedAgo => 'محدّث منذ دقيقتين';
+
+  @override
+  String get itemHeader => 'الصنف';
+
+  @override
+  String get loaded => 'المحمّل';
+
+  @override
+  String get sold => 'المباع';
+
+  @override
+  String get left => 'المتبقي';
+
+  @override
+  String get expensesSection => 'المصاريف';
+
+  @override
+  String get dailyNotes => 'ملاحظات اليوم';
+
+  @override
+  String get notesFromExpenses => 'من المصاريف';
+
+  @override
+  String get routeMapTitle => 'المسار';
+
+  @override
+  String get routeMapSubtitle => 'عرض تفاعلي قريباً';
+
+  @override
+  String get navHome => 'الرئيسية';
+
+  @override
+  String get navSales => 'المبيعات';
+
+  @override
+  String get navExpenses => 'المصاريف';
+
+  @override
+  String get navLoads => 'التحميلات';
+
+  @override
+  String get navNotes => 'الملاحظات';
+
+  @override
+  String get myExpenses => 'مصاريفي';
+
+  @override
+  String get addExpense => 'إضافة مصروف';
+
+  @override
+  String get newExpense => 'مصروف جديد';
+
+  @override
+  String get amount => 'المبلغ';
+
+  @override
+  String get noteOptional => 'ملاحظة (اختياري)';
+
+  @override
+  String get save => 'حفظ';
+
+  @override
+  String get expenseSaved => 'تم حفظ المصروف';
+
+  @override
+  String get brandSemantic => 'أماتيست';
+
+  @override
+  String get titleInventory => 'المخزون';
+
+  @override
+  String get profitTodayDetail => 'ربح اليوم';
+
+  @override
+  String get expensesTodayDetail => 'مصاريف اليوم';
+
+  @override
+  String get monthlyExpensesDetail => 'المصاريف الشهرية';
+
+  @override
+  String get monthlySalesDetail => 'المبيعات الشهرية';
+
+  @override
+  String get myVehicleSales => 'مبيعات مركبتي';
+
+  @override
+  String get notesAndSummary => 'ملاحظات وملخص';
+
+  @override
+  String get currentLoads => 'التحميلات الحالية';
+
+  @override
+  String get product => 'منتج';
+
+  @override
+  String get addSale => 'إضافة بيع';
+
+  @override
+  String qtyAmountSubtitle(String qty, String amount) {
+    return 'الكمية $qty · $amount';
+  }
+
+  @override
+  String amountNoteSubtitle(String amount, String note) {
+    return '$amount · $note';
+  }
+
+  @override
+  String get signOutTooltip => 'تسجيل الخروج';
+
+  @override
+  String get sectionToday => 'اليوم';
+
+  @override
+  String unitsSoldLine(String value) {
+    return 'الوحدات المباعة: $value';
+  }
+
+  @override
+  String salesAmountLine(String value) {
+    return 'مبلغ المبيعات: $value';
+  }
+
+  @override
+  String expensesLine(String value) {
+    return 'المصاريف: $value';
+  }
+
+  @override
+  String get noNotesYet => 'لا ملاحظات بعد.';
+
+  @override
+  String get noVehicleAssignedFull => 'لا مركبة معيّنة.';
+
+  @override
+  String vehicleWithNumber(String number) {
+    return 'مركبة $number';
+  }
+
+  @override
+  String get noOpenLoads => 'لا توجد تحميلات مفتوحة.';
+
+  @override
+  String loadQuantitiesLine(
+    String loaded,
+    String sold,
+    String returned,
+    String remaining,
+  ) {
+    return 'محمّل $loaded · مباع $sold · مرتجع $returned · متبقي $remaining';
+  }
+
+  @override
+  String get submit => 'إرسال';
+
+  @override
+  String get fillAllFields => 'أكمل جميع الحقول';
+
+  @override
+  String get loadCreated => 'تم إنشاء التحميل';
+
+  @override
+  String get loadDate => 'تاريخ التحميل';
+
+  @override
+  String get createLoad => 'إنشاء تحميل';
+
+  @override
+  String get returnLogged => 'تم تسجيل الإرجاع';
+
+  @override
+  String get noOpenLoadsToReturn => 'لا توجد تحميلات مفتوحة للإرجاع.';
+
+  @override
+  String get selectLoadAndQuantity => 'اختر التحميل والكمية';
+
+  @override
+  String get checkQtyPrice => 'تحقق من الكمية والسعر';
+
+  @override
+  String get saleRecorded => 'تم تسجيل البيع';
+
+  @override
+  String get noVehicleContactAdmin => 'لا مركبة معيّنة. تواصل مع المدير.';
+
+  @override
+  String get enterValidAmount => 'أدخل مبلغاً صالحاً';
+
+  @override
+  String get newVehicleSale => 'بيع مركبة جديد';
+
+  @override
+  String get quantity => 'الكمية';
+
+  @override
+  String get unitPrice => 'سعر الوحدة';
+
+  @override
+  String get newVehicleLoad => 'تحميل مركبة جديد';
+
+  @override
+  String get vehicleField => 'المركبة';
+
+  @override
+  String get driverField => 'السائق';
+
+  @override
+  String get quantityLoaded => 'الكمية المحمّلة';
+
+  @override
+  String get loadField => 'التحميل';
+
+  @override
+  String get quantityReturned => 'الكمية المرتجعة';
+
+  @override
+  String loadDropdownItem(String product, String remaining) {
+    return '$product · متبقي $remaining';
+  }
+
+  @override
+  String get logReturnSheetTitle => 'تسجيل إرجاع';
+
+  @override
+  String get expensesSectionUpper => 'المصاريف';
+
+  @override
+  String get dailyNotesUpper => 'ملاحظات اليوم';
+
+  @override
+  String get noCriticalUpdatesToday => 'لا تحديثات مهمة لليوم بعد...';
+
+  @override
+  String get superAdminDrawerFallback => 'مسؤول عام';
+
+  @override
+  String get adminDrawerFallback => 'مدير';
+}

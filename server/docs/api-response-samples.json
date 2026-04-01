@@ -10,7 +10,7 @@
         "id": "uuid",
         "fullName": "Super Admin",
         "phone": "+10000000001",
-        "email": "super@amethyst.local",
+        "email": "sohaib@amethyst.local",
         "role": "super_admin",
         "isActive": true,
         "createdAt": "2026-04-01T00:00:00.000Z",

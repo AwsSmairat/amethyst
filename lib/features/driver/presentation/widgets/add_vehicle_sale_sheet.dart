@@ -1,4 +1,5 @@
 import 'package:amethyst/core/data/amethyst_api.dart';
+import 'package:amethyst/core/l10n/context_l10n.dart';
 import 'package:amethyst/di/injection.dart';
 import 'package:amethyst/features/record_operations/domain/usecases/record_operation_usecases.dart';
 import 'package:amethyst/features/record_operations/presentation/cubit/submit_state.dart';
@@ -85,7 +86,7 @@ class _AddVehicleSaleBodyState extends State<_AddVehicleSaleBody> {
           if (state is SubmitSuccess) {
             Navigator.of(context).pop();
             ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Sale recorded')),
+              SnackBar(content: Text(context.l10n.saleRecorded)),
             );
           }
           if (state is SubmitFailure) {
@@ -106,14 +107,15 @@ class _AddVehicleSaleBodyState extends State<_AddVehicleSaleBody> {
             return Text(_ctxError!);
           }
           if (_vehicleId == null) {
-            return const Text('No vehicle assigned. Contact an admin.');
+            return Text(context.l10n.noVehicleContactAdmin);
           }
+          final l10n = context.l10n;
           return Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: <Widget>[
               Text(
-                'New vehicle sale',
+                l10n.newVehicleSale,
                 style: Theme.of(context).textTheme.titleLarge?.copyWith(
                       fontWeight: FontWeight.w800,
                     ),
@@ -121,7 +123,7 @@ class _AddVehicleSaleBodyState extends State<_AddVehicleSaleBody> {
               const SizedBox(height: 16),
               DropdownButtonFormField<String>(
                 value: _productId,
-                decoration: const InputDecoration(labelText: 'Product'),
+                decoration: InputDecoration(labelText: l10n.product),
                 items: _products
                     .map(
                       (p) => DropdownMenuItem<String>(
@@ -138,13 +140,13 @@ class _AddVehicleSaleBodyState extends State<_AddVehicleSaleBody> {
               TextField(
                 controller: _qty,
                 keyboardType: TextInputType.number,
-                decoration: const InputDecoration(labelText: 'Quantity'),
+                decoration: InputDecoration(labelText: l10n.quantity),
               ),
               const SizedBox(height: 12),
               TextField(
                 controller: _price,
                 keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                decoration: const InputDecoration(labelText: 'Unit price'),
+                decoration: InputDecoration(labelText: l10n.unitPrice),
               ),
               const SizedBox(height: 20),
               FilledButton(
@@ -155,7 +157,7 @@ class _AddVehicleSaleBodyState extends State<_AddVehicleSaleBody> {
                         final p = double.tryParse(_price.text.trim());
                         if (q == null || q < 1 || p == null || p <= 0) {
                           ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('Check quantity and price')),
+                            SnackBar(content: Text(context.l10n.checkQtyPrice)),
                           );
                           return;
                         }
@@ -173,7 +175,7 @@ class _AddVehicleSaleBodyState extends State<_AddVehicleSaleBody> {
                         width: 22,
                         child: CircularProgressIndicator(strokeWidth: 2),
                       )
-                    : const Text('Submit'),
+                    : Text(context.l10n.submit),
               ),
             ],
           );

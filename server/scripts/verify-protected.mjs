@@ -16,8 +16,8 @@ const api = `${base}/api`;
 
 const CRED = {
   super_admin: {
-    email: process.env.E2E_SUPER_EMAIL || 'super@amethyst.local',
-    password: process.env.E2E_SUPER_PASSWORD || 'SuperAdmin123!',
+    email: process.env.E2E_SUPER_EMAIL || 'sohaib@amethyst.local',
+    password: process.env.E2E_SUPER_PASSWORD || 'sohaib123',
   },
   admin: {
     email: process.env.E2E_ADMIN_EMAIL || 'admin@amethyst.local',

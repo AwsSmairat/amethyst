@@ -1,4 +1,5 @@
 import 'package:amethyst/core/data/amethyst_api.dart';
+import 'package:amethyst/core/l10n/context_l10n.dart';
 import 'package:amethyst/di/injection.dart';
 import 'package:amethyst/features/record_operations/domain/usecases/record_operation_usecases.dart';
 import 'package:amethyst/features/record_operations/presentation/cubit/expense_submit_cubit.dart';
@@ -65,7 +66,7 @@ class _AddExpenseBodyState extends State<_AddExpenseBody> {
           if (state is SubmitSuccess) {
             Navigator.of(context).pop();
             ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Expense saved')),
+              SnackBar(content: Text(context.l10n.expenseSaved)),
             );
           }
           if (state is SubmitFailure) {
@@ -76,12 +77,13 @@ class _AddExpenseBodyState extends State<_AddExpenseBody> {
         },
         builder: (context, state) {
           final busy = state is SubmitLoading;
+          final l10n = context.l10n;
           return Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: <Widget>[
               Text(
-                'New expense',
+                l10n.newExpense,
                 style: Theme.of(context).textTheme.titleLarge?.copyWith(
                       fontWeight: FontWeight.w800,
                     ),
@@ -90,13 +92,13 @@ class _AddExpenseBodyState extends State<_AddExpenseBody> {
               TextField(
                 controller: _amount,
                 keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                decoration: const InputDecoration(labelText: 'Amount'),
+                decoration: InputDecoration(labelText: l10n.amount),
               ),
               const SizedBox(height: 12),
               TextField(
                 controller: _note,
                 maxLines: 3,
-                decoration: const InputDecoration(labelText: 'Note (optional)'),
+                decoration: InputDecoration(labelText: l10n.noteOptional),
               ),
               const SizedBox(height: 20),
               FilledButton(
@@ -106,7 +108,7 @@ class _AddExpenseBodyState extends State<_AddExpenseBody> {
                         final a = double.tryParse(_amount.text.trim());
                         if (a == null || a <= 0) {
                           ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('Enter a valid amount')),
+                            SnackBar(content: Text(context.l10n.enterValidAmount)),
                           );
                           return;
                         }
@@ -123,7 +125,7 @@ class _AddExpenseBodyState extends State<_AddExpenseBody> {
                         width: 22,
                         child: CircularProgressIndicator(strokeWidth: 2),
                       )
-                    : const Text('Submit'),
+                    : Text(context.l10n.submit),
               ),
             ],
           );

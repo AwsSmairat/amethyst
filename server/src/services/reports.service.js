@@ -75,6 +75,32 @@ export async function salesMonthly(query, actor) {
   };
 }
 
+/** Calendar days that have at least one station or vehicle sale (days with sales activity). */
+export async function salesWorkingDays(actor) {
+  requireStaff(actor);
+  const rows = await prisma.$queryRaw`
+    SELECT COALESCE(s.day, v.day)::text AS work_date,
+           (COALESCE(s.sum_station, 0) + COALESCE(v.sum_vehicle, 0))::float AS combined
+    FROM (
+      SELECT DATE(created_at) AS day, SUM(total_amount) AS sum_station
+      FROM station_sales
+      GROUP BY DATE(created_at)
+    ) s
+    FULL OUTER JOIN (
+      SELECT DATE(created_at) AS day, SUM(total_amount) AS sum_vehicle
+      FROM vehicle_sales
+      GROUP BY DATE(created_at)
+    ) v ON s.day = v.day
+    ORDER BY COALESCE(s.day, v.day) DESC
+  `;
+  return {
+    days: rows.map((r) => ({
+      date: r.work_date,
+      combined: Number(r.combined),
+    })),
+  };
+}
+
 export async function vehiclesReport(query, actor) {
   requireStaff(actor);
   const vehicles = await prisma.vehicle.findMany({

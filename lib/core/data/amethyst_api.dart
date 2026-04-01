@@ -150,8 +150,27 @@ final class AmethystApi {
     }
   }
 
-  Future<Map<String, dynamic>> listExpenses({int page = 1, int limit = 100}) =>
-      _getPaginated('/expenses', page: page, limit: limit);
+  Future<Map<String, dynamic>> listExpenses({
+    int page = 1,
+    int limit = 100,
+    String? dateFrom,
+    String? dateTo,
+  }) async {
+    try {
+      final res = await _dio.get<Map<String, dynamic>>(
+        '/expenses',
+        queryParameters: <String, dynamic>{
+          'page': page,
+          'limit': limit,
+          if (dateFrom != null) 'dateFrom': dateFrom,
+          if (dateTo != null) 'dateTo': dateTo,
+        },
+      );
+      return DioClient.unwrapPaginated(res);
+    } on DioException catch (e) {
+      _client.throwFromDio(e);
+    }
+  }
 
   Future<Map<String, dynamic>> createExpense({
     String? vehicleId,
@@ -203,11 +222,51 @@ final class AmethystApi {
     }
   }
 
-  Future<Map<String, dynamic>> reportsProfitLoss({int page = 1, int limit = 100}) async {
+  /// Days with at least one station or vehicle sale (for super admin history).
+  Future<Map<String, dynamic>> reportsSalesWorkingDays() async {
+    try {
+      final res = await _dio.get<Map<String, dynamic>>('/reports/sales/working-days');
+      return DioClient.unwrapMap(res);
+    } on DioException catch (e) {
+      _client.throwFromDio(e);
+    }
+  }
+
+  Future<Map<String, dynamic>> reportsProfitLoss({
+    int page = 1,
+    int limit = 100,
+    String? dateFrom,
+    String? dateTo,
+  }) async {
     try {
       final res = await _dio.get<Map<String, dynamic>>(
         '/reports/profit-loss',
-        queryParameters: <String, dynamic>{'page': page, 'limit': limit},
+        queryParameters: <String, dynamic>{
+          'page': page,
+          'limit': limit,
+          if (dateFrom != null) 'dateFrom': dateFrom,
+          if (dateTo != null) 'dateTo': dateTo,
+        },
+      );
+      return DioClient.unwrapMap(res);
+    } on DioException catch (e) {
+      _client.throwFromDio(e);
+    }
+  }
+
+  /// Station + vehicle sales for a calendar month (current month by default).
+  Future<Map<String, dynamic>> reportsSalesMonthly({
+    int? year,
+    int? month,
+  }) async {
+    try {
+      final DateTime n = DateTime.now();
+      final res = await _dio.get<Map<String, dynamic>>(
+        '/reports/sales/monthly',
+        queryParameters: <String, dynamic>{
+          'year': year ?? n.year,
+          'month': month ?? n.month,
+        },
       );
       return DioClient.unwrapMap(res);
     } on DioException catch (e) {

@@ -1,4 +1,5 @@
 import 'package:amethyst/core/data/amethyst_api.dart';
+import 'package:amethyst/core/l10n/context_l10n.dart';
 import 'package:amethyst/core/presentation/dashboard_load_state.dart';
 import 'package:amethyst/core/theme/app_colors.dart';
 import 'package:amethyst/di/injection.dart';
@@ -37,7 +38,7 @@ class _AdminDashboardBody extends StatelessWidget {
                 const SizedBox(height: 12),
                 FilledButton(
                   onPressed: () => context.read<AdminDashboardCubit>().load(),
-                  child: const Text('Retry'),
+                  child: Text(context.l10n.retry),
                 ),
               ],
             ),
@@ -49,13 +50,14 @@ class _AdminDashboardBody extends StatelessWidget {
         final vehicle = _n(d['vehicleSalesToday']);
         final returns = _n(d['returnedQuantitiesToday']);
         final monthly = _n(d['totalMonthlySales']);
+        final l10n = context.l10n;
         return RefreshIndicator(
           onRefresh: () => context.read<AdminDashboardCubit>().load(),
           child: ListView(
             padding: const EdgeInsets.all(20),
             children: <Widget>[
               Text(
-                'Operations',
+                l10n.operations,
                 style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                       fontWeight: FontWeight.w800,
                       color: AppColors.primaryText,
@@ -66,34 +68,36 @@ class _AdminDashboardBody extends StatelessWidget {
                 spacing: 12,
                 runSpacing: 12,
                 children: <Widget>[
-                  _chip(context, 'Sales today', totalSales.toStringAsFixed(0)),
-                  _chip(context, 'Station', station.toStringAsFixed(0)),
-                  _chip(context, 'Vehicle', vehicle.toStringAsFixed(0)),
-                  _chip(context, 'Returns (qty)', returns.toStringAsFixed(0)),
-                  _chip(context, 'Monthly sales', monthly.toStringAsFixed(0)),
+                  _chip(context, l10n.chipSalesToday, totalSales.toStringAsFixed(0)),
+                  _chip(context, l10n.chipStation, station.toStringAsFixed(0)),
+                  _chip(context, l10n.chipVehicle, vehicle.toStringAsFixed(0)),
+                  _chip(context, l10n.chipReturnsQty, returns.toStringAsFixed(0)),
+                  _chip(context, l10n.chipMonthlySales, monthly.toStringAsFixed(0)),
                   _chip(
                     context,
-                    'Active drivers',
+                    l10n.chipActiveDrivers,
                     '${d['activeDrivers'] ?? 0}',
                   ),
                   _chip(
                     context,
-                    'Loads today',
+                    l10n.chipLoadsToday,
                     '${d['vehiclesLoadedToday'] ?? 0}',
                   ),
                 ],
               ),
               const SizedBox(height: 24),
               Text(
-                'Remaining stock',
+                l10n.remainingStock,
                 style: Theme.of(context).textTheme.titleMedium?.copyWith(
                       fontWeight: FontWeight.w800,
                     ),
               ),
               const SizedBox(height: 8),
               Text(
-                'Station: ${_n(d['remainingStationStock']).toStringAsFixed(0)} · '
-                'On vehicles: ${_n(d['remainingOnVehicles']).toStringAsFixed(0)}',
+                l10n.stockLine(
+                  _n(d['remainingStationStock']).toStringAsFixed(0),
+                  _n(d['remainingOnVehicles']).toStringAsFixed(0),
+                ),
               ),
             ],
           ),

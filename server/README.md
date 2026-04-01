@@ -83,17 +83,16 @@ Base path for JSON resources: **`/api`**
 
 | Role | Email | Password |
 |------|--------|----------|
-| Super Admin | `super@amethyst.local` | `SuperAdmin123!` |
+| Super Admin | `sohaib@amethyst.local` | `sohaib123` |
 | Admin | `admin@amethyst.local` | `Admin123!` |
 | Driver | `driver1@amethyst.local` | `Driver123!` |
-| Driver | `driver2@amethyst.local` | `Driver123!` |
 
 ## How to test login
 
 ```bash
 curl -s -X POST http://localhost:4000/api/auth/login \
   -H "Content-Type: application/json" \
-  -d '{"email":"super@amethyst.local","password":"SuperAdmin123!"}'
+  -d '{"email":"sohaib@amethyst.local","password":"sohaib123"}'
 ```
 
 **Example success shape:**
@@ -105,7 +104,7 @@ curl -s -X POST http://localhost:4000/api/auth/login \
   "data": {
     "user": {
       "id": "...",
-      "email": "super@amethyst.local",
+      "email": "sohaib@amethyst.local",
       "role": "super_admin",
       "fullName": "Super Admin",
       "phone": "+10000000001",
@@ -213,7 +212,7 @@ export API=http://localhost:4000/api
 # Login (super admin)
 curl -s -X POST "$API/auth/login" \
   -H "Content-Type: application/json" \
-  -d '{"email":"super@amethyst.local","password":"SuperAdmin123!"}'
+  -d '{"email":"sohaib@amethyst.local","password":"sohaib123"}'
 
 export TOKEN="<paste data.token from response>"
 
@@ -261,7 +260,7 @@ See **`docs/api-examples.md`** (request/response samples) and **`openapi/openapi
 ### Auth — login
 
 **Request:** `POST /api/auth/login`  
-**Body:** `{ "email": "super@amethyst.local", "password": "SuperAdmin123!" }`  
+**Body:** `{ "email": "sohaib@amethyst.local", "password": "sohaib123" }`  
 **Response:** `{ "success": true, "message": "Logged in", "data": { "user": {...}, "token": "..." } }`
 
 ### Products — create

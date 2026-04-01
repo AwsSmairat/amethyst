@@ -1,3 +1,4 @@
+import 'package:amethyst/core/l10n/context_l10n.dart';
 import 'package:amethyst/core/presentation/list_load_state.dart';
 import 'package:amethyst/features/catalog/presentation/cubit/json_list_cubit.dart';
 import 'package:flutter/material.dart';
@@ -13,7 +14,7 @@ class JsonListPage extends StatelessWidget {
   });
 
   final String title;
-  final String Function(Map<String, dynamic> item)? subtitleBuilder;
+  final String Function(BuildContext context, Map<String, dynamic> item)? subtitleBuilder;
   final Widget Function(Map<String, dynamic> item)? trailingBuilder;
   final bool Function(Map<String, dynamic> item)? where;
 
@@ -30,7 +31,7 @@ class JsonListPage extends StatelessWidget {
         ],
       ),
       body: BlocBuilder<JsonListCubit, ListLoadState>(
-        builder: (context, state) {
+        builder: (BuildContext context, ListLoadState state) {
           if (state is ListLoadLoading || state is ListLoadInitial) {
             return const Center(child: CircularProgressIndicator());
           }
@@ -45,7 +46,7 @@ class JsonListPage extends StatelessWidget {
                     const SizedBox(height: 16),
                     FilledButton(
                       onPressed: () => context.read<JsonListCubit>().load(),
-                      child: const Text('Retry'),
+                      child: Text(context.l10n.retry),
                     ),
                   ],
                 ),
@@ -57,15 +58,15 @@ class JsonListPage extends StatelessWidget {
               ? raw
               : raw.where(where!).toList(growable: false);
           if (items.isEmpty) {
-            return const Center(child: Text('Nothing here yet.'));
+            return Center(child: Text(context.l10n.nothingHereYet));
           }
           return ListView.separated(
             padding: const EdgeInsets.symmetric(vertical: 8),
             itemCount: items.length,
             separatorBuilder: (_, __) => const Divider(height: 1),
-            itemBuilder: (context, i) {
-              final item = items[i];
-              final subtitle = subtitleBuilder?.call(item);
+            itemBuilder: (BuildContext context, int i) {
+              final Map<String, dynamic> item = items[i];
+              final String? subtitle = subtitleBuilder?.call(context, item);
               return ListTile(
                 title: Text(
                   _primaryLabel(item),
@@ -103,7 +104,7 @@ class JsonListPageWithFab extends StatelessWidget {
 
   final String title;
   final Widget fab;
-  final String Function(Map<String, dynamic> item)? subtitleBuilder;
+  final String Function(BuildContext context, Map<String, dynamic> item)? subtitleBuilder;
   final Widget Function(Map<String, dynamic> item)? trailingBuilder;
 
   @override
@@ -120,24 +121,25 @@ class JsonListPageWithFab extends StatelessWidget {
       ),
       floatingActionButton: fab,
       body: BlocBuilder<JsonListCubit, ListLoadState>(
-        builder: (context, state) {
+        builder: (BuildContext context, ListLoadState state) {
           if (state is ListLoadLoading || state is ListLoadInitial) {
             return const Center(child: CircularProgressIndicator());
           }
           if (state is ListLoadFailure) {
             return Center(child: Text(state.message));
           }
-          final items = (state as ListLoadLoaded).items;
+          final List<Map<String, dynamic>> items =
+              (state as ListLoadLoaded).items;
           if (items.isEmpty) {
-            return const Center(child: Text('Nothing here yet.'));
+            return Center(child: Text(context.l10n.nothingHereYet));
           }
           return ListView.separated(
             padding: const EdgeInsets.symmetric(vertical: 8),
             itemCount: items.length,
             separatorBuilder: (_, __) => const Divider(height: 1),
-            itemBuilder: (context, i) {
-              final item = items[i];
-              final subtitle = subtitleBuilder?.call(item);
+            itemBuilder: (BuildContext context, int i) {
+              final Map<String, dynamic> item = items[i];
+              final String? subtitle = subtitleBuilder?.call(context, item);
               return ListTile(
                 title: Text(
                   item['name']?.toString() ??

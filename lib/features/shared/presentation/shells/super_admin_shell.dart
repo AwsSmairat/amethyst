@@ -1,3 +1,4 @@
+import 'package:amethyst/core/l10n/context_l10n.dart';
 import 'package:amethyst/core/theme/app_colors.dart';
 import 'package:amethyst/core/widgets/brand_mark.dart';
 import 'package:amethyst/features/auth/presentation/cubit/auth_cubit.dart';
@@ -19,12 +20,12 @@ class SuperAdminShell extends StatelessWidget {
         title: const BrandMarkSmall(size: 36),
         actions: <Widget>[
           IconButton(
-            tooltip: 'Profile',
+            tooltip: context.l10n.profileTooltip,
             onPressed: () => context.go('/super-admin/profile'),
             icon: const Icon(Icons.person_outline),
           ),
           IconButton(
-            tooltip: 'Sign out',
+            tooltip: context.l10n.signOutTooltip,
             onPressed: () => context.read<AuthCubit>().logout(),
             icon: const Icon(Icons.logout),
           ),
@@ -46,7 +47,7 @@ class SuperAdminShell extends StatelessWidget {
                     builder: (context, state) {
                       final name = state is AuthAuthenticated
                           ? state.user.fullName
-                          : 'Super Admin';
+                          : context.l10n.superAdminDrawerFallback;
                       return Text(
                         name,
                         style: const TextStyle(
@@ -60,16 +61,16 @@ class SuperAdminShell extends StatelessWidget {
                 ],
               ),
             ),
-            _tile(context, path, '/super-admin/dashboard', Icons.dashboard, 'Dashboard'),
-            _tile(context, path, '/super-admin/users', Icons.people, 'Users'),
-            _tile(context, path, '/super-admin/admins', Icons.admin_panel_settings, 'Admins'),
-            _tile(context, path, '/super-admin/products', Icons.inventory_2, 'Products'),
-            _tile(context, path, '/super-admin/vehicles', Icons.local_shipping, 'Vehicles'),
-            _tile(context, path, '/super-admin/vehicle-loads', Icons.upload, 'Vehicle loads'),
-            _tile(context, path, '/super-admin/station-sales', Icons.storefront, 'Station sales'),
-            _tile(context, path, '/super-admin/vehicle-sales', Icons.receipt_long, 'Vehicle sales'),
-            _tile(context, path, '/super-admin/expenses', Icons.payments, 'Expenses'),
-            _tile(context, path, '/super-admin/reports', Icons.analytics, 'Reports'),
+            _tile(context, path, '/super-admin/dashboard', Icons.dashboard, context.l10n.dashboard),
+            _tile(context, path, '/super-admin/users', Icons.people, context.l10n.users),
+            _tile(context, path, '/super-admin/admins', Icons.admin_panel_settings, context.l10n.admins),
+            _tile(context, path, '/super-admin/products', Icons.inventory_2, context.l10n.products),
+            _tile(context, path, '/super-admin/vehicles', Icons.local_shipping, context.l10n.vehicles),
+            _tile(context, path, '/super-admin/vehicle-loads', Icons.upload, context.l10n.vehicleLoads),
+            _tile(context, path, '/super-admin/station-sales', Icons.storefront, context.l10n.stationSales),
+            _tile(context, path, '/super-admin/vehicle-sales', Icons.receipt_long, context.l10n.vehicleSales),
+            _tile(context, path, '/super-admin/expenses', Icons.payments, context.l10n.expenses),
+            _tile(context, path, '/super-admin/reports', Icons.analytics, context.l10n.reports),
           ],
         ),
       ),

@@ -1,3 +1,4 @@
+import 'package:amethyst/core/l10n/context_l10n.dart';
 import 'package:amethyst/core/theme/app_colors.dart';
 import 'package:amethyst/core/widgets/brand_mark.dart';
 import 'package:amethyst/features/auth/presentation/cubit/auth_cubit.dart';
@@ -19,15 +20,15 @@ class DriverShellPage extends StatelessWidget {
       appBar: AppBar(
         title: Row(
           mainAxisSize: MainAxisSize.min,
-          children: const <Widget>[
-            BrandMarkSmall(size: 32),
-            SizedBox(width: 10),
-            Text('Driver'),
+          children: <Widget>[
+            const BrandMarkSmall(size: 32),
+            const SizedBox(width: 10),
+            Text(context.l10n.driver),
           ],
         ),
         actions: <Widget>[
           IconButton(
-            tooltip: 'Sign out',
+            tooltip: context.l10n.signOutTooltip,
             onPressed: () => context.read<AuthCubit>().logout(),
             icon: const Icon(Icons.logout),
           ),
@@ -37,36 +38,36 @@ class DriverShellPage extends StatelessWidget {
       bottomNavigationBar: NavigationBar(
         selectedIndex: navigationShell.currentIndex,
         onDestinationSelected: navigationShell.goBranch,
-        destinations: const <NavigationDestination>[
+        destinations: <NavigationDestination>[
           NavigationDestination(
-            icon: Icon(Icons.dashboard_outlined),
-            selectedIcon: Icon(Icons.dashboard),
-            label: 'Home',
+            icon: const Icon(Icons.dashboard_outlined),
+            selectedIcon: const Icon(Icons.dashboard),
+            label: context.l10n.navHome,
           ),
           NavigationDestination(
-            icon: Icon(Icons.point_of_sale_outlined),
-            selectedIcon: Icon(Icons.point_of_sale),
-            label: 'Sales',
+            icon: const Icon(Icons.point_of_sale_outlined),
+            selectedIcon: const Icon(Icons.point_of_sale),
+            label: context.l10n.navSales,
           ),
           NavigationDestination(
-            icon: Icon(Icons.payments_outlined),
-            selectedIcon: Icon(Icons.payments),
-            label: 'Expenses',
+            icon: const Icon(Icons.payments_outlined),
+            selectedIcon: const Icon(Icons.payments),
+            label: context.l10n.navExpenses,
           ),
           NavigationDestination(
-            icon: Icon(Icons.local_shipping_outlined),
-            selectedIcon: Icon(Icons.local_shipping),
-            label: 'Loads',
+            icon: const Icon(Icons.local_shipping_outlined),
+            selectedIcon: const Icon(Icons.local_shipping),
+            label: context.l10n.navLoads,
           ),
           NavigationDestination(
-            icon: Icon(Icons.notes_outlined),
-            selectedIcon: Icon(Icons.notes),
-            label: 'Notes',
+            icon: const Icon(Icons.notes_outlined),
+            selectedIcon: const Icon(Icons.notes),
+            label: context.l10n.navNotes,
           ),
           NavigationDestination(
-            icon: Icon(Icons.person_outline),
-            selectedIcon: Icon(Icons.person),
-            label: 'Profile',
+            icon: const Icon(Icons.person_outline),
+            selectedIcon: const Icon(Icons.person),
+            label: context.l10n.profile,
           ),
         ],
         indicatorColor: AppColors.tertiaryFixed.withValues(alpha: 0.5),

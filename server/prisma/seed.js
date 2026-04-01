@@ -9,18 +9,61 @@ async function hash(pw) {
   return bcrypt.hash(pw, BCRYPT_ROUNDS);
 }
 
+/** يزيل السيارة V-002 والسائق الثاني من قواعد بيانات قديمة بعد تغيير الـ seed. */
+async function removeSecondVehicleAndDriver() {
+  const driver2 = await prisma.user.findUnique({
+    where: { email: 'driver2@amethyst.local' },
+  });
+  const v2 = await prisma.vehicle.findUnique({
+    where: { vehicleNumber: 'V-002' },
+  });
+
+  if (v2) {
+    await prisma.vehicleLoad.deleteMany({ where: { vehicleId: v2.id } });
+    await prisma.vehicleSale.deleteMany({ where: { vehicleId: v2.id } });
+    await prisma.expense.deleteMany({ where: { vehicleId: v2.id } });
+    await prisma.vehicle.delete({ where: { id: v2.id } });
+  }
+
+  if (driver2) {
+    await prisma.vehicleLoad.deleteMany({
+      where: {
+        OR: [{ driverId: driver2.id }, { createdById: driver2.id }],
+      },
+    });
+    await prisma.vehicleSale.deleteMany({ where: { driverId: driver2.id } });
+    await prisma.stationSale.deleteMany({ where: { soldById: driver2.id } });
+    await prisma.expense.deleteMany({ where: { driverId: driver2.id } });
+    await prisma.auditLog.deleteMany({ where: { userId: driver2.id } });
+    await prisma.vehicle.updateMany({
+      where: { driverId: driver2.id },
+      data: { driverId: null },
+    });
+    await prisma.user.delete({ where: { id: driver2.id } });
+  }
+}
+
 async function main() {
-  const passwordSuper = await hash('SuperAdmin123!');
+  await removeSecondVehicleAndDriver();
+
+  const passwordSuper = await hash('sohaib123');
   const passwordAdmin = await hash('Admin123!');
   const passwordDriver = await hash('Driver123!');
 
+  await prisma.user.deleteMany({ where: { email: 'super@amethyst.local' } });
+
   const superAdmin = await prisma.user.upsert({
-    where: { email: 'super@amethyst.local' },
-    update: {},
+    where: { email: 'sohaib@amethyst.local' },
+    update: {
+      fullName: 'Sohaib',
+      passwordHash: passwordSuper,
+      role: 'super_admin',
+      isActive: true,
+    },
     create: {
-      fullName: 'Super Admin',
+      fullName: 'Sohaib',
       phone: '+10000000001',
-      email: 'super@amethyst.local',
+      email: 'sohaib@amethyst.local',
       passwordHash: passwordSuper,
       role: 'super_admin',
       isActive: true,
@@ -47,19 +90,6 @@ async function main() {
       fullName: 'Driver One',
       phone: '+10000000003',
       email: 'driver1@amethyst.local',
-      passwordHash: passwordDriver,
-      role: 'driver',
-      isActive: true,
-    },
-  });
-
-  const driver2 = await prisma.user.upsert({
-    where: { email: 'driver2@amethyst.local' },
-    update: {},
-    create: {
-      fullName: 'Driver Two',
-      phone: '+10000000004',
-      email: 'driver2@amethyst.local',
       passwordHash: passwordDriver,
       role: 'driver',
       isActive: true,
@@ -109,23 +139,12 @@ async function main() {
     },
   });
 
-  const v2 = await prisma.vehicle.upsert({
-    where: { vehicleNumber: 'V-002' },
-    update: { driverId: driver2.id },
-    create: {
-      vehicleNumber: 'V-002',
-      driverId: driver2.id,
-      notes: 'Suburbs route',
-      isActive: true,
-    },
-  });
-
   console.log('Seed complete:', {
     superAdmin: superAdmin.email,
     admin: admin.email,
-    drivers: [driver1.email, driver2.email],
+    drivers: [driver1.email],
     products: [bottle.name, carton.name, gallon.name],
-    vehicles: [v1.vehicleNumber, v2.vehicleNumber],
+    vehicles: [v1.vehicleNumber],
   });
 }
 

@@ -13,7 +13,7 @@ Replace `TOKEN` with JWT from `POST /auth/login`.
 POST /api/auth/login
 Content-Type: application/json
 
-{"email":"super@amethyst.local","password":"SuperAdmin123!"}
+{"email":"sohaib@amethyst.local","password":"sohaib123"}
 ```
 
 ```json
@@ -23,7 +23,7 @@ Content-Type: application/json
   "data": {
     "user": {
       "id": "550e8400-e29b-41d4-a716-446655440000",
-      "email": "super@amethyst.local",
+      "email": "sohaib@amethyst.local",
       "role": "super_admin",
       "fullName": "Super Admin",
       "phone": "+10000000001",

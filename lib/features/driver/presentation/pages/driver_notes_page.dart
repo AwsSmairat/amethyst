@@ -1,4 +1,5 @@
 import 'package:amethyst/core/data/amethyst_api.dart';
+import 'package:amethyst/core/l10n/context_l10n.dart';
 import 'package:amethyst/di/injection.dart';
 import 'package:flutter/material.dart';
 
@@ -45,7 +46,7 @@ class _DriverNotesPageState extends State<DriverNotesPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Notes & summary'),
+        title: Text(context.l10n.notesAndSummary),
         actions: <Widget>[
           IconButton(onPressed: _load, icon: const Icon(Icons.refresh)),
         ],
@@ -54,11 +55,12 @@ class _DriverNotesPageState extends State<DriverNotesPage> {
           ? const Center(child: CircularProgressIndicator())
           : _error != null
               ? Center(child: Text(_error!))
-              : _buildContent(),
+              : _buildContent(context),
     );
   }
 
-  Widget _buildContent() {
+  Widget _buildContent(BuildContext context) {
+    final l10n = context.l10n;
     final notes = (_dash?['notesSummary'] as List<dynamic>? ?? <dynamic>[])
         .whereType<Map<String, dynamic>>()
         .toList(growable: false);
@@ -69,25 +71,25 @@ class _DriverNotesPageState extends State<DriverNotesPage> {
       padding: const EdgeInsets.all(20),
       children: <Widget>[
         Text(
-          'Today',
+          l10n.sectionToday,
           style: Theme.of(context).textTheme.titleLarge?.copyWith(
                 fontWeight: FontWeight.w800,
               ),
         ),
         const SizedBox(height: 8),
-        Text('Units sold: $sold'),
-        Text('Sales amount: $amt'),
-        Text('Expenses: $exp'),
+        Text(l10n.unitsSoldLine('$sold')),
+        Text(l10n.salesAmountLine('$amt')),
+        Text(l10n.expensesLine('$exp')),
         const SizedBox(height: 24),
         Text(
-          'Notes from expenses',
+          l10n.notesFromExpenses,
           style: Theme.of(context).textTheme.titleMedium?.copyWith(
                 fontWeight: FontWeight.w800,
               ),
         ),
         const SizedBox(height: 8),
         if (notes.isEmpty)
-          const Text('No notes yet.')
+          Text(l10n.noNotesYet)
         else
           ...notes.map(
             (n) => ListTile(

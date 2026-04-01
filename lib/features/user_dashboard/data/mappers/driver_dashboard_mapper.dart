@@ -6,8 +6,8 @@ DriverDashboard mapDriverDashboardApi(
 }) {
   final vehicle = json['assignedVehicle'] as Map<String, dynamic>?;
   final vehicleLabel = vehicle == null
-      ? 'No vehicle assigned'
-      : (vehicle['vehicleNumber']?.toString() ?? 'Vehicle');
+      ? 'لا توجد مركبة مسندة'
+      : (vehicle['vehicleNumber']?.toString() ?? 'مركبة');
 
   final remaining = json['remainingQuantities'] as List<dynamic>? ?? <dynamic>[];
   final inventory = <InventoryItem>[];
@@ -19,7 +19,7 @@ DriverDashboard mapDriverDashboardApi(
     final loaded = sold + rem + ret;
     inventory.add(
       InventoryItem(
-        name: m['productName'] as String? ?? 'Product',
+        name: m['productName'] as String? ?? 'منتج',
         loaded: loaded,
         sold: sold,
         left: rem,
@@ -29,7 +29,7 @@ DriverDashboard mapDriverDashboardApi(
   }
 
   final notesSummary = json['notesSummary'] as List<dynamic>? ?? <dynamic>[];
-  var expenseNote = 'No notes yet';
+  var expenseNote = 'لا ملاحظات بعد';
   if (notesSummary.isNotEmpty) {
     final first = notesSummary.first as Map<String, dynamic>;
     expenseNote = first['note']?.toString() ?? expenseNote;
@@ -40,7 +40,7 @@ DriverDashboard mapDriverDashboardApi(
   return DriverDashboard(
     title: driverDisplayName,
     vehicleLabel: vehicleLabel,
-    shiftRemaining: 'Today',
+    shiftRemaining: 'اليوم',
     isActive: vehicle?['isActive'] as bool? ?? false,
     inventory: inventory,
     expensesTotal: expensesTotal,

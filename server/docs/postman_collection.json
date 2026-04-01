@@ -45,7 +45,7 @@
             "header": [{ "key": "Content-Type", "value": "application/json" }],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"email\": \"super@amethyst.local\",\n  \"password\": \"SuperAdmin123!\"\n}"
+              "raw": "{\n  \"email\": \"sohaib@amethyst.local\",\n  \"password\": \"sohaib123\"\n}"
             },
             "url": "{{baseUrl}}/auth/login"
           }

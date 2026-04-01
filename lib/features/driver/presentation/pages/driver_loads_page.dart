@@ -1,4 +1,5 @@
 import 'package:amethyst/core/data/amethyst_api.dart';
+import 'package:amethyst/core/l10n/context_l10n.dart';
 import 'package:amethyst/core/theme/app_colors.dart';
 import 'package:amethyst/di/injection.dart';
 import 'package:amethyst/features/driver/presentation/widgets/add_return_sheet.dart';
@@ -47,7 +48,7 @@ class _DriverLoadsPageState extends State<DriverLoadsPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Current loads'),
+        title: Text(context.l10n.currentLoads),
         actions: <Widget>[
           IconButton(onPressed: _load, icon: const Icon(Icons.refresh)),
         ],
@@ -55,45 +56,50 @@ class _DriverLoadsPageState extends State<DriverLoadsPage> {
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => showAddReturnSheet(context).then((_) => _load()),
         icon: const Icon(Icons.assignment_return),
-        label: const Text('Log return'),
+        label: Text(context.l10n.quickLogReturn),
         backgroundColor: AppColors.primary,
       ),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : _error != null
               ? Center(child: Text(_error!))
-              : _buildBody(),
+              : _buildBody(context),
     );
   }
 
-  Widget _buildBody() {
+  Widget _buildBody(BuildContext context) {
+    final l10n = context.l10n;
     final vehicle = _data?['vehicle'] as Map<String, dynamic>?;
     final loads = (_data?['loads'] as List<dynamic>? ?? <dynamic>[])
         .whereType<Map<String, dynamic>>()
         .toList(growable: false);
     if (vehicle == null) {
-      return const Center(child: Text('No vehicle assigned.'));
+      return Center(child: Text(l10n.noVehicleAssignedFull));
     }
     return ListView(
       padding: const EdgeInsets.all(20),
       children: <Widget>[
         Text(
-          'Vehicle ${vehicle['vehicleNumber'] ?? ''}',
+          l10n.vehicleWithNumber('${vehicle['vehicleNumber'] ?? ''}'),
           style: Theme.of(context).textTheme.titleLarge?.copyWith(
                 fontWeight: FontWeight.w800,
               ),
         ),
         const SizedBox(height: 16),
         if (loads.isEmpty)
-          const Text('No open loads.')
+          Text(l10n.noOpenLoads)
         else
           ...loads.map(
             (l) => Card(
               child: ListTile(
-                title: Text(l['product']?['name']?.toString() ?? 'Product'),
+                title: Text(l['product']?['name']?.toString() ?? l10n.product),
                 subtitle: Text(
-                  'Loaded ${l['quantityLoaded']} · Sold ${l['quantitySold']} · '
-                  'Returned ${l['quantityReturned']} · Remaining ${l['remaining']}',
+                  l10n.loadQuantitiesLine(
+                    '${l['quantityLoaded']}',
+                    '${l['quantitySold']}',
+                    '${l['quantityReturned']}',
+                    '${l['remaining']}',
+                  ),
                 ),
               ),
             ),

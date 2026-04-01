@@ -12,6 +12,7 @@ r.use(authorize('super_admin', 'admin'));
 
 r.get('/sales/daily', validate(listQuerySchema, 'query'), ctrl.salesDaily);
 r.get('/sales/monthly', validate(listQuerySchema, 'query'), ctrl.salesMonthly);
+r.get('/sales/working-days', ctrl.salesWorkingDays);
 r.get('/vehicles', validate(listQuerySchema, 'query'), ctrl.vehicles);
 r.get('/drivers', validate(listQuerySchema, 'query'), ctrl.drivers);
 r.get('/inventory', ctrl.inventory);

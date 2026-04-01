@@ -1,4 +1,5 @@
 import 'package:amethyst/core/data/amethyst_api.dart';
+import 'package:amethyst/core/l10n/context_l10n.dart';
 import 'package:amethyst/di/injection.dart';
 import 'package:amethyst/features/record_operations/domain/usecases/record_operation_usecases.dart';
 import 'package:amethyst/features/record_operations/presentation/cubit/return_submit_cubit.dart';
@@ -76,7 +77,7 @@ class _AddReturnBodyState extends State<_AddReturnBody> {
           if (state is SubmitSuccess) {
             Navigator.of(context).pop();
             ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Return logged')),
+              SnackBar(content: Text(context.l10n.returnLogged)),
             );
           }
           if (state is SubmitFailure) {
@@ -97,14 +98,15 @@ class _AddReturnBodyState extends State<_AddReturnBody> {
             return Text(_error!);
           }
           if (_loads.isEmpty) {
-            return const Text('No open loads to return against.');
+            return Text(context.l10n.noOpenLoadsToReturn);
           }
+          final l10n = context.l10n;
           return Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: <Widget>[
               Text(
-                'Log return',
+                l10n.logReturnSheetTitle,
                 style: Theme.of(context).textTheme.titleLarge?.copyWith(
                       fontWeight: FontWeight.w800,
                     ),
@@ -112,13 +114,16 @@ class _AddReturnBodyState extends State<_AddReturnBody> {
               const SizedBox(height: 16),
               DropdownButtonFormField<String>(
                 value: _loadId,
-                decoration: const InputDecoration(labelText: 'Load'),
+                decoration: InputDecoration(labelText: l10n.loadField),
                 items: _loads
                     .map(
                       (l) => DropdownMenuItem<String>(
                         value: l['id'] as String,
                         child: Text(
-                          '${l['product']?['name'] ?? 'Product'} · rem ${l['remaining'] ?? ''}',
+                          l10n.loadDropdownItem(
+                            '${l['product']?['name'] ?? l10n.product}',
+                            '${l['remaining'] ?? ''}',
+                          ),
                         ),
                       ),
                     )
@@ -131,7 +136,7 @@ class _AddReturnBodyState extends State<_AddReturnBody> {
               TextField(
                 controller: _qty,
                 keyboardType: TextInputType.number,
-                decoration: const InputDecoration(labelText: 'Quantity returned'),
+                decoration: InputDecoration(labelText: l10n.quantityReturned),
               ),
               const SizedBox(height: 20),
               FilledButton(
@@ -141,7 +146,9 @@ class _AddReturnBodyState extends State<_AddReturnBody> {
                         final q = int.tryParse(_qty.text.trim());
                         if (q == null || q < 1 || _loadId == null) {
                           ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('Select load and quantity')),
+                            SnackBar(
+                              content: Text(context.l10n.selectLoadAndQuantity),
+                            ),
                           );
                           return;
                         }
@@ -156,7 +163,7 @@ class _AddReturnBodyState extends State<_AddReturnBody> {
                         width: 22,
                         child: CircularProgressIndicator(strokeWidth: 2),
                       )
-                    : const Text('Submit'),
+                    : Text(context.l10n.submit),
               ),
             ],
           );

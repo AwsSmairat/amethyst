@@ -12,6 +12,11 @@ export const salesMonthly = asyncHandler(async (req, res) => {
   return success(res, data);
 });
 
+export const salesWorkingDays = asyncHandler(async (req, res) => {
+  const data = await service.salesWorkingDays(req.user);
+  return success(res, data);
+});
+
 export const vehicles = asyncHandler(async (req, res) => {
   const data = await service.vehiclesReport(req.query, req.user);
   return success(res, data);

@@ -1,0 +1,236 @@
+{
+  "@@locale": "ar",
+  "appTitle": "أماتيست",
+  "retry": "إعادة المحاولة",
+  "notFound": "غير موجود",
+  "unknownReport": "تقرير غير معروف",
+  "nothingHereYet": "لا يوجد شيء بعد.",
+  "noSalesDaysRecorded": "لا توجد أيام مبيعات مسجّلة بعد.",
+  "signIn": "تسجيل الدخول",
+  "signInSubtitle": "استخدم حساب أماتيست",
+  "email": "البريد الإلكتروني",
+  "password": "كلمة المرور",
+  "enterEmail": "أدخل البريد الإلكتروني",
+  "enterPassword": "أدخل كلمة المرور",
+  "profile": "الملف الشخصي",
+  "notSignedIn": "غير مسجّل الدخول",
+  "name": "الاسم",
+  "emailLabel": "البريد",
+  "role": "الدور",
+  "phone": "الهاتف",
+  "status": "الحالة",
+  "active": "نشط",
+  "inactive": "غير نشط",
+  "superAdmin": "مسؤول عام",
+  "admin": "مدير",
+  "driver": "سائق",
+  "dashboard": "لوحة التحكم",
+  "users": "المستخدمون",
+  "admins": "المديرون",
+  "products": "المنتجات",
+  "vehicles": "المركبات",
+  "vehicleLoads": "تحميلات المركبات",
+  "stationSales": "مبيعات المحطة",
+  "vehicleSales": "مبيعات المركبات",
+  "expenses": "المصاريف",
+  "reports": "التقارير",
+  "inventoryMenu": "المخزون",
+  "returns": "المرتجعات",
+  "signOut": "تسجيل الخروج",
+  "profileTooltip": "الملف الشخصي",
+  "overview": "نظرة عامة",
+  "operations": "العمليات",
+  "stockSnapshot": "المخزون",
+  "remainingStock": "المخزون المتبقي",
+  "stockLine": "المحطة: {station} · على المركبات: {vehicle}",
+  "@stockLine": {
+    "placeholders": {
+      "station": {"type": "String"},
+      "vehicle": {"type": "String"}
+    }
+  },
+  "kpiUsers": "المستخدمون",
+  "kpiAdmins": "المديرون",
+  "kpiDrivers": "السائقون",
+  "kpiVehicles": "المركبات",
+  "salesToday": "مبيعات اليوم",
+  "profitToday": "ربح اليوم",
+  "expensesToday": "مصاريف اليوم",
+  "monthlyExpenses": "المصاريف الشهرية",
+  "monthlySales": "المبيعات الشهرية",
+  "chipSalesToday": "مبيعات اليوم",
+  "chipStation": "المحطة",
+  "chipVehicle": "المركبة",
+  "chipReturnsQty": "المرتجعات (كمية)",
+  "chipMonthlySales": "المبيعات الشهرية",
+  "chipActiveDrivers": "السائقون النشطون",
+  "chipLoadsToday": "التحميلات اليوم",
+  "revenue": "الإيرادات",
+  "netProfit": "صافي الربح",
+  "noExpensesPeriod": "لا مصاريف في هذه الفترة.",
+  "stationSalesAmount": "مبيعات المحطة: {amount}",
+  "@stationSalesAmount": {
+    "placeholders": {"amount": {"type": "String"}}
+  },
+  "vehicleSalesAmount": "مبيعات المركبات: {amount}",
+  "@vehicleSalesAmount": {
+    "placeholders": {"amount": {"type": "String"}}
+  },
+  "combinedSales": "الإجمالي: {amount}",
+  "@combinedSales": {
+    "placeholders": {"amount": {"type": "String"}}
+  },
+  "transactionsSummary": "معاملات: {stationCount} محطة · {vehicleCount} مركبة",
+  "@transactionsSummary": {
+    "placeholders": {
+      "stationCount": {"type": "int"},
+      "vehicleCount": {"type": "int"}
+    }
+  },
+  "salesTotal": "إجمالي المبيعات: {amount}",
+  "@salesTotal": {
+    "placeholders": {"amount": {"type": "String"}}
+  },
+  "daysWithSales": "أيام المبيعات",
+  "titleUsers": "المستخدمون",
+  "titleAdmins": "المديرون",
+  "titleProducts": "المنتجات",
+  "titleVehicles": "المركبات",
+  "titleVehicleLoads": "تحميلات المركبات",
+  "titleStationSales": "مبيعات المحطة",
+  "titleVehicleSales": "مبيعات المركبات",
+  "titleExpenses": "المصاريف",
+  "titleInventoryProducts": "المخزون · المنتجات",
+  "titleReturns": "المرتجعات",
+  "addLoad": "إضافة تحميل",
+  "driverAssigned": "سائق معيّن",
+  "noDriver": "بدون سائق",
+  "loadSubtitle": "{status} · كمية {qty}",
+  "@loadSubtitle": {
+    "placeholders": {
+      "status": {"type": "String"},
+      "qty": {"type": "String"}
+    }
+  },
+  "reportsTitle": "التقارير",
+  "inventory": "المخزون",
+  "profitLoss": "الأرباح والخسائر",
+  "currentVehicle": "المركبة الحالية",
+  "shiftTime": "الوردية",
+  "statusLabel": "الحالة",
+  "quickAddSale": "بيع",
+  "quickAddExpense": "مصروف",
+  "quickLogReturn": "إرجاع",
+  "todaysInventory": "مخزون اليوم",
+  "updatedAgo": "محدّث منذ دقيقتين",
+  "itemHeader": "الصنف",
+  "loaded": "المحمّل",
+  "sold": "المباع",
+  "left": "المتبقي",
+  "expensesSection": "المصاريف",
+  "dailyNotes": "ملاحظات اليوم",
+  "notesFromExpenses": "من المصاريف",
+  "routeMapTitle": "المسار",
+  "routeMapSubtitle": "عرض تفاعلي قريباً",
+  "navHome": "الرئيسية",
+  "navSales": "المبيعات",
+  "navExpenses": "المصاريف",
+  "navLoads": "التحميلات",
+  "navNotes": "الملاحظات",
+  "myExpenses": "مصاريفي",
+  "addExpense": "إضافة مصروف",
+  "newExpense": "مصروف جديد",
+  "amount": "المبلغ",
+  "noteOptional": "ملاحظة (اختياري)",
+  "save": "حفظ",
+  "expenseSaved": "تم حفظ المصروف",
+  "brandSemantic": "أماتيست",
+  "titleInventory": "المخزون",
+  "profitTodayDetail": "ربح اليوم",
+  "expensesTodayDetail": "مصاريف اليوم",
+  "monthlyExpensesDetail": "المصاريف الشهرية",
+  "monthlySalesDetail": "المبيعات الشهرية",
+  "myVehicleSales": "مبيعات مركبتي",
+  "notesAndSummary": "ملاحظات وملخص",
+  "currentLoads": "التحميلات الحالية",
+  "product": "منتج",
+  "addSale": "إضافة بيع",
+  "qtyAmountSubtitle": "الكمية {qty} · {amount}",
+  "@qtyAmountSubtitle": {
+    "placeholders": {
+      "qty": {"type": "String"},
+      "amount": {"type": "String"}
+    }
+  },
+  "amountNoteSubtitle": "{amount} · {note}",
+  "@amountNoteSubtitle": {
+    "placeholders": {
+      "amount": {"type": "String"},
+      "note": {"type": "String"}
+    }
+  },
+  "signOutTooltip": "تسجيل الخروج",
+  "sectionToday": "اليوم",
+  "unitsSoldLine": "الوحدات المباعة: {value}",
+  "@unitsSoldLine": {
+    "placeholders": {"value": {"type": "String"}}
+  },
+  "salesAmountLine": "مبلغ المبيعات: {value}",
+  "@salesAmountLine": {
+    "placeholders": {"value": {"type": "String"}}
+  },
+  "expensesLine": "المصاريف: {value}",
+  "@expensesLine": {
+    "placeholders": {"value": {"type": "String"}}
+  },
+  "noNotesYet": "لا ملاحظات بعد.",
+  "noVehicleAssignedFull": "لا مركبة معيّنة.",
+  "vehicleWithNumber": "مركبة {number}",
+  "@vehicleWithNumber": {
+    "placeholders": {"number": {"type": "String"}}
+  },
+  "noOpenLoads": "لا توجد تحميلات مفتوحة.",
+  "loadQuantitiesLine": "محمّل {loaded} · مباع {sold} · مرتجع {returned} · متبقي {remaining}",
+  "@loadQuantitiesLine": {
+    "placeholders": {
+      "loaded": {"type": "String"},
+      "sold": {"type": "String"},
+      "returned": {"type": "String"},
+      "remaining": {"type": "String"}
+    }
+  },
+  "submit": "إرسال",
+  "fillAllFields": "أكمل جميع الحقول",
+  "loadCreated": "تم إنشاء التحميل",
+  "loadDate": "تاريخ التحميل",
+  "createLoad": "إنشاء تحميل",
+  "returnLogged": "تم تسجيل الإرجاع",
+  "noOpenLoadsToReturn": "لا توجد تحميلات مفتوحة للإرجاع.",
+  "selectLoadAndQuantity": "اختر التحميل والكمية",
+  "checkQtyPrice": "تحقق من الكمية والسعر",
+  "saleRecorded": "تم تسجيل البيع",
+  "noVehicleContactAdmin": "لا مركبة معيّنة. تواصل مع المدير.",
+  "enterValidAmount": "أدخل مبلغاً صالحاً",
+  "newVehicleSale": "بيع مركبة جديد",
+  "quantity": "الكمية",
+  "unitPrice": "سعر الوحدة",
+  "newVehicleLoad": "تحميل مركبة جديد",
+  "vehicleField": "المركبة",
+  "driverField": "السائق",
+  "quantityLoaded": "الكمية المحمّلة",
+  "loadField": "التحميل",
+  "quantityReturned": "الكمية المرتجعة",
+  "loadDropdownItem": "{product} · متبقي {remaining}",
+  "@loadDropdownItem": {
+    "placeholders": {
+      "product": {"type": "String"},
+      "remaining": {"type": "String"}
+    }
+  },
+  "logReturnSheetTitle": "تسجيل إرجاع",
+  "expensesSectionUpper": "المصاريف",
+  "dailyNotesUpper": "ملاحظات اليوم",
+  "noCriticalUpdatesToday": "لا تحديثات مهمة لليوم بعد...",
+  "superAdminDrawerFallback": "مسؤول عام",
+  "adminDrawerFallback": "مدير"
+}

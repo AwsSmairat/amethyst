@@ -47,37 +47,35 @@ final class AppTheme {
   }
 
   static TextTheme _textTheme(TextTheme base) {
-    final headline = GoogleFonts.manropeTextTheme(base);
-    final body = GoogleFonts.interTextTheme(base);
-
-    return body.copyWith(
-      displayLarge: headline.displayLarge?.copyWith(
+    final TextTheme t = GoogleFonts.cairoTextTheme(base);
+    return t.copyWith(
+      displayLarge: t.displayLarge?.copyWith(
         fontWeight: FontWeight.w800,
         color: AppColors.primaryText,
       ),
-      headlineSmall: headline.headlineSmall?.copyWith(
+      headlineSmall: t.headlineSmall?.copyWith(
         fontWeight: FontWeight.w800,
         color: AppColors.primaryText,
       ),
-      titleLarge: headline.titleLarge?.copyWith(
+      titleLarge: t.titleLarge?.copyWith(
         fontWeight: FontWeight.w700,
         color: AppColors.primaryText,
       ),
-      titleMedium: headline.titleMedium?.copyWith(
+      titleMedium: t.titleMedium?.copyWith(
         fontWeight: FontWeight.w700,
         color: AppColors.primaryText,
       ),
-      bodyLarge: body.bodyLarge?.copyWith(color: AppColors.onSurface),
-      bodyMedium: body.bodyMedium?.copyWith(color: AppColors.onSurface),
-      labelLarge: body.labelLarge?.copyWith(
+      bodyLarge: t.bodyLarge?.copyWith(color: AppColors.onSurface),
+      bodyMedium: t.bodyMedium?.copyWith(color: AppColors.onSurface),
+      labelLarge: t.labelLarge?.copyWith(
         fontWeight: FontWeight.w700,
         letterSpacing: 0.6,
       ),
-      labelMedium: body.labelMedium?.copyWith(
+      labelMedium: t.labelMedium?.copyWith(
         fontWeight: FontWeight.w700,
         letterSpacing: 0.8,
       ),
-      labelSmall: body.labelSmall?.copyWith(
+      labelSmall: t.labelSmall?.copyWith(
         fontWeight: FontWeight.w700,
         letterSpacing: 1.0,
       ),

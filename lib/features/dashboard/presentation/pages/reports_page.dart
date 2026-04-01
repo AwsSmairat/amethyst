@@ -1,4 +1,5 @@
 import 'package:amethyst/core/data/amethyst_api.dart';
+import 'package:amethyst/core/l10n/context_l10n.dart';
 import 'package:amethyst/core/theme/app_colors.dart';
 import 'package:amethyst/di/injection.dart';
 import 'package:flutter/material.dart';
@@ -50,7 +51,7 @@ class _ReportsPageState extends State<ReportsPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Reports'),
+        title: Text(context.l10n.reportsTitle),
         actions: <Widget>[
           IconButton(onPressed: _load, icon: const Icon(Icons.refresh)),
         ],
@@ -66,7 +67,7 @@ class _ReportsPageState extends State<ReportsPage> {
                       children: <Widget>[
                         Text(_error!, textAlign: TextAlign.center),
                         const SizedBox(height: 12),
-                        FilledButton(onPressed: _load, child: const Text('Retry')),
+                        FilledButton(onPressed: _load, child: Text(context.l10n.retry)),
                       ],
                     ),
                   ),
@@ -75,7 +76,7 @@ class _ReportsPageState extends State<ReportsPage> {
                   padding: const EdgeInsets.all(20),
                   children: <Widget>[
                     Text(
-                      'Inventory',
+                      context.l10n.inventory,
                       style: Theme.of(context).textTheme.titleLarge?.copyWith(
                             fontWeight: FontWeight.w800,
                             color: AppColors.primaryText,
@@ -85,7 +86,7 @@ class _ReportsPageState extends State<ReportsPage> {
                     Text(_inventory?.toString() ?? '{}'),
                     const SizedBox(height: 24),
                     Text(
-                      'Profit & loss',
+                      context.l10n.profitLoss,
                       style: Theme.of(context).textTheme.titleLarge?.copyWith(
                             fontWeight: FontWeight.w800,
                           ),

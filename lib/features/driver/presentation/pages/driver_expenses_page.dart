@@ -1,4 +1,5 @@
 import 'package:amethyst/core/data/amethyst_api.dart';
+import 'package:amethyst/core/l10n/context_l10n.dart';
 import 'package:amethyst/core/theme/app_colors.dart';
 import 'package:amethyst/di/injection.dart';
 import 'package:amethyst/features/catalog/presentation/cubit/json_list_cubit.dart';
@@ -16,13 +17,15 @@ class DriverExpensesPage extends StatelessWidget {
       create: (_) =>
           JsonListCubit(() => sl<AmethystApi>().listExpenses())..load(),
       child: JsonListPageWithFab(
-        title: 'My expenses',
-        subtitleBuilder: (m) =>
-            '${m['amount'] ?? ''} · ${m['note'] ?? ''}',
+        title: context.l10n.myExpenses,
+        subtitleBuilder: (ctx, m) => ctx.l10n.amountNoteSubtitle(
+          '${m['amount'] ?? ''}',
+          '${m['note'] ?? ''}',
+        ),
         fab: FloatingActionButton.extended(
           onPressed: () => showAddExpenseSheet(context),
           icon: const Icon(Icons.add),
-          label: const Text('Add expense'),
+          label: Text(context.l10n.addExpense),
           backgroundColor: AppColors.error,
         ),
       ),

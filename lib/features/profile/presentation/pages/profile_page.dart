@@ -1,3 +1,4 @@
+import 'package:amethyst/core/l10n/context_l10n.dart';
 import 'package:amethyst/core/theme/app_colors.dart';
 import 'package:amethyst/features/auth/presentation/cubit/auth_cubit.dart';
 import 'package:amethyst/features/auth/presentation/cubit/auth_state.dart';
@@ -10,13 +11,16 @@ class ProfilePage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Profile')),
+      appBar: AppBar(title: Text(context.l10n.profile)),
       body: BlocBuilder<AuthCubit, AuthState>(
         builder: (context, state) {
           if (state is! AuthAuthenticated) {
-            return const Center(child: Text('Not signed in'));
+            return Center(child: Text(context.l10n.notSignedIn));
           }
           final u = state.user;
+          final bool adminArea =
+              u.role == 'admin' || u.role == 'super_admin';
+          final l10n = context.l10n;
           return ListView(
             padding: const EdgeInsets.all(20),
             children: <Widget>[
@@ -29,11 +33,16 @@ class ProfilePage extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 20),
-              _row('Name', u.fullName),
-              _row('Email', u.email),
-              _row('Role', u.role),
-              if (u.phone != null) _row('Phone', u.phone!),
-              _row('Status', u.isActive ? 'Active' : 'Inactive'),
+              _row(l10n.name, u.fullName),
+              _row(l10n.emailLabel, u.email),
+              if (!adminArea) ...<Widget>[
+                _row(l10n.role, u.role),
+                if (u.phone != null) _row(l10n.phone, u.phone!),
+                _row(
+                  l10n.statusLabel,
+                  u.isActive ? l10n.active : l10n.inactive,
+                ),
+              ],
             ],
           );
         },

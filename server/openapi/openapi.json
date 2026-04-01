@@ -80,7 +80,7 @@
           "content": {
             "application/json": {
               "schema": { "$ref": "#/components/schemas/LoginRequest" },
-              "example": { "email": "super@amethyst.local", "password": "SuperAdmin123!" }
+              "example": { "email": "sohaib@amethyst.local", "password": "sohaib123" }
             }
           }
         },

@@ -75,6 +75,7 @@ export async function superAdminDashboard() {
     expensesToday,
     monthlyStation,
     monthlyVehicle,
+    monthlyExpenses,
     lowStock,
     recentAudit,
     stockSnapshot,
@@ -88,6 +89,7 @@ export async function superAdminDashboard() {
     sumExpenses(dayStart, dayEnd),
     sumStationSales(monthStart, monthEnd),
     sumVehicleSales(monthStart, monthEnd),
+    sumExpenses(monthStart, monthEnd),
     prisma.product.findMany({
       where: { stationStock: { lt: LOW_STOCK_THRESHOLD }, isActive: true },
       orderBy: { stationStock: 'asc' },
@@ -116,6 +118,7 @@ export async function superAdminDashboard() {
     stationSalesToday: stationToday,
     vehicleSalesToday: vehicleToday,
     totalExpensesToday: expensesToday,
+    totalMonthlyExpenses: monthlyExpenses,
     totalProfitToday,
     totalMonthlySales,
     remainingStationStock: stockSnapshot.remainingStationStock,

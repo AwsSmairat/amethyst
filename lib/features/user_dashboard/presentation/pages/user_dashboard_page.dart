@@ -1,3 +1,4 @@
+import 'package:amethyst/core/l10n/context_l10n.dart';
 import 'package:amethyst/core/theme/app_colors.dart';
 import 'package:amethyst/core/widgets/glass_container.dart';
 import 'package:amethyst/di/injection.dart';
@@ -41,7 +42,7 @@ class _DriverDashboardLoaderState extends State<_DriverDashboardLoader> {
       }
       final AuthState auth = context.read<AuthCubit>().state;
       final String name =
-          auth is AuthAuthenticated ? auth.user.fullName : 'Driver';
+          auth is AuthAuthenticated ? auth.user.fullName : context.l10n.driver;
       context.read<UserDashboardCubit>().load(driverDisplayName: name);
     });
   }
@@ -180,7 +181,7 @@ class _DriverStatusCard extends StatelessWidget {
                 children: <Widget>[
                   const Icon(Icons.directions_car, size: 14),
                   const SizedBox(width: 6),
-                  Text('CURRENT VEHICLE', style: labelStyle),
+                  Text(context.l10n.currentVehicle, style: labelStyle),
                 ],
               ),
               const SizedBox(height: 6),
@@ -195,13 +196,15 @@ class _DriverStatusCard extends StatelessWidget {
               Row(
                 children: <Widget>[
                   _MiniInfoPill(
-                    title: 'Shift Time',
+                    title: context.l10n.shiftTime,
                     value: dashboard.shiftRemaining,
                   ),
                   const SizedBox(width: 10),
                   _MiniInfoPill(
-                    title: 'Status',
-                    value: dashboard.isActive ? 'Active' : 'Inactive',
+                    title: context.l10n.statusLabel,
+                    value: dashboard.isActive
+                        ? context.l10n.active
+                        : context.l10n.inactive,
                     leading: Container(
                       width: 8,
                       height: 8,
@@ -288,7 +291,7 @@ class _QuickActionsRow extends StatelessWidget {
         Expanded(
           child: QuickActionButton(
             icon: Icons.add_shopping_cart,
-            label: 'Add Sale',
+            label: context.l10n.quickAddSale,
             tint: AppColors.success,
             onTap: () => context.go('/driver/sales'),
           ),
@@ -297,7 +300,7 @@ class _QuickActionsRow extends StatelessWidget {
         Expanded(
           child: QuickActionButton(
             icon: Icons.payments,
-            label: 'Add Expense',
+            label: context.l10n.quickAddExpense,
             tint: AppColors.error,
             onTap: () => context.go('/driver/expenses'),
           ),
@@ -306,7 +309,7 @@ class _QuickActionsRow extends StatelessWidget {
         Expanded(
           child: QuickActionButton(
             icon: Icons.assignment_return,
-            label: 'Log Return',
+            label: context.l10n.quickLogReturn,
             tint: AppColors.primary,
             onTap: () => context.go('/driver/loads'),
           ),
@@ -332,13 +335,13 @@ class _InventorySection extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: <Widget>[
               Text(
-                "Today's Inventory",
+                context.l10n.todaysInventory,
                 style: Theme.of(context).textTheme.titleMedium?.copyWith(
                       fontWeight: FontWeight.w800,
                     ),
               ),
               Text(
-                'Updated 2m ago',
+                context.l10n.updatedAgo,
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
                       color: AppColors.onSurfaceVariant,
                     ),
@@ -351,10 +354,10 @@ class _InventorySection extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 8),
           child: Row(
             children: <Widget>[
-              _HeaderCell('Item', flex: 3, align: TextAlign.left),
-              _HeaderCell('Loaded', flex: 2),
-              _HeaderCell('Sold', flex: 2),
-              _HeaderCell('Left', flex: 2),
+              _HeaderCell(context.l10n.itemHeader, flex: 3, align: TextAlign.left),
+              _HeaderCell(context.l10n.loaded, flex: 2),
+              _HeaderCell(context.l10n.sold, flex: 2),
+              _HeaderCell(context.l10n.left, flex: 2),
             ],
           ),
         ),
@@ -547,7 +550,7 @@ class _ExpenseAndNotesRow extends StatelessWidget {
                           color: AppColors.error),
                       const SizedBox(width: 8),
                       Text(
-                        'EXPENSES',
+                        context.l10n.expensesSectionUpper,
                         style: Theme.of(context).textTheme.labelSmall?.copyWith(
                               fontSize: 10,
                               letterSpacing: 1.2,
@@ -599,7 +602,7 @@ class _ExpenseAndNotesRow extends StatelessWidget {
                               .withValues(alpha: 0.6)),
                       const SizedBox(width: 8),
                       Text(
-                        'DAILY NOTES',
+                        context.l10n.dailyNotesUpper,
                         style: Theme.of(context).textTheme.labelSmall?.copyWith(
                               fontSize: 10,
                               letterSpacing: 1.2,
@@ -611,7 +614,7 @@ class _ExpenseAndNotesRow extends StatelessWidget {
                   ),
                   const SizedBox(height: 10),
                   Text(
-                    'No critical updates for today yet...',
+                    context.l10n.noCriticalUpdatesToday,
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
                           color: AppColors.onSurfaceVariant,
                           fontStyle: FontStyle.italic,
@@ -684,16 +687,16 @@ class _RouteMapCard extends StatelessWidget {
                 ),
               ),
             ),
-            const Positioned(
+            Positioned(
               left: 16,
               bottom: 16,
               child: Row(
                 children: <Widget>[
-                  Icon(Icons.map, color: Colors.white),
-                  SizedBox(width: 8),
+                  const Icon(Icons.map, color: Colors.white),
+                  const SizedBox(width: 8),
                   Text(
-                    'View Route Map',
-                    style: TextStyle(
+                    context.l10n.routeMapTitle,
+                    style: const TextStyle(
                       color: Colors.white,
                       fontWeight: FontWeight.w800,
                     ),

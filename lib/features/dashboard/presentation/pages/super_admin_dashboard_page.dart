@@ -1,10 +1,12 @@
 import 'package:amethyst/core/data/amethyst_api.dart';
+import 'package:amethyst/core/l10n/context_l10n.dart';
 import 'package:amethyst/core/presentation/dashboard_load_state.dart';
 import 'package:amethyst/core/theme/app_colors.dart';
 import 'package:amethyst/di/injection.dart';
 import 'package:amethyst/features/dashboard/presentation/cubit/super_admin_dashboard_cubit.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
 
 class SuperAdminDashboardPage extends StatelessWidget {
   const SuperAdminDashboardPage({super.key});
@@ -37,7 +39,7 @@ class _SuperAdminDashboardBody extends StatelessWidget {
                 const SizedBox(height: 12),
                 FilledButton(
                   onPressed: () => context.read<SuperAdminDashboardCubit>().load(),
-                  child: const Text('Retry'),
+                  child: Text(context.l10n.retry),
                 ),
               ],
             ),
@@ -47,14 +49,16 @@ class _SuperAdminDashboardBody extends StatelessWidget {
         final salesToday = _num(d['totalSalesToday']);
         final profit = _num(d['totalProfitToday']);
         final expenses = _num(d['totalExpensesToday']);
+        final monthlyExpenses = _num(d['totalMonthlyExpenses']);
         final monthly = _num(d['totalMonthlySales']);
+        final l10n = context.l10n;
         return RefreshIndicator(
           onRefresh: () => context.read<SuperAdminDashboardCubit>().load(),
           child: ListView(
             padding: const EdgeInsets.all(20),
             children: <Widget>[
               Text(
-                'Overview',
+                l10n.overview,
                 style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                       fontWeight: FontWeight.w800,
                       color: AppColors.primaryText,
@@ -64,58 +68,71 @@ class _SuperAdminDashboardBody extends StatelessWidget {
               _KpiGrid(
                 children: <Widget>[
                   _KpiCard(
-                    label: 'Users',
+                    label: l10n.kpiUsers,
                     value: '${d['totalUsers'] ?? 0}',
                     icon: Icons.people,
                   ),
                   _KpiCard(
-                    label: 'Admins',
+                    label: l10n.kpiAdmins,
                     value: '${d['totalAdmins'] ?? 0}',
                     icon: Icons.admin_panel_settings,
                   ),
                   _KpiCard(
-                    label: 'Drivers',
+                    label: l10n.kpiDrivers,
                     value: '${d['totalDrivers'] ?? 0}',
                     icon: Icons.drive_eta,
                   ),
                   _KpiCard(
-                    label: 'Vehicles',
+                    label: l10n.kpiVehicles,
                     value: '${d['totalVehicles'] ?? 0}',
                     icon: Icons.local_shipping,
                   ),
                   _KpiCard(
-                    label: 'Sales today',
+                    label: l10n.salesToday,
                     value: salesToday.toStringAsFixed(0),
                     icon: Icons.trending_up,
+                    onTap: () =>
+                        context.push('/super-admin/sales-working-days'),
                   ),
                   _KpiCard(
-                    label: 'Profit today',
+                    label: l10n.profitToday,
                     value: profit.toStringAsFixed(0),
                     icon: Icons.savings,
+                    onTap: () => context.push('/super-admin/kpi/profit-today'),
                   ),
                   _KpiCard(
-                    label: 'Expenses today',
+                    label: l10n.expensesToday,
                     value: expenses.toStringAsFixed(0),
                     icon: Icons.payments,
+                    onTap: () => context.push('/super-admin/kpi/expenses-today'),
                   ),
                   _KpiCard(
-                    label: 'Monthly sales',
+                    label: l10n.monthlyExpenses,
+                    value: monthlyExpenses.toStringAsFixed(0),
+                    icon: Icons.account_balance_wallet_outlined,
+                    onTap: () => context.push('/super-admin/kpi/expenses-month'),
+                  ),
+                  _KpiCard(
+                    label: l10n.monthlySales,
                     value: monthly.toStringAsFixed(0),
                     icon: Icons.calendar_month,
+                    onTap: () => context.push('/super-admin/kpi/sales-month'),
                   ),
                 ],
               ),
               const SizedBox(height: 24),
               Text(
-                'Stock snapshot',
+                l10n.stockSnapshot,
                 style: Theme.of(context).textTheme.titleMedium?.copyWith(
                       fontWeight: FontWeight.w800,
                     ),
               ),
               const SizedBox(height: 8),
               Text(
-                'Station: ${_num(d['remainingStationStock']).toStringAsFixed(0)} · '
-                'On vehicles: ${_num(d['remainingOnVehicles']).toStringAsFixed(0)}',
+                l10n.stockLine(
+                  _num(d['remainingStationStock']).toStringAsFixed(0),
+                  _num(d['remainingOnVehicles']).toStringAsFixed(0),
+                ),
                 style: Theme.of(context).textTheme.bodyLarge,
               ),
             ],
@@ -165,48 +182,62 @@ class _KpiCard extends StatelessWidget {
     required this.label,
     required this.value,
     required this.icon,
+    this.onTap,
   });
 
   final String label;
   final String value;
   final IconData icon;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
+    final Widget content = Padding(
+      padding: const EdgeInsets.all(16),
+      child: Row(
+        children: <Widget>[
+          Icon(icon, color: AppColors.primaryContainer),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                Text(
+                  label.toUpperCase(),
+                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                        letterSpacing: 0.8,
+                        color: AppColors.onSurfaceVariant,
+                      ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  value,
+                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.w800,
+                      ),
+                ),
+              ],
+            ),
+          ),
+          if (onTap != null)
+            Icon(
+              Icons.chevron_right,
+              color: AppColors.onSurfaceVariant.withValues(alpha: 0.6),
+            ),
+        ],
+      ),
+    );
     return Card(
       elevation: 0,
       color: AppColors.surfaceLowest,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Row(
-          children: <Widget>[
-            Icon(icon, color: AppColors.primaryContainer),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: <Widget>[
-                  Text(
-                    label.toUpperCase(),
-                    style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                          letterSpacing: 0.8,
-                          color: AppColors.onSurfaceVariant,
-                        ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    value,
-                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                          fontWeight: FontWeight.w800,
-                        ),
-                  ),
-                ],
-              ),
+      clipBehavior: onTap != null ? Clip.antiAlias : Clip.none,
+      child: onTap == null
+          ? content
+          : InkWell(
+              onTap: onTap,
+              child: content,
             ),
-          ],
-        ),
-      ),
     );
   }
 }
