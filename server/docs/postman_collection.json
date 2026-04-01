@@ -1,0 +1,210 @@
+{
+  "info": {
+    "name": "Amethyst API",
+    "description": "Import and set `token` after Auth → Login.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "rootUrl", "value": "http://localhost:4000" },
+    { "key": "baseUrl", "value": "http://localhost:4000/api" },
+    { "key": "token", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "System",
+      "item": [
+        {
+          "name": "GET / (root)",
+          "request": { "method": "GET", "url": "{{rootUrl}}/" }
+        },
+        {
+          "name": "GET /health",
+          "request": { "method": "GET", "url": "{{rootUrl}}/health" }
+        },
+        {
+          "name": "GET /api/health",
+          "request": { "method": "GET", "url": "{{baseUrl}}/health" }
+        },
+        {
+          "name": "GET /api/openapi.json",
+          "request": { "method": "GET", "url": "{{baseUrl}}/openapi.json" }
+        },
+        {
+          "name": "GET /api/docs (Swagger UI)",
+          "request": { "method": "GET", "url": "{{baseUrl}}/docs" }
+        }
+      ]
+    },
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Login (Super Admin)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"super@amethyst.local\",\n  \"password\": \"SuperAdmin123!\"\n}"
+            },
+            "url": "{{baseUrl}}/auth/login"
+          }
+        },
+        {
+          "name": "Me",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": "{{baseUrl}}/auth/me"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Products",
+      "item": [
+        {
+          "name": "List",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": "{{baseUrl}}/products?page=1&limit=20&sort=name&order=asc"
+          }
+        },
+        {
+          "name": "Create",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Water Bottle\",\n  \"type\": \"bottle\",\n  \"price\": 1.5,\n  \"stock\": 100\n}"
+            },
+            "url": "{{baseUrl}}/products"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Vehicles",
+      "item": [
+        {
+          "name": "List",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": "{{baseUrl}}/vehicles?page=1&limit=20"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Vehicle loads",
+      "item": [
+        {
+          "name": "List",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": "{{baseUrl}}/vehicle-loads?page=1&limit=20&status=open"
+          }
+        },
+        {
+          "name": "Driver current",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": "{{baseUrl}}/vehicle-loads/driver/current"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Station sales",
+      "item": [
+        {
+          "name": "List",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": "{{baseUrl}}/station-sales?page=1&limit=20"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Vehicle sales",
+      "item": [
+        {
+          "name": "List",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": "{{baseUrl}}/vehicle-sales?page=1&limit=20"
+          }
+        },
+        {
+          "name": "My sales (driver)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": "{{baseUrl}}/vehicle-sales/my?page=1&limit=20"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Expenses",
+      "item": [
+        {
+          "name": "List",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": "{{baseUrl}}/expenses?page=1&limit=20"
+          }
+        },
+        {
+          "name": "My expenses (driver)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": "{{baseUrl}}/expenses/my?page=1&limit=20"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Dashboard",
+      "item": [
+        {
+          "name": "Super admin",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": "{{baseUrl}}/dashboard/super-admin"
+          }
+        },
+        {
+          "name": "Admin",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": "{{baseUrl}}/dashboard/admin"
+          }
+        },
+        {
+          "name": "Driver",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": "{{baseUrl}}/dashboard/driver"
+          }
+        }
+      ]
+    }
+  ]
+}

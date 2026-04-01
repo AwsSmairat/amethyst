@@ -1,0 +1,46 @@
+{
+  "GET /": {
+    "message": "Amethyst API is running 🔥"
+  },
+  "POST /api/auth/login": {
+    "success": true,
+    "message": "Logged in",
+    "data": {
+      "user": {
+        "id": "uuid",
+        "fullName": "Super Admin",
+        "phone": "+10000000001",
+        "email": "super@amethyst.local",
+        "role": "super_admin",
+        "isActive": true,
+        "createdAt": "2026-04-01T00:00:00.000Z",
+        "updatedAt": "2026-04-01T00:00:00.000Z"
+      },
+      "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+    }
+  },
+  "GET /api/dashboard/super-admin": {
+    "success": true,
+    "message": "OK",
+    "data": {
+      "totalSalesToday": 0,
+      "stationSalesToday": 0,
+      "vehicleSalesToday": 0,
+      "totalExpensesToday": 0,
+      "remainingStationStock": 700,
+      "remainingOnVehicles": 0,
+      "totalMonthlySales": 0,
+      "totalProfitToday": 0
+    }
+  },
+  "GET /api/products (item)": {
+    "id": "uuid",
+    "name": "Water Bottle",
+    "unitType": "bottle",
+    "type": "bottle",
+    "price": 1.5,
+    "stationStock": 500,
+    "stock": 500,
+    "isActive": true
+  }
+}

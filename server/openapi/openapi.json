@@ -1,0 +1,722 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Amethyst Water Station API",
+    "version": "1.0.0",
+    "description": "REST API for Amethyst — accounting, vehicles, loads, sales, expenses, dashboards. List endpoints support `page`, `limit`, `sort`, `order`, `dateFrom`, `dateTo`, `vehicleId`, `driverId`, `productId`, `status`, `isActive` where applicable."
+  },
+  "servers": [{ "url": "http://localhost:4000/api", "description": "Local development" }],
+  "tags": [
+    { "name": "System", "description": "Health & docs" },
+    { "name": "Auth", "description": "JWT authentication" },
+    { "name": "Users", "description": "User management (RBAC)" },
+    { "name": "Vehicles", "description": "Fleet" },
+    { "name": "Products", "description": "Catalog & station stock" },
+    { "name": "Vehicle loads", "description": "Station → vehicle loading" },
+    { "name": "Station sales", "description": "Sales at the station" },
+    { "name": "Vehicle sales", "description": "Driver mobile sales" },
+    { "name": "Expenses", "description": "Driver / vehicle expenses" },
+    { "name": "Returns", "description": "Returns to station" },
+    { "name": "Dashboard", "description": "Aggregated KPIs" },
+    { "name": "Reports", "description": "Staff reporting" }
+  ],
+  "paths": {
+    "/health": {
+      "get": {
+        "tags": ["System"],
+        "summary": "API health (JSON)",
+        "responses": {
+          "200": {
+            "description": "Healthy",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HealthResponse" },
+                "example": { "success": true, "message": "API is healthy" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/openapi.json": {
+      "get": {
+        "tags": ["System"],
+        "summary": "Raw OpenAPI document",
+        "responses": { "200": { "description": "OpenAPI JSON" } }
+      }
+    },
+    "/docs": {
+      "get": {
+        "tags": ["System"],
+        "summary": "Swagger UI",
+        "responses": { "200": { "description": "HTML" } }
+      }
+    },
+    "/auth/register": {
+      "post": {
+        "tags": ["Auth"],
+        "summary": "Bootstrap first super_admin (only when DB has zero users)",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/RegisterRequest" }
+            }
+          }
+        },
+        "responses": {
+          "201": { "description": "Created", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/AuthSuccess" } } } },
+          "400": { "$ref": "#/components/responses/Error" },
+          "403": { "$ref": "#/components/responses/Error" }
+        }
+      }
+    },
+    "/auth/login": {
+      "post": {
+        "tags": ["Auth"],
+        "summary": "Login — returns JWT",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/LoginRequest" },
+              "example": { "email": "super@amethyst.local", "password": "SuperAdmin123!" }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "OK", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/AuthSuccess" } } } },
+          "401": { "$ref": "#/components/responses/Error" }
+        }
+      }
+    },
+    "/auth/me": {
+      "get": {
+        "tags": ["Auth"],
+        "summary": "Current user profile",
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "200": { "description": "OK", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/EnvelopeUser" } } } },
+          "401": { "$ref": "#/components/responses/Error" }
+        }
+      }
+    },
+    "/users": {
+      "get": {
+        "tags": ["Users"],
+        "summary": "List users (super_admin: all; admin: admin+driver)",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [{ "$ref": "#/components/parameters/Page" }, { "$ref": "#/components/parameters/Limit" }, { "$ref": "#/components/parameters/Sort" }, { "$ref": "#/components/parameters/Order" }],
+        "responses": { "200": { "description": "Paginated users" } }
+      },
+      "post": {
+        "tags": ["Users"],
+        "summary": "Create admin or driver (super_admin only)",
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/CreateUserRequest" } } }
+        },
+        "responses": { "201": { "description": "Created" }, "403": { "$ref": "#/components/responses/Error" } }
+      }
+    },
+    "/users/{id}": {
+      "get": {
+        "tags": ["Users"],
+        "summary": "Get user by id",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }],
+        "responses": { "200": { "description": "OK" }, "403": { "$ref": "#/components/responses/Error" }, "404": { "$ref": "#/components/responses/Error" } }
+      },
+      "put": {
+        "tags": ["Users"],
+        "summary": "Update user",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }],
+        "responses": { "200": { "description": "OK" } }
+      },
+      "delete": {
+        "tags": ["Users"],
+        "summary": "Delete user (super_admin only)",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }],
+        "responses": { "200": { "description": "OK" } }
+      }
+    },
+    "/users/{id}/status": {
+      "patch": {
+        "tags": ["Users"],
+        "summary": "Activate / deactivate user",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }],
+        "requestBody": {
+          "content": { "application/json": { "schema": { "type": "object", "properties": { "isActive": { "type": "boolean" } }, "required": ["isActive"] } } }
+        },
+        "responses": { "200": { "description": "OK" } }
+      }
+    },
+    "/products": {
+      "get": {
+        "tags": ["Products"],
+        "summary": "List products",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [{ "$ref": "#/components/parameters/Page" }, { "$ref": "#/components/parameters/Limit" }, { "$ref": "#/components/parameters/Sort" }, { "$ref": "#/components/parameters/Order" }, { "name": "isActive", "in": "query", "schema": { "type": "boolean" } }],
+        "responses": { "200": { "description": "Paginated products" } }
+      },
+      "post": {
+        "tags": ["Products"],
+        "summary": "Create product",
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/ProductCreate" },
+              "example": { "name": "Water Bottle", "type": "bottle", "price": 1.5, "stock": 500 }
+            }
+          }
+        },
+        "responses": { "201": { "description": "Created" } }
+      }
+    },
+    "/products/{id}": {
+      "get": {
+        "tags": ["Products"],
+        "summary": "Get product",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }],
+        "responses": { "200": { "description": "OK" } }
+      },
+      "put": {
+        "tags": ["Products"],
+        "summary": "Update product",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }],
+        "responses": { "200": { "description": "OK" } }
+      },
+      "delete": {
+        "tags": ["Products"],
+        "summary": "Delete product",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }],
+        "responses": { "200": { "description": "OK" } }
+      }
+    },
+    "/products/{id}/stock": {
+      "patch": {
+        "tags": ["Products"],
+        "summary": "Set station stock",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }],
+        "requestBody": {
+          "content": { "application/json": { "schema": { "type": "object", "properties": { "stock": { "type": "integer" }, "stationStock": { "type": "integer" } } } } }
+        },
+        "responses": { "200": { "description": "OK" } }
+      }
+    },
+    "/vehicles": {
+      "get": {
+        "tags": ["Vehicles"],
+        "summary": "List vehicles",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [{ "$ref": "#/components/parameters/Page" }, { "$ref": "#/components/parameters/Limit" }],
+        "responses": { "200": { "description": "OK" } }
+      },
+      "post": {
+        "tags": ["Vehicles"],
+        "summary": "Create vehicle",
+        "security": [{ "bearerAuth": [] }],
+        "responses": { "201": { "description": "Created" } }
+      }
+    },
+    "/vehicles/{id}": {
+      "get": {
+        "tags": ["Vehicles"],
+        "summary": "Get vehicle",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }],
+        "responses": { "200": { "description": "OK" } }
+      },
+      "put": {
+        "tags": ["Vehicles"],
+        "summary": "Update vehicle",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }],
+        "responses": { "200": { "description": "OK" } }
+      },
+      "delete": {
+        "tags": ["Vehicles"],
+        "summary": "Delete vehicle",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }],
+        "responses": { "200": { "description": "OK" } }
+      }
+    },
+    "/vehicles/{id}/assign-driver": {
+      "patch": {
+        "tags": ["Vehicles"],
+        "summary": "Assign driver to vehicle",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }],
+        "requestBody": {
+          "content": { "application/json": { "schema": { "type": "object", "properties": { "driverId": { "type": "string", "format": "uuid", "nullable": true } } } } }
+        },
+        "responses": { "200": { "description": "OK" } }
+      }
+    },
+    "/vehicle-loads/driver/current": {
+      "get": {
+        "tags": ["Vehicle loads"],
+        "summary": "Driver — current open loads",
+        "security": [{ "bearerAuth": [] }],
+        "responses": { "200": { "description": "OK" } }
+      }
+    },
+    "/vehicle-loads": {
+      "get": {
+        "tags": ["Vehicle loads"],
+        "summary": "List vehicle loads",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [{ "$ref": "#/components/parameters/Page" }, { "$ref": "#/components/parameters/Limit" }, { "name": "status", "in": "query", "schema": { "type": "string", "enum": ["open", "closed"] } }],
+        "responses": { "200": { "description": "OK" } }
+      },
+      "post": {
+        "tags": ["Vehicle loads"],
+        "summary": "Create load (reduces station stock)",
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "example": {
+                "vehicleId": "uuid",
+                "driverId": "uuid",
+                "productId": "uuid",
+                "quantityLoaded": 50,
+                "loadDate": "2026-04-01"
+              }
+            }
+          }
+        },
+        "responses": { "201": { "description": "Created" } }
+      }
+    },
+    "/vehicle-loads/{id}": {
+      "get": {
+        "tags": ["Vehicle loads"],
+        "summary": "Get load",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }],
+        "responses": { "200": { "description": "OK" } }
+      },
+      "put": {
+        "tags": ["Vehicle loads"],
+        "summary": "Update load (open only)",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }],
+        "responses": { "200": { "description": "OK" } }
+      }
+    },
+    "/vehicle-loads/{id}/close": {
+      "patch": {
+        "tags": ["Vehicle loads"],
+        "summary": "Close load",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }],
+        "responses": { "200": { "description": "OK" } }
+      }
+    },
+    "/station-sales/summary/daily": {
+      "get": {
+        "tags": ["Station sales"],
+        "summary": "Daily station sales summary",
+        "security": [{ "bearerAuth": [] }],
+        "responses": { "200": { "description": "OK" } }
+      }
+    },
+    "/station-sales/summary/monthly": {
+      "get": {
+        "tags": ["Station sales"],
+        "summary": "Monthly station sales summary",
+        "security": [{ "bearerAuth": [] }],
+        "responses": { "200": { "description": "OK" } }
+      }
+    },
+    "/station-sales": {
+      "get": {
+        "tags": ["Station sales"],
+        "summary": "List station sales",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [{ "$ref": "#/components/parameters/Page" }, { "$ref": "#/components/parameters/Limit" }, { "$ref": "#/components/parameters/DateFrom" }, { "$ref": "#/components/parameters/DateTo" }],
+        "responses": { "200": { "description": "OK" } }
+      },
+      "post": {
+        "tags": ["Station sales"],
+        "summary": "Record station sale",
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "example": { "productId": "uuid", "quantity": 10, "unitPrice": 1.5 }
+            }
+          }
+        },
+        "responses": { "201": { "description": "Created" } }
+      }
+    },
+    "/station-sales/{id}": {
+      "get": {
+        "tags": ["Station sales"],
+        "summary": "Get station sale",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }],
+        "responses": { "200": { "description": "OK" } }
+      }
+    },
+    "/vehicle-sales/summary/daily": {
+      "get": {
+        "tags": ["Vehicle sales"],
+        "summary": "Daily vehicle sales summary (staff)",
+        "security": [{ "bearerAuth": [] }],
+        "responses": { "200": { "description": "OK" } }
+      }
+    },
+    "/vehicle-sales/summary/monthly": {
+      "get": {
+        "tags": ["Vehicle sales"],
+        "summary": "Monthly vehicle sales summary (staff)",
+        "security": [{ "bearerAuth": [] }],
+        "responses": { "200": { "description": "OK" } }
+      }
+    },
+    "/vehicle-sales/my": {
+      "get": {
+        "tags": ["Vehicle sales"],
+        "summary": "Driver — my vehicle sales",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [{ "$ref": "#/components/parameters/Page" }, { "$ref": "#/components/parameters/Limit" }],
+        "responses": { "200": { "description": "OK" } }
+      }
+    },
+    "/vehicle-sales": {
+      "get": {
+        "tags": ["Vehicle sales"],
+        "summary": "List vehicle sales (driver: own only)",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [{ "$ref": "#/components/parameters/Page" }, { "$ref": "#/components/parameters/Limit" }],
+        "responses": { "200": { "description": "OK" } }
+      },
+      "post": {
+        "tags": ["Vehicle sales"],
+        "summary": "Record vehicle sale (driver)",
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "example": { "vehicleId": "uuid", "productId": "uuid", "quantity": 2, "unitPrice": 1.5 }
+            }
+          }
+        },
+        "responses": { "201": { "description": "Created" } }
+      }
+    },
+    "/vehicle-sales/{id}": {
+      "get": {
+        "tags": ["Vehicle sales"],
+        "summary": "Get vehicle sale",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }],
+        "responses": { "200": { "description": "OK" } }
+      }
+    },
+    "/expenses/my": {
+      "get": {
+        "tags": ["Expenses"],
+        "summary": "Driver — my expenses",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [{ "$ref": "#/components/parameters/Page" }, { "$ref": "#/components/parameters/Limit" }],
+        "responses": { "200": { "description": "OK" } }
+      }
+    },
+    "/expenses": {
+      "get": {
+        "tags": ["Expenses"],
+        "summary": "List expenses (driver: own only)",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [{ "$ref": "#/components/parameters/Page" }, { "$ref": "#/components/parameters/Limit" }],
+        "responses": { "200": { "description": "OK" } }
+      },
+      "post": {
+        "tags": ["Expenses"],
+        "summary": "Create expense (driver)",
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "example": { "amount": 12.5, "note": "Fuel", "vehicleId": "uuid" }
+            }
+          }
+        },
+        "responses": { "201": { "description": "Created" } }
+      }
+    },
+    "/expenses/{id}": {
+      "get": {
+        "tags": ["Expenses"],
+        "summary": "Get expense",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }],
+        "responses": { "200": { "description": "OK" } }
+      },
+      "put": {
+        "tags": ["Expenses"],
+        "summary": "Update expense (driver, own)",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }],
+        "responses": { "200": { "description": "OK" } }
+      },
+      "delete": {
+        "tags": ["Expenses"],
+        "summary": "Delete expense (driver, own)",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }],
+        "responses": { "200": { "description": "OK" } }
+      }
+    },
+    "/returns": {
+      "get": {
+        "tags": ["Returns"],
+        "summary": "List returns (staff)",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [{ "$ref": "#/components/parameters/Page" }, { "$ref": "#/components/parameters/Limit" }],
+        "responses": { "200": { "description": "OK" } }
+      },
+      "post": {
+        "tags": ["Returns"],
+        "summary": "Record return to station",
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "example": { "vehicleLoadId": "uuid", "quantityReturned": 3 }
+            }
+          }
+        },
+        "responses": { "201": { "description": "Created" } }
+      }
+    },
+    "/returns/{id}": {
+      "get": {
+        "tags": ["Returns"],
+        "summary": "Get return line (vehicle load)",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }],
+        "responses": { "200": { "description": "OK" } }
+      }
+    },
+    "/dashboard/super-admin": {
+      "get": {
+        "tags": ["Dashboard"],
+        "summary": "Super admin dashboard",
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "200": {
+            "description": "Normalized envelope: role, generatedAt, metrics, details",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": true,
+                  "message": "OK",
+                  "data": {
+                    "role": "super_admin",
+                    "metrics": { "totalSalesToday": 0, "remainingStationStock": 700 },
+                    "details": { "counts": { "users": 5 } }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/dashboard/admin": {
+      "get": {
+        "tags": ["Dashboard"],
+        "summary": "Admin dashboard",
+        "security": [{ "bearerAuth": [] }],
+        "responses": { "200": { "description": "OK" } }
+      }
+    },
+    "/dashboard/driver": {
+      "get": {
+        "tags": ["Dashboard"],
+        "summary": "Driver dashboard",
+        "security": [{ "bearerAuth": [] }],
+        "responses": { "200": { "description": "OK" } }
+      }
+    },
+    "/reports/sales/daily": {
+      "get": {
+        "tags": ["Reports"],
+        "summary": "Sales daily report",
+        "security": [{ "bearerAuth": [] }],
+        "responses": { "200": { "description": "OK" } }
+      }
+    },
+    "/reports/sales/monthly": {
+      "get": {
+        "tags": ["Reports"],
+        "summary": "Sales monthly report",
+        "security": [{ "bearerAuth": [] }],
+        "responses": { "200": { "description": "OK" } }
+      }
+    },
+    "/reports/vehicles": {
+      "get": {
+        "tags": ["Reports"],
+        "summary": "Vehicle performance",
+        "security": [{ "bearerAuth": [] }],
+        "responses": { "200": { "description": "OK" } }
+      }
+    },
+    "/reports/drivers": {
+      "get": {
+        "tags": ["Reports"],
+        "summary": "Driver performance",
+        "security": [{ "bearerAuth": [] }],
+        "responses": { "200": { "description": "OK" } }
+      }
+    },
+    "/reports/inventory": {
+      "get": {
+        "tags": ["Reports"],
+        "summary": "Inventory report",
+        "security": [{ "bearerAuth": [] }],
+        "responses": { "200": { "description": "OK" } }
+      }
+    },
+    "/reports/expenses": {
+      "get": {
+        "tags": ["Reports"],
+        "summary": "Expense report",
+        "security": [{ "bearerAuth": [] }],
+        "responses": { "200": { "description": "OK" } }
+      }
+    },
+    "/reports/profit-loss": {
+      "get": {
+        "tags": ["Reports"],
+        "summary": "Profit & loss",
+        "security": [{ "bearerAuth": [] }],
+        "responses": { "200": { "description": "OK" } }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT",
+        "description": "Use: Authorization: Bearer <token> from POST /auth/login"
+      }
+    },
+    "parameters": {
+      "Page": { "name": "page", "in": "query", "schema": { "type": "integer", "minimum": 1, "default": 1 } },
+      "Limit": { "name": "limit", "in": "query", "schema": { "type": "integer", "minimum": 1, "maximum": 100, "default": 20 } },
+      "Sort": { "name": "sort", "in": "query", "schema": { "type": "string" } },
+      "Order": { "name": "order", "in": "query", "schema": { "type": "string", "enum": ["asc", "desc"], "default": "desc" } },
+      "DateFrom": { "name": "dateFrom", "in": "query", "schema": { "type": "string", "format": "date" } },
+      "DateTo": { "name": "dateTo", "in": "query", "schema": { "type": "string", "format": "date" } }
+    },
+    "responses": {
+      "Error": {
+        "description": "Error",
+        "content": {
+          "application/json": {
+            "schema": { "$ref": "#/components/schemas/ApiError" },
+            "example": { "success": false, "message": "Forbidden", "code": "FORBIDDEN" }
+          }
+        }
+      }
+    },
+    "schemas": {
+      "HealthResponse": {
+        "type": "object",
+        "properties": {
+          "success": { "type": "boolean" },
+          "message": { "type": "string" }
+        }
+      },
+      "ApiError": {
+        "type": "object",
+        "properties": {
+          "success": { "type": "boolean", "example": false },
+          "message": { "type": "string" },
+          "code": { "type": "string" }
+        }
+      },
+      "LoginRequest": {
+        "type": "object",
+        "required": ["email", "password"],
+        "properties": {
+          "email": { "type": "string", "format": "email" },
+          "password": { "type": "string" }
+        }
+      },
+      "RegisterRequest": {
+        "type": "object",
+        "required": ["fullName", "phone", "email", "password", "role"],
+        "properties": {
+          "fullName": { "type": "string" },
+          "phone": { "type": "string" },
+          "email": { "type": "string" },
+          "password": { "type": "string" },
+          "role": { "type": "string", "enum": ["super_admin"] }
+        }
+      },
+      "AuthSuccess": {
+        "type": "object",
+        "properties": {
+          "success": { "type": "boolean" },
+          "message": { "type": "string" },
+          "data": {
+            "type": "object",
+            "properties": {
+              "token": { "type": "string" },
+              "user": { "type": "object" }
+            }
+          }
+        }
+      },
+      "EnvelopeUser": {
+        "type": "object",
+        "properties": {
+          "success": { "type": "boolean" },
+          "data": { "type": "object" }
+        }
+      },
+      "CreateUserRequest": {
+        "type": "object",
+        "required": ["fullName", "phone", "email", "password", "role"],
+        "properties": {
+          "fullName": { "type": "string" },
+          "phone": { "type": "string" },
+          "email": { "type": "string" },
+          "password": { "type": "string" },
+          "role": { "type": "string", "enum": ["admin", "driver"] }
+        }
+      },
+      "ProductCreate": {
+        "type": "object",
+        "required": ["name", "price"],
+        "properties": {
+          "name": { "type": "string" },
+          "unitType": { "type": "string", "enum": ["bottle", "carton", "gallon"] },
+          "type": { "type": "string", "enum": ["bottle", "carton", "gallon"] },
+          "price": { "type": "number" },
+          "stationStock": { "type": "integer" },
+          "stock": { "type": "integer" },
+          "isActive": { "type": "boolean" }
+        }
+      }
+    }
+  }
+}
