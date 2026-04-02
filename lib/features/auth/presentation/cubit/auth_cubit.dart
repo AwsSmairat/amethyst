@@ -1,3 +1,4 @@
+import 'package:amethyst/core/network/api_exception.dart';
 import 'package:amethyst/core/storage/secure_token_storage.dart';
 import 'package:amethyst/features/auth/domain/usecases/load_session_usecase.dart';
 import 'package:amethyst/features/auth/domain/usecases/login_usecase.dart';
@@ -50,6 +51,11 @@ final class AuthCubit extends Cubit<AuthState> {
     try {
       final user = await _loginUseCase(email: email, password: password);
       emit(AuthAuthenticated(user));
+    } on ApiException catch (e) {
+      final String msg = (e.code != null && e.code!.isNotEmpty)
+          ? '${e.message} (${e.code})'
+          : e.message;
+      emit(AuthUnauthenticated(message: msg));
     } on Object catch (e) {
       emit(AuthUnauthenticated(message: e.toString()));
     }

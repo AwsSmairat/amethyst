@@ -1,3 +1,4 @@
+import { Prisma } from '@prisma/client';
 import { AppError } from '../utils/AppError.js';
 import { ZodError } from 'zod';
 
@@ -57,6 +58,46 @@ export function errorHandler(err, req, res, _next) {
       message:
         'Database is unavailable. Check DATABASE_URL on the server and that migrations ran.',
       code: 'DATABASE_UNAVAILABLE',
+    });
+  }
+
+  // Any other Prisma "known" error (e.g. P2021 table missing) — avoid silent 500.
+  if (err instanceof Prisma.PrismaClientKnownRequestError) {
+    console.error('[prisma known]', err.code, err.meta, err.message);
+    const message =
+      err.code === 'P2021' || err.code === 'P2010'
+        ? 'Database schema is out of sync. Run prisma migrate deploy on the server.'
+        : `Database error (${err.code}).`;
+    return res.status(503).json({
+      success: false,
+      message,
+      code: err.code,
+    });
+  }
+
+  if (err instanceof Prisma.PrismaClientUnknownRequestError) {
+    console.error('[prisma unknown]', err.message);
+    return res.status(503).json({
+      success: false,
+      message: 'Database request failed. Check DATABASE_URL and server logs.',
+      code: 'DATABASE_REQUEST_FAILED',
+    });
+  }
+
+  // res.json() failed (e.g. BigInt / circular structure) — log real cause in server logs.
+  const msg = err?.message ?? '';
+  if (
+    err instanceof TypeError &&
+    (msg.includes('JSON') ||
+      msg.includes('BigInt') ||
+      msg.includes('circular') ||
+      msg.includes('Converting circular'))
+  ) {
+    console.error('[response]', err);
+    return res.status(500).json({
+      success: false,
+      message: 'Response serialization failed',
+      code: 'SERIALIZATION_ERROR',
     });
   }
 

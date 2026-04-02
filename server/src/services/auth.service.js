@@ -32,7 +32,13 @@ export async function register(body) {
       isActive: true,
     },
   });
-  const token = signToken({ sub: user.id, role: user.role });
+  let token;
+  try {
+    token = signToken({ sub: user.id, role: user.role });
+  } catch (e) {
+    console.error('[auth] JWT sign failed', e);
+    throw new AppError('Login service error', 503, 'TOKEN_SIGN_FAILED');
+  }
   return { user: serializeUser(user), token };
 }
 
@@ -56,7 +62,13 @@ export async function login({ email, password }) {
   if (!user.isActive) {
     throw new AppError('Account is inactive', 403, 'FORBIDDEN');
   }
-  const token = signToken({ sub: user.id, role: user.role });
+  let token;
+  try {
+    token = signToken({ sub: user.id, role: user.role });
+  } catch (e) {
+    console.error('[auth] JWT sign failed', e);
+    throw new AppError('Login service error', 503, 'TOKEN_SIGN_FAILED');
+  }
   return {
     user: serializeUser(user),
     token,

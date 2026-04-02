@@ -1,7 +1,18 @@
+/**
+ * Plain JSON-safe user shape (no spread of Prisma internals — avoids res.json() / INTERNAL_ERROR).
+ */
 export function serializeUser(user) {
   if (!user) return null;
-  const { passwordHash, ...rest } = user;
-  return rest;
+  return {
+    id: user.id,
+    fullName: user.fullName,
+    phone: user.phone,
+    email: user.email,
+    role: user.role,
+    isActive: user.isActive,
+    ...(user.createdAt != null ? { createdAt: user.createdAt } : {}),
+    ...(user.updatedAt != null ? { updatedAt: user.updatedAt } : {}),
+  };
 }
 
 export function serializeDecimal(obj) {
