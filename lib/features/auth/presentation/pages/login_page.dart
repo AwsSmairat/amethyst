@@ -90,6 +90,7 @@ class _LoginStoreLogo extends StatelessWidget {
   const _LoginStoreLogo();
 
   static const double _size = 200;
+  static const double _logoInset = 14;
 
   @override
   Widget build(BuildContext context) {
@@ -101,40 +102,80 @@ class _LoginStoreLogo extends StatelessWidget {
           height: _size,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
+            gradient: RadialGradient(
+              center: const Alignment(-0.2, -0.35),
+              radius: 1.0,
+              colors: <Color>[
+                Colors.white.withValues(alpha: 0.16),
+                const Color(0xFFBFEFFF).withValues(alpha: 0.14),
+                const Color(0xFF1565C0).withValues(alpha: 0.08),
+                Colors.transparent,
+              ],
+              stops: const <double>[0.0, 0.45, 0.72, 1.0],
+            ),
+            border: Border.all(
+              color: Colors.white.withValues(alpha: 0.14),
+              width: 1.2,
+            ),
             boxShadow: <BoxShadow>[
               BoxShadow(
-                color: Colors.white.withValues(alpha: 0.35),
-                blurRadius: 28,
-                spreadRadius: 0,
-                offset: const Offset(0, 8),
+                color: Colors.white.withValues(alpha: 0.22),
+                blurRadius: 34,
+                offset: const Offset(0, 10),
               ),
               BoxShadow(
-                color: const Color(0xFF1565C0).withValues(alpha: 0.25),
-                blurRadius: 20,
-                offset: const Offset(0, 12),
+                color: const Color(0xFF3EC5FF).withValues(alpha: 0.22),
+                blurRadius: 42,
+                spreadRadius: 2,
+                offset: const Offset(0, 18),
               ),
             ],
           ),
-          child: ClipOval(
-            child: Image.asset(
-              BrandAssets.loginIcon,
-              width: _size,
-              height: _size,
-              fit: BoxFit.cover,
-              alignment: Alignment.center,
-              filterQuality: FilterQuality.high,
-              gaplessPlayback: true,
-              errorBuilder: (BuildContext context, Object error, StackTrace? stack) {
-                return ColoredBox(
-                  color: Colors.white.withValues(alpha: 0.2),
-                  child: Icon(
-                    Icons.storefront_outlined,
-                    size: 72,
-                    color: Colors.white.withValues(alpha: 0.95),
+          child: Stack(
+            fit: StackFit.expand,
+            children: <Widget>[
+              // Soft glass highlight.
+              ClipOval(
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    gradient: RadialGradient(
+                      center: const Alignment(-0.35, -0.55),
+                      radius: 0.9,
+                      colors: <Color>[
+                        Colors.white.withValues(alpha: 0.18),
+                        Colors.transparent,
+                      ],
+                      stops: const <double>[0.0, 1.0],
+                    ),
                   ),
-                );
-              },
-            ),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.all(_logoInset),
+                child: ClipOval(
+                  child: Image.asset(
+                    // Use the cleaned app icon (no heavy black background).
+                    'assets/icon/app_icon.png',
+                    width: _size - (_logoInset * 2),
+                    height: _size - (_logoInset * 2),
+                    fit: BoxFit.cover,
+                    alignment: Alignment.center,
+                    filterQuality: FilterQuality.high,
+                    gaplessPlayback: true,
+                    errorBuilder: (BuildContext context, Object error, StackTrace? stack) {
+                      return ColoredBox(
+                        color: Colors.white.withValues(alpha: 0.12),
+                        child: Icon(
+                          Icons.storefront_outlined,
+                          size: 72,
+                          color: Colors.white.withValues(alpha: 0.95),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ),
+            ],
           ),
         ),
       ),

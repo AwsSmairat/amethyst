@@ -2,6 +2,7 @@ import 'package:amethyst/core/config/api_config.dart';
 import 'package:amethyst/core/network/api_exception.dart';
 import 'package:amethyst/core/storage/secure_token_storage.dart';
 import 'package:dio/dio.dart';
+import 'dart:io';
 
 typedef UnauthorizedCallback = void Function();
 
@@ -11,6 +12,11 @@ final class DioClient {
     UnauthorizedCallback? onUnauthorized,
   })  : _tokenStorage = tokenStorage,
         _onUnauthorized = onUnauthorized {
+    if (!ApiConfig.isConfigured) {
+      throw ApiException(
+        'Cannot connect to server. API_BASE_URL is not configured.',
+      );
+    }
     _dio = Dio(
       BaseOptions(
         baseUrl: ApiConfig.baseUrl,
@@ -96,6 +102,15 @@ final class DioClient {
         statusCode: res.statusCode,
         code: m['code']?.toString(),
       );
+    }
+    if (e.type == DioExceptionType.connectionTimeout ||
+        e.type == DioExceptionType.receiveTimeout ||
+        e.type == DioExceptionType.sendTimeout) {
+      throw ApiException('Cannot connect to server. Please try again.');
+    }
+    final err = e.error;
+    if (err is SocketException) {
+      throw ApiException('Cannot connect to server. Check your internet connection and server URL.');
     }
     throw ApiException(e.message ?? 'Network error', statusCode: res?.statusCode);
   }
