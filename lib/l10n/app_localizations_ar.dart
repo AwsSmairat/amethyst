@@ -371,19 +371,25 @@ class AppLocalizationsAr extends AppLocalizations {
   String get expenseTankWater => 'تنك مي';
 
   @override
-  String get expenseCartons => 'كراتين';
+  String get expenseCartons => 'كراتين مي';
 
   @override
   String get expenseCartonsWater => 'كراتين مي';
 
   @override
-  String get expenseStaffSalaries => 'رواتب موظفين';
+  String get expenseStaffSalaries => 'إيجار موظفين';
 
   @override
-  String get expenseWorkersWages => 'رواتب عمال';
+  String get expenseWorkersWages => 'إيجار موظفين';
 
   @override
   String get stationExpenseNeedOneAmount => 'أدخل مبلغاً في حقل واحد على الأقل';
+
+  @override
+  String get attachReceiptOptional => 'إرفاق صورة (اختياري)';
+
+  @override
+  String get removeReceipt => 'إزالة الصورة';
 
   @override
   String amountDinars(String amount) {

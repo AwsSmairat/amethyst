@@ -154,6 +154,7 @@ model Expense {
   vehicleId String?  @map("vehicle_id")
   amount    Decimal  @db.Decimal(12, 2)
   note      String?
+  receiptUrl String? @map("receipt_url")
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 

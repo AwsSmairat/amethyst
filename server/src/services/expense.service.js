@@ -69,6 +69,7 @@ export async function createExpense(body, actor) {
         vehicleId: null,
         amount: body.amount,
         note: body.note?.trim() || null,
+        receiptUrl: body.receiptUrl ?? null,
       },
       include: {
         vehicle: true,
@@ -103,6 +104,7 @@ export async function createExpense(body, actor) {
       vehicleId: body.vehicleId ?? null,
       amount: body.amount,
       note: body.note ?? null,
+      receiptUrl: body.receiptUrl ?? null,
     },
     include: {
       vehicle: true,

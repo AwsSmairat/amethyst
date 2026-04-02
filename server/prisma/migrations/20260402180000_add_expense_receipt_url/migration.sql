@@ -1,0 +1,2 @@
+ALTER TABLE "expenses" ADD COLUMN "receipt_url" TEXT;
+

@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 abstract class RecordOperationsRepository {
   Future<void> createStationSale({
     required String productId,
@@ -16,6 +18,8 @@ abstract class RecordOperationsRepository {
     String? vehicleId,
     required double amount,
     String? note,
+    Uint8List? receiptBytes,
+    String? receiptFilename,
   });
 
   Future<void> createReturn({

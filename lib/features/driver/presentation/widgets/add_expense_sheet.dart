@@ -8,6 +8,9 @@ import 'package:amethyst/features/record_operations/presentation/cubit/expense_s
 import 'package:amethyst/features/record_operations/presentation/cubit/submit_state.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_image_compress/flutter_image_compress.dart';
+import 'package:image_picker/image_picker.dart';
 
 /// يعرض خيارات التصنيف ثم نموذج المبلغ؛ بعد الحفظ يستدعي [onListReload] لتحديث القائمة.
 Future<void> startDriverExpenseEntry(
@@ -103,8 +106,9 @@ class _AddExpenseBody extends StatefulWidget {
 
 class _AddExpenseBodyState extends State<_AddExpenseBody> {
   final _amount = TextEditingController();
-  final _note = TextEditingController();
   String? _vehicleId;
+  Uint8List? _receiptBytes;
+  String? _receiptFilename;
 
   @override
   void initState() {
@@ -127,7 +131,6 @@ class _AddExpenseBodyState extends State<_AddExpenseBody> {
   @override
   void dispose() {
     _amount.dispose();
-    _note.dispose();
     super.dispose();
   }
 
@@ -144,15 +147,49 @@ class _AddExpenseBodyState extends State<_AddExpenseBody> {
 
   String _composedNote(AppLocalizations l10n) {
     final base = _categoryLabel(l10n);
-    final extra = _note.text.trim();
     switch (widget.category) {
       case DriverExpenseCategory.gasoline:
       case DriverExpenseCategory.carRepair:
-        if (extra.isEmpty) return base;
-        return '$base — $extra';
+        return base;
       case DriverExpenseCategory.other:
-        if (extra.isEmpty) return base;
-        return '$base: $extra';
+        return base;
+    }
+  }
+
+  Future<void> _pickReceipt() async {
+    try {
+      final picker = ImagePicker();
+      final XFile? picked = await picker.pickImage(
+        source: ImageSource.gallery,
+        imageQuality: 100,
+      );
+      if (!mounted || picked == null) return;
+
+      final bytes = await picked.readAsBytes();
+      final compressed = await FlutterImageCompress.compressWithList(
+        bytes,
+        minWidth: 1280,
+        minHeight: 1280,
+        quality: 60,
+        format: CompressFormat.jpeg,
+      );
+
+      if (!mounted) return;
+      setState(() {
+        _receiptBytes = Uint8List.fromList(compressed);
+        _receiptFilename =
+            'expense_${DateTime.now().millisecondsSinceEpoch}.jpg';
+      });
+    } on PlatformException catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.message ?? e.code)),
+      );
+    } on Object catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.toString())),
+      );
     }
   }
 
@@ -205,15 +242,33 @@ class _AddExpenseBodyState extends State<_AddExpenseBody> {
                 decoration: InputDecoration(labelText: l10n.amount),
               ),
               const SizedBox(height: 12),
-              TextField(
-                controller: _note,
-                maxLines: widget.category == DriverExpenseCategory.other ? 3 : 2,
-                decoration: InputDecoration(
-                  labelText: widget.category == DriverExpenseCategory.other
-                      ? l10n.otherExpenseDescriptionOptional
-                      : l10n.expenseDetailOptional,
-                ),
+              OutlinedButton.icon(
+                onPressed: busy ? null : _pickReceipt,
+                icon: const Icon(Icons.photo_camera_back_outlined),
+                label: Text(l10n.attachReceiptOptional),
               ),
+              if (_receiptBytes != null) ...<Widget>[
+                const SizedBox(height: 10),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(12),
+                  child: Image.memory(
+                    _receiptBytes!,
+                    height: 140,
+                    fit: BoxFit.cover,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                TextButton.icon(
+                  onPressed: busy
+                      ? null
+                      : () => setState(() {
+                            _receiptBytes = null;
+                            _receiptFilename = null;
+                          }),
+                  icon: const Icon(Icons.delete_outline),
+                  label: Text(l10n.removeReceipt),
+                ),
+              ],
               const SizedBox(height: 20),
               FilledButton(
                 onPressed: busy
@@ -232,6 +287,8 @@ class _AddExpenseBodyState extends State<_AddExpenseBody> {
                               vehicleId: _vehicleId,
                               amount: a,
                               note: _composedNote(l10n),
+                              receiptBytes: _receiptBytes,
+                              receiptFilename: _receiptFilename,
                             );
                       },
                 child: busy

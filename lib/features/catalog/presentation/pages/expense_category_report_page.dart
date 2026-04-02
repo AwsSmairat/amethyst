@@ -35,8 +35,11 @@ bool expenseNoteMatchesCategory(
     case 'cartons':
       return prefix(l10n.expenseCartons) || prefix(l10n.expenseCartonsWater);
     case 'workersWages':
+      // Keep matching legacy labels too (pre-rename).
       return prefix(l10n.expenseWorkersWages) ||
-          prefix(l10n.expenseStaffSalaries);
+          prefix(l10n.expenseStaffSalaries) ||
+          prefix('رواتب عمال') ||
+          prefix('رواتب موظفين');
     default:
       return false;
   }
@@ -76,14 +79,23 @@ class _ExpenseCategoryReportPageState extends State<ExpenseCategoryReportPage> {
   bool _loading = true;
   String? _error;
   List<Map<String, dynamic>> _items = <Map<String, dynamic>>[];
+  bool _didLoadOnce = false;
 
   @override
   void initState() {
     super.initState();
-    _load();
   }
 
-  Future<void> _load() async {
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_didLoadOnce) return;
+    _didLoadOnce = true;
+    // Safe to access inherited widgets like l10n here.
+    _load(context.l10n);
+  }
+
+  Future<void> _load([AppLocalizations? l10nOverride]) async {
     if (!kExpenseReportCategoryKeys.contains(widget.categoryKey)) {
       setState(() {
         _loading = false;
@@ -97,15 +109,22 @@ class _ExpenseCategoryReportPageState extends State<ExpenseCategoryReportPage> {
       _loading = true;
       _error = null;
     });
-    final AppLocalizations l10n = context.l10n;
+    final AppLocalizations l10n = l10nOverride ?? context.l10n;
     try {
-      final data = await sl<AmethystApi>().listExpenses(limit: 500);
-      final raw = data['items'];
+      const int limit = 100; // server validation max=100
+      const int maxPages = 5; // cap to avoid long loads
       final all = <Map<String, dynamic>>[];
-      if (raw is List<dynamic>) {
-        for (final dynamic e in raw) {
-          if (e is Map<String, dynamic>) all.add(e);
+      for (int page = 1; page <= maxPages; page++) {
+        final data = await sl<AmethystApi>().listExpenses(page: page, limit: limit);
+        final raw = data['items'];
+        final pageItems = <Map<String, dynamic>>[];
+        if (raw is List<dynamic>) {
+          for (final dynamic e in raw) {
+            if (e is Map<String, dynamic>) pageItems.add(e);
+          }
         }
+        all.addAll(pageItems);
+        if (pageItems.length < limit) break;
       }
       if (!mounted) return;
       final filtered = all.where((Map<String, dynamic> m) {
@@ -159,7 +178,7 @@ class _ExpenseCategoryReportPageState extends State<ExpenseCategoryReportPage> {
         title: Text(title),
         actions: <Widget>[
           IconButton(
-            onPressed: _load,
+            onPressed: () => _load(context.l10n),
             icon: const Icon(Icons.refresh),
           ),
         ],
@@ -178,7 +197,7 @@ class _ExpenseCategoryReportPageState extends State<ExpenseCategoryReportPage> {
                             Text(_error!, textAlign: TextAlign.center),
                             const SizedBox(height: 16),
                             FilledButton(
-                              onPressed: _load,
+                              onPressed: () => _load(context.l10n),
                               child: Text(l10n.retry),
                             ),
                           ],

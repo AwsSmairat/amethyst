@@ -13,7 +13,11 @@ export const getById = asyncHandler(async (req, res) => {
 });
 
 export const create = asyncHandler(async (req, res) => {
-  const e = await service.createExpense(req.body, req.user);
+  const receiptUrl = req.file ? `/uploads/receipts/${req.file.filename}` : null;
+  const e = await service.createExpense(
+    { ...req.body, receiptUrl },
+    req.user
+  );
   return success(res, e, 'Expense recorded', 201);
 });
 

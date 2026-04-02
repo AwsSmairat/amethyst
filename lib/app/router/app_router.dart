@@ -1,12 +1,12 @@
 import 'package:amethyst/core/l10n/context_l10n.dart';
 import 'package:amethyst/core/data/amethyst_api.dart';
-import 'package:amethyst/core/widgets/expense_category_hints_section.dart';
 import 'package:amethyst/di/injection.dart';
 import 'package:amethyst/features/admin/presentation/widgets/add_vehicle_load_sheet.dart';
 import 'package:amethyst/features/auth/presentation/cubit/auth_cubit.dart';
 import 'package:amethyst/features/auth/presentation/cubit/auth_state.dart';
 import 'package:amethyst/features/auth/presentation/pages/login_page.dart';
 import 'package:amethyst/features/catalog/presentation/cubit/json_list_cubit.dart';
+import 'package:amethyst/features/catalog/presentation/pages/expenses_hub_page.dart';
 import 'package:amethyst/features/catalog/presentation/pages/expense_category_report_page.dart';
 import 'package:amethyst/features/catalog/presentation/pages/json_list_page.dart';
 import 'package:amethyst/features/admin/presentation/widgets/add_station_sale_sheet.dart';
@@ -210,21 +210,8 @@ GoRouter createAppRouter(AuthCubit authCubit) {
               ),
               GoRoute(
                 path: 'expenses',
-                builder: (BuildContext context, _) => BlocProvider(
-                  create: (_) =>
-                      JsonListCubit(() => sl<AmethystApi>().listExpenses())
-                        ..load(),
-                  child: JsonListPage(
-                    title: context.l10n.titleExpenses,
-                    topSection: ExpenseCategoryHintsSection(
-                      includeStationExpense: true,
-                      onCategoryTap: (String key) =>
-                          context.push('/super-admin/expenses/report/$key'),
-                    ),
-                    titleBuilder: _expenseListTitle,
-                    subtitleBuilder: _expenseListSubtitle,
-                  ),
-                ),
+                builder: (BuildContext context, _) =>
+                    const ExpensesHubPage(basePath: '/super-admin'),
               ),
               GoRoute(
                 path: 'reports',
@@ -336,21 +323,8 @@ GoRouter createAppRouter(AuthCubit authCubit) {
               ),
               GoRoute(
                 path: 'expenses',
-                builder: (BuildContext context, _) => BlocProvider(
-                  create: (_) =>
-                      JsonListCubit(() => sl<AmethystApi>().listExpenses())
-                        ..load(),
-                  child: JsonListPage(
-                    title: context.l10n.titleExpenses,
-                    topSection: ExpenseCategoryHintsSection(
-                      includeStationExpense: true,
-                      onCategoryTap: (String key) =>
-                          context.push('/admin/expenses/report/$key'),
-                    ),
-                    titleBuilder: _expenseListTitle,
-                    subtitleBuilder: _expenseListSubtitle,
-                  ),
-                ),
+                builder: (BuildContext context, _) =>
+                    const ExpensesHubPage(basePath: '/admin'),
               ),
               GoRoute(
                 path: 'profile',
@@ -438,19 +412,3 @@ String _vehicleSubtitle(BuildContext context, Map<String, dynamic> m) =>
     m['driverId'] != null ? context.l10n.driverAssigned : context.l10n.noDriver;
 
 bool _isAdminRole(Map<String, dynamic> m) => m['role'] == 'admin';
-
-String _expenseListTitle(BuildContext context, Map<String, dynamic> m) {
-  final amount = m['amount']?.toString() ?? '';
-  if (m['driverId'] == null) {
-    return '${context.l10n.stationExpenses} · $amount';
-  }
-  final driver = m['driver'] as Map<String, dynamic>?;
-  final name = driver?['fullName']?.toString().trim() ?? '';
-  if (name.isEmpty) return amount;
-  return '$name · $amount';
-}
-
-String _expenseListSubtitle(BuildContext context, Map<String, dynamic> m) {
-  final note = m['note']?.toString().trim() ?? '';
-  return note;
-}

@@ -1,4 +1,5 @@
 import 'package:amethyst/features/record_operations/domain/repositories/record_operations_repository.dart';
+import 'dart:typed_data';
 
 final class CreateStationSaleUseCase {
   CreateStationSaleUseCase(this._repository);
@@ -45,11 +46,15 @@ final class CreateExpenseUseCase {
     String? vehicleId,
     required double amount,
     String? note,
+    Uint8List? receiptBytes,
+    String? receiptFilename,
   }) =>
       _repository.createExpense(
         vehicleId: vehicleId,
         amount: amount,
         note: note,
+        receiptBytes: receiptBytes,
+        receiptFilename: receiptFilename,
       );
 }
 

@@ -146,11 +146,13 @@
   "otherExpenseDescriptionOptional": "وصف المصروف (اختياري)",
   "stationExpenses": "مصاريف المحطة",
   "expenseTankWater": "تنك مي",
-  "expenseCartons": "كراتين",
+  "expenseCartons": "كراتين مي",
   "expenseCartonsWater": "كراتين مي",
-  "expenseStaffSalaries": "رواتب موظفين",
-  "expenseWorkersWages": "رواتب عمال",
+  "expenseStaffSalaries": "إيجار موظفين",
+  "expenseWorkersWages": "إيجار موظفين",
   "stationExpenseNeedOneAmount": "أدخل مبلغاً في حقل واحد على الأقل",
+  "attachReceiptOptional": "إرفاق صورة (اختياري)",
+  "removeReceipt": "إزالة الصورة",
   "amountDinars": "{amount} دينار",
   "@amountDinars": {
     "placeholders": {

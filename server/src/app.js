@@ -3,11 +3,14 @@ import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
 import rateLimit from 'express-rate-limit';
+import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { env } from './config/env.js';
 import apiRoutes from './routes/index.js';
 import { errorHandler } from './middlewares/errorHandler.js';
 
 const app = express();
+const __dirname = join(fileURLToPath(import.meta.url), '..');
 
 app.use(
   helmet({
@@ -29,6 +32,7 @@ app.use(
 );
 app.use(morgan(env.nodeEnv === 'production' ? 'combined' : 'dev'));
 app.use(express.json({ limit: '1mb' }));
+app.use('/uploads', express.static(join(__dirname, '..', 'uploads')));
 
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000,

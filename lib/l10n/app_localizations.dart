@@ -793,7 +793,7 @@ abstract class AppLocalizations {
   /// No description provided for @expenseCartons.
   ///
   /// In ar, this message translates to:
-  /// **'كراتين'**
+  /// **'كراتين مي'**
   String get expenseCartons;
 
   /// No description provided for @expenseCartonsWater.
@@ -805,13 +805,13 @@ abstract class AppLocalizations {
   /// No description provided for @expenseStaffSalaries.
   ///
   /// In ar, this message translates to:
-  /// **'رواتب موظفين'**
+  /// **'إيجار موظفين'**
   String get expenseStaffSalaries;
 
   /// No description provided for @expenseWorkersWages.
   ///
   /// In ar, this message translates to:
-  /// **'رواتب عمال'**
+  /// **'إيجار موظفين'**
   String get expenseWorkersWages;
 
   /// No description provided for @stationExpenseNeedOneAmount.
@@ -819,6 +819,18 @@ abstract class AppLocalizations {
   /// In ar, this message translates to:
   /// **'أدخل مبلغاً في حقل واحد على الأقل'**
   String get stationExpenseNeedOneAmount;
+
+  /// No description provided for @attachReceiptOptional.
+  ///
+  /// In ar, this message translates to:
+  /// **'إرفاق صورة (اختياري)'**
+  String get attachReceiptOptional;
+
+  /// No description provided for @removeReceipt.
+  ///
+  /// In ar, this message translates to:
+  /// **'إزالة الصورة'**
+  String get removeReceipt;
 
   /// No description provided for @amountDinars.
   ///

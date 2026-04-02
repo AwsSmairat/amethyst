@@ -1,5 +1,6 @@
 import 'package:amethyst/core/data/amethyst_api.dart';
 import 'package:amethyst/features/record_operations/domain/repositories/record_operations_repository.dart';
+import 'dart:typed_data';
 
 final class RecordOperationsRepositoryImpl implements RecordOperationsRepository {
   RecordOperationsRepositoryImpl(this._api);
@@ -37,8 +38,16 @@ final class RecordOperationsRepositoryImpl implements RecordOperationsRepository
     String? vehicleId,
     required double amount,
     String? note,
+    Uint8List? receiptBytes,
+    String? receiptFilename,
   }) =>
-      _api.createExpense(vehicleId: vehicleId, amount: amount, note: note);
+      _api.createExpense(
+        vehicleId: vehicleId,
+        amount: amount,
+        note: note,
+        receiptBytes: receiptBytes,
+        receiptFilename: receiptFilename,
+      );
 
   @override
   Future<void> createReturn({

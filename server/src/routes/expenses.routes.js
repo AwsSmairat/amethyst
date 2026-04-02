@@ -3,6 +3,7 @@ import * as ctrl from '../controllers/expense.controller.js';
 import { authenticate } from '../middlewares/auth.js';
 import { authorize } from '../middlewares/authorize.js';
 import { validate } from '../middlewares/validate.js';
+import { uploadExpenseReceipt } from '../middlewares/upload.js';
 import {
   expenseCreateSchema,
   expenseUpdateSchema,
@@ -25,6 +26,7 @@ r.get('/:id', authorize('super_admin', 'admin', 'driver'), validate(uuidParam, '
 r.post(
   '/',
   authorize('driver', 'admin', 'super_admin'),
+  uploadExpenseReceipt.single('receipt'),
   validate(expenseCreateSchema),
   ctrl.create
 );

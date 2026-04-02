@@ -45,7 +45,7 @@ class _LoginPageState extends State<LoginPage> {
       body: Container(
         width: double.infinity,
         height: double.infinity,
-        decoration: const BoxDecoration(gradient: AppColors.primaryGradient),
+        decoration: const BoxDecoration(color: Colors.black),
         child: SafeArea(
           child: LayoutBuilder(
             builder: (BuildContext context, BoxConstraints constraints) {

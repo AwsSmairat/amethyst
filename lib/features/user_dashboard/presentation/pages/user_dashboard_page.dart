@@ -7,6 +7,7 @@ import 'package:amethyst/features/user_dashboard/domain/entities/driver_dashboar
 import 'package:amethyst/features/user_dashboard/presentation/cubit/user_dashboard_cubit.dart';
 import 'package:amethyst/features/user_dashboard/presentation/cubit/user_dashboard_state.dart';
 import 'package:amethyst/features/user_dashboard/presentation/widgets/quick_action_button.dart';
+import 'package:amethyst/features/driver/presentation/widgets/add_vehicle_sale_sheet.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
@@ -105,7 +106,7 @@ class _QuickActionsRow extends StatelessWidget {
             icon: Icons.add_shopping_cart,
             label: context.l10n.quickAddSale,
             tint: AppColors.success,
-            onTap: () => context.go('/driver/sales'),
+            onTap: () => showAddVehicleSaleSheet(context),
           ),
         ),
         const SizedBox(width: 12),

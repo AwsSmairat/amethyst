@@ -1,5 +1,6 @@
 import 'package:amethyst/core/network/dio_client.dart';
 import 'package:dio/dio.dart';
+import 'dart:typed_data';
 
 /// Central HTTP facade for Amethyst REST endpoints (data layer only).
 final class AmethystApi {
@@ -197,15 +198,28 @@ final class AmethystApi {
     String? vehicleId,
     required double amount,
     String? note,
+    Uint8List? receiptBytes,
+    String? receiptFilename,
   }) async {
     try {
+      final data = receiptBytes == null
+          ? <String, dynamic>{
+              if (vehicleId != null) 'vehicleId': vehicleId,
+              'amount': amount,
+              if (note != null && note.isNotEmpty) 'note': note,
+            }
+          : FormData.fromMap(<String, dynamic>{
+              if (vehicleId != null) 'vehicleId': vehicleId,
+              'amount': amount,
+              if (note != null && note.isNotEmpty) 'note': note,
+              'receipt': MultipartFile.fromBytes(
+                receiptBytes,
+                filename: receiptFilename ?? 'receipt.jpg',
+              ),
+            });
       final res = await _dio.post<Map<String, dynamic>>(
         '/expenses',
-        data: <String, dynamic>{
-          if (vehicleId != null) 'vehicleId': vehicleId,
-          'amount': amount,
-          if (note != null && note.isNotEmpty) 'note': note,
-        },
+        data: data,
       );
       return DioClient.unwrapMap(res);
     } on DioException catch (e) {
