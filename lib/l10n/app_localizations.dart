@@ -166,6 +166,12 @@ abstract class AppLocalizations {
   /// **'أدخل كلمة المرور'**
   String get enterPassword;
 
+  /// No description provided for @rememberMe.
+  ///
+  /// In ar, this message translates to:
+  /// **'تذكرني'**
+  String get rememberMe;
+
   /// No description provided for @profile.
   ///
   /// In ar, this message translates to:
@@ -814,6 +820,78 @@ abstract class AppLocalizations {
   /// **'إيجار موظفين'**
   String get expenseWorkersWages;
 
+  /// No description provided for @expenseStationCards.
+  ///
+  /// In ar, this message translates to:
+  /// **'بطاقات'**
+  String get expenseStationCards;
+
+  /// No description provided for @expenseStationCarTracking.
+  ///
+  /// In ar, this message translates to:
+  /// **'تتبع سياره'**
+  String get expenseStationCarTracking;
+
+  /// No description provided for @expenseStationInternet.
+  ///
+  /// In ar, this message translates to:
+  /// **'اشتراك نت'**
+  String get expenseStationInternet;
+
+  /// No description provided for @expenseStationShopRent.
+  ///
+  /// In ar, this message translates to:
+  /// **'اجار محل'**
+  String get expenseStationShopRent;
+
+  /// No description provided for @expenseStationRoomRent.
+  ///
+  /// In ar, this message translates to:
+  /// **'اجار غرفه'**
+  String get expenseStationRoomRent;
+
+  /// No description provided for @expenseStationElectricity.
+  ///
+  /// In ar, this message translates to:
+  /// **'اشتراك كهرباء'**
+  String get expenseStationElectricity;
+
+  /// No description provided for @expenseStationBags.
+  ///
+  /// In ar, this message translates to:
+  /// **'ثمن اكياس'**
+  String get expenseStationBags;
+
+  /// No description provided for @expenseStationEmptyBottles.
+  ///
+  /// In ar, this message translates to:
+  /// **'ثمن قوارير فارغ'**
+  String get expenseStationEmptyBottles;
+
+  /// No description provided for @expenseStationEmptyGallon.
+  ///
+  /// In ar, this message translates to:
+  /// **'ثمن جالون فارغ'**
+  String get expenseStationEmptyGallon;
+
+  /// No description provided for @expenseStationSalt.
+  ///
+  /// In ar, this message translates to:
+  /// **'ثمن مليح'**
+  String get expenseStationSalt;
+
+  /// No description provided for @expenseStationShrinkWrap.
+  ///
+  /// In ar, this message translates to:
+  /// **'ثمن شرنكات'**
+  String get expenseStationShrinkWrap;
+
+  /// No description provided for @expenseStationFilters.
+  ///
+  /// In ar, this message translates to:
+  /// **'ثمن فلاتر'**
+  String get expenseStationFilters;
+
   /// No description provided for @stationExpenseNeedOneAmount.
   ///
   /// In ar, this message translates to:
@@ -1286,6 +1364,48 @@ abstract class AppLocalizations {
   /// In ar, this message translates to:
   /// **'تسجيل بيع من المحطة'**
   String get newStationSale;
+
+  /// No description provided for @stationSalePickKindTitle.
+  ///
+  /// In ar, this message translates to:
+  /// **'اختر نوع البيع'**
+  String get stationSalePickKindTitle;
+
+  /// No description provided for @stationSaleKindFilling.
+  ///
+  /// In ar, this message translates to:
+  /// **'تعبئة'**
+  String get stationSaleKindFilling;
+
+  /// No description provided for @stationSaleKindEmptySale.
+  ///
+  /// In ar, this message translates to:
+  /// **'بيع فارغ'**
+  String get stationSaleKindEmptySale;
+
+  /// No description provided for @stationSaleProductGallon.
+  ///
+  /// In ar, this message translates to:
+  /// **'جالون'**
+  String get stationSaleProductGallon;
+
+  /// No description provided for @stationSaleProductBottle.
+  ///
+  /// In ar, this message translates to:
+  /// **'قاروره'**
+  String get stationSaleProductBottle;
+
+  /// No description provided for @stationSaleProductMahdi.
+  ///
+  /// In ar, this message translates to:
+  /// **'مهدي'**
+  String get stationSaleProductMahdi;
+
+  /// No description provided for @stationSaleWithFilling.
+  ///
+  /// In ar, this message translates to:
+  /// **'مع تعبئة'**
+  String get stationSaleWithFilling;
 
   /// No description provided for @addStationSale.
   ///

@@ -45,6 +45,9 @@ class AppLocalizationsAr extends AppLocalizations {
   String get enterPassword => 'أدخل كلمة المرور';
 
   @override
+  String get rememberMe => 'تذكرني';
+
+  @override
   String get profile => 'الملف الشخصي';
 
   @override
@@ -383,6 +386,42 @@ class AppLocalizationsAr extends AppLocalizations {
   String get expenseWorkersWages => 'إيجار موظفين';
 
   @override
+  String get expenseStationCards => 'بطاقات';
+
+  @override
+  String get expenseStationCarTracking => 'تتبع سياره';
+
+  @override
+  String get expenseStationInternet => 'اشتراك نت';
+
+  @override
+  String get expenseStationShopRent => 'اجار محل';
+
+  @override
+  String get expenseStationRoomRent => 'اجار غرفه';
+
+  @override
+  String get expenseStationElectricity => 'اشتراك كهرباء';
+
+  @override
+  String get expenseStationBags => 'ثمن اكياس';
+
+  @override
+  String get expenseStationEmptyBottles => 'ثمن قوارير فارغ';
+
+  @override
+  String get expenseStationEmptyGallon => 'ثمن جالون فارغ';
+
+  @override
+  String get expenseStationSalt => 'ثمن مليح';
+
+  @override
+  String get expenseStationShrinkWrap => 'ثمن شرنكات';
+
+  @override
+  String get expenseStationFilters => 'ثمن فلاتر';
+
+  @override
   String get stationExpenseNeedOneAmount => 'أدخل مبلغاً في حقل واحد على الأقل';
 
   @override
@@ -640,6 +679,27 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get newStationSale => 'تسجيل بيع من المحطة';
+
+  @override
+  String get stationSalePickKindTitle => 'اختر نوع البيع';
+
+  @override
+  String get stationSaleKindFilling => 'تعبئة';
+
+  @override
+  String get stationSaleKindEmptySale => 'بيع فارغ';
+
+  @override
+  String get stationSaleProductGallon => 'جالون';
+
+  @override
+  String get stationSaleProductBottle => 'قاروره';
+
+  @override
+  String get stationSaleProductMahdi => 'مهدي';
+
+  @override
+  String get stationSaleWithFilling => 'مع تعبئة';
 
   @override
   String get addStationSale => 'إضافة بيع';

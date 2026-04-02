@@ -1,6 +1,7 @@
 import 'package:amethyst/core/l10n/context_l10n.dart';
 import 'package:amethyst/di/injection.dart';
 import 'package:amethyst/features/record_operations/domain/usecases/record_operation_usecases.dart';
+import 'package:amethyst/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 
 Future<void> showAddStationExpenseSheet(
@@ -17,6 +18,97 @@ Future<void> showAddStationExpenseSheet(
   );
 }
 
+class _StationFieldSpec {
+  const _StationFieldSpec({
+    required this.icon,
+    required this.label,
+    required this.note,
+  });
+
+  final IconData icon;
+  final String Function(AppLocalizations l10n) label;
+  final String Function(AppLocalizations l10n) note;
+}
+
+/// ترتيب الحقول ١–١٥ كما في واجهة المحطة.
+List<_StationFieldSpec> _stationFieldSpecs() => <_StationFieldSpec>[
+      _StationFieldSpec(
+        icon: Icons.water_drop_outlined,
+        label: (AppLocalizations l) => l.expenseTankWater,
+        note: (AppLocalizations l) => l.expenseTankWater,
+      ),
+      _StationFieldSpec(
+        icon: Icons.inventory_2_outlined,
+        label: (AppLocalizations l) => l.expenseCartonsWater,
+        note: (AppLocalizations l) => l.expenseCartonsWater,
+      ),
+      _StationFieldSpec(
+        icon: Icons.badge_outlined,
+        label: (AppLocalizations l) => l.expenseStaffSalaries,
+        note: (AppLocalizations l) => l.expenseStaffSalaries,
+      ),
+      _StationFieldSpec(
+        icon: Icons.credit_card_outlined,
+        label: (AppLocalizations l) => l.expenseStationCards,
+        note: (AppLocalizations l) => l.expenseStationCards,
+      ),
+      _StationFieldSpec(
+        icon: Icons.route_outlined,
+        label: (AppLocalizations l) => l.expenseStationCarTracking,
+        note: (AppLocalizations l) => l.expenseStationCarTracking,
+      ),
+      _StationFieldSpec(
+        icon: Icons.wifi_outlined,
+        label: (AppLocalizations l) => l.expenseStationInternet,
+        note: (AppLocalizations l) => l.expenseStationInternet,
+      ),
+      _StationFieldSpec(
+        icon: Icons.storefront_outlined,
+        label: (AppLocalizations l) => l.expenseStationShopRent,
+        note: (AppLocalizations l) => l.expenseStationShopRent,
+      ),
+      _StationFieldSpec(
+        icon: Icons.door_front_door_outlined,
+        label: (AppLocalizations l) => l.expenseStationRoomRent,
+        note: (AppLocalizations l) => l.expenseStationRoomRent,
+      ),
+      _StationFieldSpec(
+        icon: Icons.bolt_outlined,
+        label: (AppLocalizations l) => l.expenseStationElectricity,
+        note: (AppLocalizations l) => l.expenseStationElectricity,
+      ),
+      _StationFieldSpec(
+        icon: Icons.shopping_bag_outlined,
+        label: (AppLocalizations l) => l.expenseStationBags,
+        note: (AppLocalizations l) => l.expenseStationBags,
+      ),
+      _StationFieldSpec(
+        icon: Icons.local_drink_outlined,
+        label: (AppLocalizations l) => l.expenseStationEmptyBottles,
+        note: (AppLocalizations l) => l.expenseStationEmptyBottles,
+      ),
+      _StationFieldSpec(
+        icon: Icons.water_outlined,
+        label: (AppLocalizations l) => l.expenseStationEmptyGallon,
+        note: (AppLocalizations l) => l.expenseStationEmptyGallon,
+      ),
+      _StationFieldSpec(
+        icon: Icons.grain_outlined,
+        label: (AppLocalizations l) => l.expenseStationSalt,
+        note: (AppLocalizations l) => l.expenseStationSalt,
+      ),
+      _StationFieldSpec(
+        icon: Icons.layers_outlined,
+        label: (AppLocalizations l) => l.expenseStationShrinkWrap,
+        note: (AppLocalizations l) => l.expenseStationShrinkWrap,
+      ),
+      _StationFieldSpec(
+        icon: Icons.filter_alt_outlined,
+        label: (AppLocalizations l) => l.expenseStationFilters,
+        note: (AppLocalizations l) => l.expenseStationFilters,
+      ),
+    ];
+
 class _StationExpenseBody extends StatefulWidget {
   const _StationExpenseBody({this.onRecorded});
 
@@ -27,16 +119,25 @@ class _StationExpenseBody extends StatefulWidget {
 }
 
 class _StationExpenseBodyState extends State<_StationExpenseBody> {
-  final _tankWater = TextEditingController();
-  final _cartonsWater = TextEditingController();
-  final _staffSalaries = TextEditingController();
+  late final List<_StationFieldSpec> _specs;
+  late final List<TextEditingController> _controllers;
   bool _busy = false;
 
   @override
+  void initState() {
+    super.initState();
+    _specs = _stationFieldSpecs();
+    _controllers = List<TextEditingController>.generate(
+      _specs.length,
+      (_) => TextEditingController(),
+    );
+  }
+
+  @override
   void dispose() {
-    _tankWater.dispose();
-    _cartonsWater.dispose();
-    _staffSalaries.dispose();
+    for (final TextEditingController c in _controllers) {
+      c.dispose();
+    }
     super.dispose();
   }
 
@@ -51,15 +152,11 @@ class _StationExpenseBodyState extends State<_StationExpenseBody> {
     }
 
     final entries = <({String note, double amount})>[];
-    final a1 = parsePositive(_tankWater.text);
-    if (a1 != null) entries.add((note: l10n.expenseTankWater, amount: a1));
-    final a2 = parsePositive(_cartonsWater.text);
-    if (a2 != null) {
-      entries.add((note: l10n.expenseCartonsWater, amount: a2));
-    }
-    final a3 = parsePositive(_staffSalaries.text);
-    if (a3 != null) {
-      entries.add((note: l10n.expenseStaffSalaries, amount: a3));
+    for (var i = 0; i < _specs.length; i++) {
+      final amt = parsePositive(_controllers[i].text);
+      if (amt != null) {
+        entries.add((note: _specs[i].note(l10n), amount: amt));
+      }
     }
 
     if (entries.isEmpty) {
@@ -120,35 +217,18 @@ class _StationExpenseBodyState extends State<_StationExpenseBody> {
                   ),
             ),
             const SizedBox(height: 16),
-            TextField(
-              controller: _tankWater,
-              keyboardType:
-                  const TextInputType.numberWithOptions(decimal: true),
-              decoration: InputDecoration(
-                labelText: l10n.expenseTankWater,
-                prefixIcon: const Icon(Icons.water_drop_outlined),
+            for (var i = 0; i < _specs.length; i++) ...<Widget>[
+              if (i > 0) const SizedBox(height: 12),
+              TextField(
+                controller: _controllers[i],
+                keyboardType:
+                    const TextInputType.numberWithOptions(decimal: true),
+                decoration: InputDecoration(
+                  labelText: _specs[i].label(l10n),
+                  prefixIcon: Icon(_specs[i].icon),
+                ),
               ),
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: _cartonsWater,
-              keyboardType:
-                  const TextInputType.numberWithOptions(decimal: true),
-              decoration: InputDecoration(
-                labelText: l10n.expenseCartonsWater,
-                prefixIcon: const Icon(Icons.inventory_2_outlined),
-              ),
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: _staffSalaries,
-              keyboardType:
-                  const TextInputType.numberWithOptions(decimal: true),
-              decoration: InputDecoration(
-                labelText: l10n.expenseStaffSalaries,
-                prefixIcon: const Icon(Icons.badge_outlined),
-              ),
-            ),
+            ],
             const SizedBox(height: 20),
             FilledButton(
               onPressed: _busy ? null : _submit,

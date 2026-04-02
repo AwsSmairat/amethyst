@@ -13,6 +13,18 @@ const Set<String> kExpenseReportCategoryKeys = <String>{
   'tankWater',
   'cartons',
   'workersWages',
+  'stationCards',
+  'stationCarTracking',
+  'stationInternet',
+  'stationShopRent',
+  'stationRoomRent',
+  'stationElectricity',
+  'stationBags',
+  'stationEmptyBottles',
+  'stationEmptyGallon',
+  'stationSalt',
+  'stationShrinkWrap',
+  'stationFilters',
 };
 
 bool expenseNoteMatchesCategory(
@@ -40,6 +52,30 @@ bool expenseNoteMatchesCategory(
           prefix(l10n.expenseStaffSalaries) ||
           prefix('رواتب عمال') ||
           prefix('رواتب موظفين');
+    case 'stationCards':
+      return prefix(l10n.expenseStationCards);
+    case 'stationCarTracking':
+      return prefix(l10n.expenseStationCarTracking);
+    case 'stationInternet':
+      return prefix(l10n.expenseStationInternet);
+    case 'stationShopRent':
+      return prefix(l10n.expenseStationShopRent);
+    case 'stationRoomRent':
+      return prefix(l10n.expenseStationRoomRent);
+    case 'stationElectricity':
+      return prefix(l10n.expenseStationElectricity);
+    case 'stationBags':
+      return prefix(l10n.expenseStationBags);
+    case 'stationEmptyBottles':
+      return prefix(l10n.expenseStationEmptyBottles);
+    case 'stationEmptyGallon':
+      return prefix(l10n.expenseStationEmptyGallon);
+    case 'stationSalt':
+      return prefix(l10n.expenseStationSalt);
+    case 'stationShrinkWrap':
+      return prefix(l10n.expenseStationShrinkWrap);
+    case 'stationFilters':
+      return prefix(l10n.expenseStationFilters);
     default:
       return false;
   }
@@ -59,6 +95,30 @@ String expenseReportCategoryTitle(String categoryKey, AppLocalizations l10n) {
       return l10n.expenseCartons;
     case 'workersWages':
       return l10n.expenseWorkersWages;
+    case 'stationCards':
+      return l10n.expenseStationCards;
+    case 'stationCarTracking':
+      return l10n.expenseStationCarTracking;
+    case 'stationInternet':
+      return l10n.expenseStationInternet;
+    case 'stationShopRent':
+      return l10n.expenseStationShopRent;
+    case 'stationRoomRent':
+      return l10n.expenseStationRoomRent;
+    case 'stationElectricity':
+      return l10n.expenseStationElectricity;
+    case 'stationBags':
+      return l10n.expenseStationBags;
+    case 'stationEmptyBottles':
+      return l10n.expenseStationEmptyBottles;
+    case 'stationEmptyGallon':
+      return l10n.expenseStationEmptyGallon;
+    case 'stationSalt':
+      return l10n.expenseStationSalt;
+    case 'stationShrinkWrap':
+      return l10n.expenseStationShrinkWrap;
+    case 'stationFilters':
+      return l10n.expenseStationFilters;
     default:
       return l10n.notFound;
   }

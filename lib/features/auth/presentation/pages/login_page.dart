@@ -5,9 +5,9 @@ import 'package:amethyst/features/auth/presentation/cubit/auth_cubit.dart';
 import 'package:amethyst/features/auth/presentation/cubit/auth_state.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
-/// شاشة تسجيل الدخول — شعار المحل [BrandAssets.loginIcon] فوق بطاقة النموذج.
-/// الشعار يُعرض داخل دائرة (`ClipOval`) حتى لا تظهر زوايا سوداء على الخلفية المتدرجة.
+/// شاشة تسجيل الدخول — شعار [BrandAssets.loginIcon] داخل دائرة مع توهج.
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
 
@@ -16,15 +16,44 @@ class LoginPage extends StatefulWidget {
 }
 
 class _LoginPageState extends State<LoginPage> {
+  static const String _prefsKeySavedEmail = 'saved_email';
+
   final TextEditingController _email = TextEditingController();
   final TextEditingController _password = TextEditingController();
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
+  bool _rememberMe = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadSavedEmail();
+  }
+
+  Future<void> _loadSavedEmail() async {
+    final SharedPreferences prefs = await SharedPreferences.getInstance();
+    final String? saved = prefs.getString(_prefsKeySavedEmail);
+    if (saved != null && saved.isNotEmpty) {
+      _email.text = saved;
+      if (mounted) {
+        setState(() => _rememberMe = true);
+      }
+    }
+  }
 
   @override
   void dispose() {
     _email.dispose();
     _password.dispose();
     super.dispose();
+  }
+
+  Future<void> _persistRememberMe() async {
+    final SharedPreferences prefs = await SharedPreferences.getInstance();
+    if (_rememberMe) {
+      await prefs.setString(_prefsKeySavedEmail, _email.text.trim());
+    } else {
+      await prefs.remove(_prefsKeySavedEmail);
+    }
   }
 
   Future<void> _submit(BuildContext context) async {
@@ -35,6 +64,10 @@ class _LoginPageState extends State<LoginPage> {
           email: _email.text.trim(),
           password: _password.text,
         );
+    if (!context.mounted) return;
+    if (context.read<AuthCubit>().state is AuthAuthenticated) {
+      await _persistRememberMe();
+    }
   }
 
   @override
@@ -68,6 +101,10 @@ class _LoginPageState extends State<LoginPage> {
                               textTheme: textTheme,
                               emailController: _email,
                               passwordController: _password,
+                              rememberMe: _rememberMe,
+                              onRememberMeChanged: (bool value) {
+                                setState(() => _rememberMe = value);
+                              },
                               onSubmit: () => _submit(context),
                             ),
                           ),
@@ -85,12 +122,14 @@ class _LoginPageState extends State<LoginPage> {
   }
 }
 
-/// شعار المحل — قص دائري يخفي أي أسود في زوايا الصورة المربعة.
 class _LoginStoreLogo extends StatelessWidget {
   const _LoginStoreLogo();
 
-  static const double _size = 200;
-  static const double _logoInset = 14;
+  /// حجم الدائرة الخارجية (أكبر من السابق).
+  static const double _size = 220;
+
+  /// تكبير طفيف يقصّ الحواف السوداء حول الشعار في ملف PNG.
+  static const double _cropScale = 1.22;
 
   @override
   Widget build(BuildContext context) {
@@ -102,80 +141,48 @@ class _LoginStoreLogo extends StatelessWidget {
           height: _size,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
-            gradient: RadialGradient(
-              center: const Alignment(-0.2, -0.35),
-              radius: 1.0,
-              colors: <Color>[
-                Colors.white.withValues(alpha: 0.16),
-                const Color(0xFFBFEFFF).withValues(alpha: 0.14),
-                const Color(0xFF1565C0).withValues(alpha: 0.08),
-                Colors.transparent,
-              ],
-              stops: const <double>[0.0, 0.45, 0.72, 1.0],
-            ),
             border: Border.all(
-              color: Colors.white.withValues(alpha: 0.14),
+              color: Colors.white.withValues(alpha: 0.16),
               width: 1.2,
             ),
             boxShadow: <BoxShadow>[
               BoxShadow(
                 color: Colors.white.withValues(alpha: 0.22),
-                blurRadius: 34,
+                blurRadius: 32,
                 offset: const Offset(0, 10),
               ),
               BoxShadow(
-                color: const Color(0xFF3EC5FF).withValues(alpha: 0.22),
-                blurRadius: 42,
+                color: const Color(0xFF3EC5FF).withValues(alpha: 0.24),
+                blurRadius: 44,
                 spreadRadius: 2,
-                offset: const Offset(0, 18),
+                offset: const Offset(0, 16),
               ),
             ],
           ),
-          child: Stack(
-            fit: StackFit.expand,
-            children: <Widget>[
-              // Soft glass highlight.
-              ClipOval(
-                child: DecoratedBox(
-                  decoration: BoxDecoration(
-                    gradient: RadialGradient(
-                      center: const Alignment(-0.35, -0.55),
-                      radius: 0.9,
-                      colors: <Color>[
-                        Colors.white.withValues(alpha: 0.18),
-                        Colors.transparent,
-                      ],
-                      stops: const <double>[0.0, 1.0],
+          child: ClipOval(
+            child: Transform.scale(
+              scale: _cropScale,
+              alignment: Alignment.center,
+              child: Image.asset(
+                BrandAssets.loginIcon,
+                fit: BoxFit.cover,
+                width: _size,
+                height: _size,
+                filterQuality: FilterQuality.high,
+                gaplessPlayback: true,
+                errorBuilder:
+                    (BuildContext context, Object error, StackTrace? stack) {
+                  return ColoredBox(
+                    color: Colors.white.withValues(alpha: 0.12),
+                    child: Icon(
+                      Icons.storefront_outlined,
+                      size: 56,
+                      color: Colors.white.withValues(alpha: 0.95),
                     ),
-                  ),
-                ),
+                  );
+                },
               ),
-              Padding(
-                padding: const EdgeInsets.all(_logoInset),
-                child: ClipOval(
-                  child: Image.asset(
-                    // Use the cleaned app icon (no heavy black background).
-                    'assets/icon/app_icon.png',
-                    width: _size - (_logoInset * 2),
-                    height: _size - (_logoInset * 2),
-                    fit: BoxFit.cover,
-                    alignment: Alignment.center,
-                    filterQuality: FilterQuality.high,
-                    gaplessPlayback: true,
-                    errorBuilder: (BuildContext context, Object error, StackTrace? stack) {
-                      return ColoredBox(
-                        color: Colors.white.withValues(alpha: 0.12),
-                        child: Icon(
-                          Icons.storefront_outlined,
-                          size: 72,
-                          color: Colors.white.withValues(alpha: 0.95),
-                        ),
-                      );
-                    },
-                  ),
-                ),
-              ),
-            ],
+            ),
           ),
         ),
       ),
@@ -188,12 +195,16 @@ class _LoginFormPanel extends StatelessWidget {
     required this.textTheme,
     required this.emailController,
     required this.passwordController,
+    required this.rememberMe,
+    required this.onRememberMeChanged,
     required this.onSubmit,
   });
 
   final TextTheme textTheme;
   final TextEditingController emailController;
   final TextEditingController passwordController;
+  final bool rememberMe;
+  final ValueChanged<bool> onRememberMeChanged;
   final VoidCallback onSubmit;
 
   @override
@@ -250,7 +261,34 @@ class _LoginFormPanel extends StatelessWidget {
               validator: (String? v) =>
                   v == null || v.isEmpty ? context.l10n.enterPassword : null,
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: 8),
+            Row(
+              textDirection: Directionality.of(context),
+              children: <Widget>[
+                Checkbox(
+                  value: rememberMe,
+                  onChanged: (bool? value) {
+                    onRememberMeChanged(value ?? false);
+                  },
+                ),
+                Expanded(
+                  child: GestureDetector(
+                    onTap: () => onRememberMeChanged(!rememberMe),
+                    behavior: HitTestBehavior.opaque,
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 8),
+                      child: Text(
+                        context.l10n.rememberMe,
+                        style: textTheme.bodyMedium?.copyWith(
+                          color: AppColors.primaryText,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
             BlocConsumer<AuthCubit, AuthState>(
               listener: (BuildContext context, AuthState state) {
                 if (state is AuthUnauthenticated && state.message != null) {

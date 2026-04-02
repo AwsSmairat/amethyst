@@ -1,5 +1,6 @@
 import 'package:amethyst/core/data/amethyst_api.dart';
 import 'package:amethyst/core/l10n/context_l10n.dart';
+import 'package:amethyst/l10n/app_localizations.dart';
 import 'package:amethyst/core/theme/app_colors.dart';
 import 'package:amethyst/di/injection.dart';
 import 'package:amethyst/features/record_operations/domain/usecases/record_operation_usecases.dart';
@@ -8,45 +9,133 @@ import 'package:amethyst/features/record_operations/presentation/cubit/submit_st
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-Future<void> showAddStationSaleSheet(BuildContext context) {
-  return showModalBottomSheet<void>(
+/// نوع بيع المحطة قبل فتح نموذج الكميات (لا يُرسل للـ API حالياً — للعرض فقط).
+enum StationSaleEntryKind {
+  filling,
+  emptySale,
+}
+
+Future<void> showAddStationSaleSheet(BuildContext context) async {
+  final StationSaleEntryKind? kind = await showModalBottomSheet<StationSaleEntryKind>(
+    context: context,
+    showDragHandle: true,
+    builder: (BuildContext ctx) => const _StationSaleKindPicker(),
+  );
+  if (!context.mounted || kind == null) {
+    return;
+  }
+  await showModalBottomSheet<void>(
     context: context,
     isScrollControlled: true,
     showDragHandle: true,
     builder: (BuildContext context) => BlocProvider(
       create: (_) => StationSaleSubmitCubit(sl<CreateStationSaleUseCase>()),
-      child: const _AddStationSaleBody(),
+      child: _AddStationSaleBody(entryKind: kind),
     ),
   );
 }
 
+class _StationSaleKindPicker extends StatelessWidget {
+  const _StationSaleKindPicker();
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = context.l10n;
+    final ColorScheme scheme = Theme.of(context).colorScheme;
+    return Padding(
+      padding: EdgeInsets.only(
+        left: 20,
+        right: 20,
+        bottom: MediaQuery.viewInsetsOf(context).bottom + 24,
+        top: 8,
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: <Widget>[
+          Text(
+            l10n.stationSalePickKindTitle,
+            textAlign: TextAlign.center,
+            style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                  fontWeight: FontWeight.w800,
+                ),
+          ),
+          const SizedBox(height: 20),
+          FilledButton(
+            onPressed: () =>
+                Navigator.of(context).pop(StationSaleEntryKind.filling),
+            style: FilledButton.styleFrom(
+              padding: const EdgeInsets.symmetric(vertical: 16),
+              backgroundColor: scheme.primary,
+            ),
+            child: Text(l10n.stationSaleKindFilling),
+          ),
+          const SizedBox(height: 12),
+          FilledButton.tonal(
+            onPressed: () =>
+                Navigator.of(context).pop(StationSaleEntryKind.emptySale),
+            style: FilledButton.styleFrom(
+              padding: const EdgeInsets.symmetric(vertical: 16),
+            ),
+            child: Text(l10n.stationSaleKindEmptySale),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _AddStationSaleBody extends StatefulWidget {
-  const _AddStationSaleBody();
+  const _AddStationSaleBody({required this.entryKind});
+
+  final StationSaleEntryKind entryKind;
 
   @override
   State<_AddStationSaleBody> createState() => _AddStationSaleBodyState();
 }
 
 class _AddStationSaleBodyState extends State<_AddStationSaleBody> {
-  static const int _colCount = 3;
+  /// تعبئة: ٤ صفوف كما في بيع المركبة (Carton + Coupon في الـ API). بيع فارغ: منتجان فقط.
+  int get _colCount =>
+      widget.entryKind == StationSaleEntryKind.filling ? 4 : 2;
 
-  static const List<String> _kFixedProductNames = <String>[
+  /// أسماء المنتجات في الـ API لمطابقة الـ id والسعر (العرض للمستخدم عربي).
+  static const List<String> _kFillingApiNames = <String>[
     'Water Gallon',
     'Water Bottle',
     'Water Carton',
+    'Coupon',
   ];
 
-  final List<int> _quantities = List<int>.filled(_colCount, 0);
-  final List<String?> _productIds = List<String?>.filled(_colCount, null);
-  final List<String> _productLabels = List<String>.filled(_colCount, '');
-  final List<double?> _unitPrices = List<double?>.filled(_colCount, null);
+  static const List<String> _kEmptySaleApiNames = <String>[
+    'Water Gallon',
+    'Water Bottle',
+  ];
+
+  late List<int> _quantities;
+  late List<String?> _productIds;
+  late List<String> _productLabels;
+  late List<double?> _unitPrices;
 
   bool _loading = true;
   String? _error;
+  bool _withFilling = false;
+  /// تعبئة أو بيع فارغ: كوبون تحت منتج ١ و٢ (جالون/قاروره) عند الكمية > 0 (عرض فقط).
+  bool _emptySaleCouponLine1On = false;
+  bool _emptySaleCouponLine2On = false;
+
+  bool get _showCouponUnderProduct1And2 =>
+      widget.entryKind == StationSaleEntryKind.filling ||
+      widget.entryKind == StationSaleEntryKind.emptySale;
 
   @override
   void initState() {
     super.initState();
+    final int n = _colCount;
+    _quantities = List<int>.filled(n, 0);
+    _productIds = List<String?>.filled(n, null);
+    _productLabels = List<String>.filled(n, '');
+    _unitPrices = List<double?>.filled(n, null);
     _load();
   }
 
@@ -64,14 +153,18 @@ class _AddStationSaleBodyState extends State<_AddStationSaleBody> {
         if (n != null) byName[n] = pr;
       }
       if (!mounted) return;
+      final l10n = context.l10n;
+      final List<String> apiNames = widget.entryKind ==
+              StationSaleEntryKind.filling
+          ? _kFillingApiNames
+          : _kEmptySaleApiNames;
       setState(() {
         for (var i = 0; i < _colCount; i++) {
-          final String name =
-              i < _kFixedProductNames.length ? _kFixedProductNames[i] : '';
+          final String name = i < apiNames.length ? apiNames[i] : '';
           final Map<String, dynamic>? match =
               name.isNotEmpty ? byName[name] : null;
           _productIds[i] = match?['id'] as String?;
-          _productLabels[i] = match?['name']?.toString() ?? name;
+          _productLabels[i] = _labelForProductIndex(l10n, i);
           _unitPrices[i] = _parsePrice(match?['price']);
         }
         _loading = false;
@@ -85,10 +178,81 @@ class _AddStationSaleBodyState extends State<_AddStationSaleBody> {
     }
   }
 
+  String _labelForProductIndex(AppLocalizations l10n, int i) {
+    if (widget.entryKind == StationSaleEntryKind.emptySale) {
+      return i == 0
+          ? l10n.stationSaleProductGallon
+          : l10n.stationSaleProductBottle;
+    }
+    switch (i) {
+      case 0:
+        return l10n.stationSaleProductGallon;
+      case 1:
+        return l10n.stationSaleProductBottle;
+      case 2:
+        return l10n.stationSaleProductMahdi;
+      case 3:
+        return l10n.couponProduct;
+      default:
+        return '';
+    }
+  }
+
+  Widget _productColumnsRow(
+    BuildContext context, {
+    required bool busy,
+    required int start,
+    required int end,
+  }) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: <Widget>[
+        for (var i = start; i < end; i++)
+          Expanded(
+            child: Padding(
+              padding: EdgeInsetsDirectional.only(
+                start: i == start ? 0 : 6,
+                end: i == end - 1 ? 0 : 6,
+              ),
+              child: _StationSaleColumn(
+                index: i,
+                productLabel: _productLabels[i],
+                quantity: _quantities[i],
+                onDecrement: () => _adjustQuantity(i, -1),
+                onIncrement: () => _adjustQuantity(i, 1),
+                busy: busy,
+                showCouponButton: _showCouponUnderProduct1And2 && i < 2,
+                couponActive: i == 0
+                    ? _emptySaleCouponLine1On
+                    : _emptySaleCouponLine2On,
+                onCouponToggle: _showCouponUnderProduct1And2 && i < 2
+                    ? () => setState(() {
+                          if (i == 0) {
+                            _emptySaleCouponLine1On = !_emptySaleCouponLine1On;
+                          } else {
+                            _emptySaleCouponLine2On = !_emptySaleCouponLine2On;
+                          }
+                        })
+                    : null,
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+
   void _adjustQuantity(int index, int delta) {
     setState(() {
       final int next = _quantities[index] + delta;
-      _quantities[index] = next < 0 ? 0 : next;
+      final int clamped = next < 0 ? 0 : next;
+      _quantities[index] = clamped;
+      if (clamped == 0 && (index == 0 || index == 1)) {
+        if (index == 0) {
+          _emptySaleCouponLine1On = false;
+        } else {
+          _emptySaleCouponLine2On = false;
+        }
+      }
     });
   }
 
@@ -159,6 +323,7 @@ class _AddStationSaleBodyState extends State<_AddStationSaleBody> {
         },
         builder: (BuildContext context, SubmitState state) {
           final bool busy = state is SubmitLoading;
+          final ColorScheme scheme = Theme.of(context).colorScheme;
           if (_loading) {
             return const SizedBox(
               height: 200,
@@ -179,6 +344,17 @@ class _AddStationSaleBodyState extends State<_AddStationSaleBody> {
                         fontWeight: FontWeight.w800,
                       ),
                 ),
+                const SizedBox(height: 6),
+                Text(
+                  widget.entryKind == StationSaleEntryKind.filling
+                      ? l10n.stationSaleKindFilling
+                      : l10n.stationSaleKindEmptySale,
+                  textAlign: TextAlign.center,
+                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.w700,
+                        color: Theme.of(context).colorScheme.primary,
+                      ),
+                ),
                 const SizedBox(height: 16),
                 Text(
                   l10n.vehicleLoadProductsSection,
@@ -188,28 +364,51 @@ class _AddStationSaleBodyState extends State<_AddStationSaleBody> {
                       ),
                 ),
                 const SizedBox(height: 12),
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: <Widget>[
-                    for (var i = 0; i < _colCount; i++)
-                      Expanded(
-                        child: Padding(
-                          padding: EdgeInsetsDirectional.only(
-                            start: i == 0 ? 0 : 6,
-                            end: i == _colCount - 1 ? 0 : 6,
-                          ),
-                          child: _StationSaleColumn(
-                            index: i,
-                            productLabel: _productLabels[i],
-                            quantity: _quantities[i],
-                            onDecrement: () => _adjustQuantity(i, -1),
-                            onIncrement: () => _adjustQuantity(i, 1),
-                            busy: busy,
-                          ),
+                if (widget.entryKind == StationSaleEntryKind.filling &&
+                    _colCount == 4) ...<Widget>[
+                  _productColumnsRow(
+                    context,
+                    busy: busy,
+                    start: 0,
+                    end: 2,
+                  ),
+                  const SizedBox(height: 12),
+                  _productColumnsRow(
+                    context,
+                    busy: busy,
+                    start: 2,
+                    end: 4,
+                  ),
+                ] else
+                  _productColumnsRow(
+                    context,
+                    busy: busy,
+                    start: 0,
+                    end: _colCount,
+                  ),
+                if (widget.entryKind == StationSaleEntryKind.emptySale) ...<Widget>[
+                  const SizedBox(height: 16),
+                  Center(
+                    child: FilledButton(
+                      onPressed: busy
+                          ? null
+                          : () => setState(() => _withFilling = !_withFilling),
+                      style: FilledButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 24,
+                          vertical: 12,
                         ),
+                        backgroundColor: _withFilling
+                            ? scheme.primary
+                            : scheme.surfaceContainerHighest,
+                        foregroundColor: _withFilling
+                            ? scheme.onPrimary
+                            : scheme.onSurface,
                       ),
-                  ],
-                ),
+                      child: Text(l10n.stationSaleWithFilling),
+                    ),
+                  ),
+                ],
                 const SizedBox(height: 20),
                 FilledButton(
                   onPressed: busy
@@ -252,6 +451,9 @@ class _StationSaleColumn extends StatelessWidget {
     required this.onDecrement,
     required this.onIncrement,
     required this.busy,
+    this.showCouponButton = false,
+    this.couponActive = false,
+    this.onCouponToggle,
   });
 
   final int index;
@@ -260,6 +462,9 @@ class _StationSaleColumn extends StatelessWidget {
   final VoidCallback onDecrement;
   final VoidCallback onIncrement;
   final bool busy;
+  final bool showCouponButton;
+  final bool couponActive;
+  final VoidCallback? onCouponToggle;
 
   @override
   Widget build(BuildContext context) {
@@ -337,6 +542,40 @@ class _StationSaleColumn extends StatelessWidget {
             ),
           ],
         ),
+        if (showCouponButton &&
+            quantity > 0 &&
+            onCouponToggle != null) ...<Widget>[
+          const SizedBox(height: 6),
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton(
+              onPressed: busy ? null : onCouponToggle,
+              style: OutlinedButton.styleFrom(
+                backgroundColor:
+                    couponActive ? AppColors.success : Colors.transparent,
+                foregroundColor: couponActive
+                    ? Colors.white
+                    : theme.colorScheme.primary,
+                side: BorderSide(
+                  color: couponActive
+                      ? AppColors.success
+                      : AppColors.outlineVariant,
+                  width: couponActive ? 2 : 1,
+                ),
+                padding:
+                    const EdgeInsets.symmetric(vertical: 6, horizontal: 4),
+                minimumSize: const Size(0, 30),
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              ),
+              child: Text(
+                l10n.couponButton,
+                style: theme.textTheme.labelSmall?.copyWith(
+                      fontWeight: FontWeight.w800,
+                    ),
+              ),
+            ),
+          ),
+        ],
       ],
     );
   }
