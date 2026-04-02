@@ -38,6 +38,28 @@ export function errorHandler(err, req, res, _next) {
     });
   }
 
+  // Prisma: connection / availability (common on misconfigured DATABASE_URL or cold DB).
+  const prismaConnectionCodes = new Set([
+    'P1000',
+    'P1001',
+    'P1002',
+    'P1003',
+    'P1017',
+    'P2024',
+  ]);
+  if (
+    err.name === 'PrismaClientInitializationError' ||
+    prismaConnectionCodes.has(err.code)
+  ) {
+    console.error('[prisma]', err);
+    return res.status(503).json({
+      success: false,
+      message:
+        'Database is unavailable. Check DATABASE_URL on the server and that migrations ran.',
+      code: 'DATABASE_UNAVAILABLE',
+    });
+  }
+
   console.error(err);
   return res.status(500).json({
     success: false,

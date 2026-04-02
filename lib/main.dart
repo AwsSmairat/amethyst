@@ -13,11 +13,20 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   if (kDebugMode) {
-    debugPrint('[env] API_BASE_URL="${ApiConfig.baseUrl}" mode=${ApiConfig.mode}');
+    debugPrint(
+      '[env] API_BASE_URL="${ApiConfig.resolvedBaseUrl}" (raw="${ApiConfig.baseUrl}") '
+      'mode=${ApiConfig.mode}',
+    );
   }
 
-  if (!ApiConfig.isConfigured) {
-    runApp(const MaterialApp(debugShowCheckedModeBanner: false, home: ApiBaseUrlMissingPage()));
+  final String? configIssue = ApiConfig.configurationBlockReason;
+  if (configIssue != null) {
+    runApp(
+      MaterialApp(
+        debugShowCheckedModeBanner: false,
+        home: ApiBaseUrlMissingPage(detail: configIssue),
+      ),
+    );
     return;
   }
 

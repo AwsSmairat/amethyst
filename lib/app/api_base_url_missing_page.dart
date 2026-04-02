@@ -3,15 +3,18 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 class ApiBaseUrlMissingPage extends StatelessWidget {
-  const ApiBaseUrlMissingPage({super.key});
+  const ApiBaseUrlMissingPage({super.key, this.detail});
+
+  /// When non-null, shown as the main explanation (missing / invalid / placeholder).
+  final String? detail;
 
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
     final cmdRun =
-        'flutter run --dart-define=API_BASE_URL=https://your-url.com/api';
+        'flutter run --dart-define=API_BASE_URL=https://YOUR-RENDER-URL.onrender.com/api';
     final cmdApk =
-        'flutter build apk --dart-define=API_BASE_URL=https://your-url.com/api';
+        'flutter build apk --dart-define=API_BASE_URL=https://YOUR-RENDER-URL.onrender.com/api';
 
     return Scaffold(
       backgroundColor: Colors.black,
@@ -30,8 +33,10 @@ class ApiBaseUrlMissingPage extends StatelessWidget {
               ),
               const SizedBox(height: 8),
               Text(
-                'API_BASE_URL is missing.\n\n'
-                'This build requires a backend URL via --dart-define.',
+                detail ??
+                    'API_BASE_URL is missing or invalid.\n\n'
+                    'Set the production URL in lib/core/config/api_config.dart '
+                    'or pass --dart-define=API_BASE_URL=...',
                 style: textTheme.bodyMedium?.copyWith(
                   color: Colors.white.withValues(alpha: 0.85),
                 ),
@@ -42,7 +47,8 @@ class ApiBaseUrlMissingPage extends StatelessWidget {
               _CodeCard(title: 'Build APK', code: cmdApk),
               const Spacer(),
               Text(
-                'Current mode: ${ApiConfig.mode}',
+                'Resolved: ${ApiConfig.resolvedBaseUrl.isEmpty ? "—" : ApiConfig.resolvedBaseUrl}\n'
+                'Mode: ${ApiConfig.mode}',
                 textAlign: TextAlign.center,
                 style: textTheme.bodySmall?.copyWith(
                   color: Colors.white.withValues(alpha: 0.7),
@@ -51,7 +57,8 @@ class ApiBaseUrlMissingPage extends StatelessWidget {
               if (kDebugMode) ...<Widget>[
                 const SizedBox(height: 8),
                 Text(
-                  'Tip: Use an ngrok/public URL to work across different networks.',
+                  'Tip: For local dev, override API_BASE_URL (emulator: 10.0.2.2, '
+                  'device on LAN: your machine IP).',
                   textAlign: TextAlign.center,
                   style: textTheme.bodySmall?.copyWith(
                     color: Colors.white.withValues(alpha: 0.7),

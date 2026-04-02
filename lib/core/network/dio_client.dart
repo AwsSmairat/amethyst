@@ -12,14 +12,15 @@ final class DioClient {
     UnauthorizedCallback? onUnauthorized,
   })  : _tokenStorage = tokenStorage,
         _onUnauthorized = onUnauthorized {
-    if (!ApiConfig.isConfigured) {
+    if (!ApiConfig.isValidConfiguration) {
       throw ApiException(
-        'Cannot connect to server. API_BASE_URL is not configured.',
+        ApiConfig.configurationBlockReason ??
+            'Cannot connect to server. API_BASE_URL is not configured.',
       );
     }
     _dio = Dio(
       BaseOptions(
-        baseUrl: ApiConfig.baseUrl,
+        baseUrl: ApiConfig.resolvedBaseUrl,
         connectTimeout: const Duration(seconds: 20),
         receiveTimeout: const Duration(seconds: 30),
         headers: <String, dynamic>{

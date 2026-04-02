@@ -40,7 +40,17 @@ export async function login({ email, password }) {
   const user = await prisma.user.findUnique({
     where: { email: email.toLowerCase() },
   });
-  if (!user || !(await comparePassword(password, user.passwordHash))) {
+  if (!user) {
+    throw new AppError('Invalid credentials', 401, 'INVALID_CREDENTIALS');
+  }
+  let passwordOk = false;
+  try {
+    passwordOk = await comparePassword(password, user.passwordHash);
+  } catch (e) {
+    console.error('[auth] password compare failed', e);
+    throw new AppError('Invalid credentials', 401, 'INVALID_CREDENTIALS');
+  }
+  if (!passwordOk) {
     throw new AppError('Invalid credentials', 401, 'INVALID_CREDENTIALS');
   }
   if (!user.isActive) {

@@ -5,155 +5,82 @@ const prisma = new PrismaClient();
 
 const BCRYPT_ROUNDS = 12;
 
-async function hash(pw) {
-  return bcrypt.hash(pw, BCRYPT_ROUNDS);
+async function hashPassword(plain) {
+  return bcrypt.hash(plain, BCRYPT_ROUNDS);
 }
 
-/** يزيل السيارة V-002 والسائق الثاني من قواعد بيانات قديمة بعد تغيير الـ seed. */
-async function removeSecondVehicleAndDriver() {
-  const driver2 = await prisma.user.findUnique({
-    where: { email: 'driver2@amethyst.local' },
+/**
+ * Inserts a user only if no row exists with the same email.
+ * Avoids phone collisions with older seeded rows (phone is unique).
+ */
+async function createUserIfMissing({
+  email,
+  password,
+  fullName,
+  role,
+  phone,
+}) {
+  const normalizedEmail = email.toLowerCase();
+  const existingByEmail = await prisma.user.findUnique({
+    where: { email: normalizedEmail },
   });
-  const v2 = await prisma.vehicle.findUnique({
-    where: { vehicleNumber: 'V-002' },
-  });
-
-  if (v2) {
-    await prisma.vehicleLoad.deleteMany({ where: { vehicleId: v2.id } });
-    await prisma.vehicleSale.deleteMany({ where: { vehicleId: v2.id } });
-    await prisma.expense.deleteMany({ where: { vehicleId: v2.id } });
-    await prisma.vehicle.delete({ where: { id: v2.id } });
+  if (existingByEmail) {
+    console.log(`[seed] skip (exists): ${normalizedEmail}`);
+    return existingByEmail;
   }
 
-  if (driver2) {
-    await prisma.vehicleLoad.deleteMany({
-      where: {
-        OR: [{ driverId: driver2.id }, { createdById: driver2.id }],
-      },
-    });
-    await prisma.vehicleSale.deleteMany({ where: { driverId: driver2.id } });
-    await prisma.stationSale.deleteMany({ where: { soldById: driver2.id } });
-    await prisma.expense.deleteMany({ where: { driverId: driver2.id } });
-    await prisma.auditLog.deleteMany({ where: { userId: driver2.id } });
-    await prisma.vehicle.updateMany({
-      where: { driverId: driver2.id },
-      data: { driverId: null },
-    });
-    await prisma.user.delete({ where: { id: driver2.id } });
+  const existingByPhone = await prisma.user.findUnique({
+    where: { phone },
+  });
+  if (existingByPhone) {
+    console.log(
+      `[seed] skip (phone ${phone} already used by ${existingByPhone.email}): ${normalizedEmail}`,
+    );
+    return existingByPhone;
   }
+
+  const passwordHash = await hashPassword(password);
+  const user = await prisma.user.create({
+    data: {
+      email: normalizedEmail,
+      fullName,
+      phone,
+      passwordHash,
+      role,
+      isActive: true,
+    },
+  });
+  console.log(`[seed] created: ${normalizedEmail} (${role})`);
+  return user;
 }
 
 async function main() {
-  await removeSecondVehicleAndDriver();
-
-  const passwordSuper = await hash('sohaib123');
-  const passwordAdmin = await hash('Admin123!');
-  const passwordDriver = await hash('Driver123!');
-
-  await prisma.user.deleteMany({ where: { email: 'super@amethyst.local' } });
-
-  const superAdmin = await prisma.user.upsert({
-    where: { email: 'sohaib@amethyst.local' },
-    update: {
-      fullName: 'Sohaib',
-      passwordHash: passwordSuper,
-      role: 'super_admin',
-      isActive: true,
-    },
-    create: {
-      fullName: 'Sohaib',
-      phone: '+10000000001',
-      email: 'sohaib@amethyst.local',
-      passwordHash: passwordSuper,
-      role: 'super_admin',
-      isActive: true,
-    },
+  // Reserved range so we do not collide with legacy seed phones (+1000000000x).
+  await createUserIfMissing({
+    email: 'super@test.com',
+    password: '123456',
+    fullName: 'Super Admin',
+    role: 'super_admin',
+    phone: '+10000090001',
   });
 
-  const admin = await prisma.user.upsert({
-    where: { email: 'admin@amethyst.local' },
-    update: {},
-    create: {
-      fullName: 'Station Admin',
-      phone: '+10000000002',
-      email: 'admin@amethyst.local',
-      passwordHash: passwordAdmin,
-      role: 'admin',
-      isActive: true,
-    },
+  await createUserIfMissing({
+    email: 'admin@test.com',
+    password: '123456',
+    fullName: 'Admin',
+    role: 'admin',
+    phone: '+10000090002',
   });
 
-  const driver1 = await prisma.user.upsert({
-    where: { email: 'driver1@amethyst.local' },
-    update: {},
-    create: {
-      fullName: 'Driver One',
-      phone: '+10000000003',
-      email: 'driver1@amethyst.local',
-      passwordHash: passwordDriver,
-      role: 'driver',
-      isActive: true,
-    },
+  await createUserIfMissing({
+    email: 'driver@test.com',
+    password: '123456',
+    fullName: 'Driver',
+    role: 'driver',
+    phone: '+10000090003',
   });
 
-  async function ensureProduct(data) {
-    const existing = await prisma.product.findFirst({
-      where: { name: data.name },
-    });
-    if (existing) return existing;
-    return prisma.product.create({ data });
-  }
-
-  const bottle = await ensureProduct({
-    name: 'Water Bottle',
-    unitType: 'bottle',
-    price: 1.5,
-    stationStock: 500,
-    isActive: true,
-  });
-
-  const carton = await ensureProduct({
-    name: 'Water Carton',
-    unitType: 'carton',
-    price: 8.0,
-    stationStock: 120,
-    isActive: true,
-  });
-
-  const gallon = await ensureProduct({
-    name: 'Water Gallon',
-    unitType: 'gallon',
-    price: 3.25,
-    stationStock: 80,
-    isActive: true,
-  });
-
-  const coupon = await ensureProduct({
-    name: 'Coupon',
-    unitType: 'coupon',
-    price: 0,
-    stationStock: 0,
-    isActive: true,
-  });
-
-  const v1 = await prisma.vehicle.upsert({
-    where: { vehicleNumber: 'V-001' },
-    update: { driverId: driver1.id },
-    create: {
-      vehicleNumber: 'V-001',
-      driverId: driver1.id,
-      notes: 'Downtown route',
-      isActive: true,
-    },
-  });
-
-  console.log('Seed complete:', {
-    superAdmin: superAdmin.email,
-    admin: admin.email,
-    drivers: [driver1.email],
-    products: [bottle.name, carton.name, gallon.name, coupon.name],
-    vehicles: [v1.vehicleNumber],
-  });
+  console.log('[seed] done (password for all test users: 123456)');
 }
 
 main()
