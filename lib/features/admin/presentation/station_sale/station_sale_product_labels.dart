@@ -8,9 +8,12 @@ String stationSaleProductLabel(
   AppLocalizations l10n,
 ) {
   if (kind == StationSaleEntryKind.emptySale) {
-    return index == 0
-        ? l10n.stationSaleProductGallon
-        : l10n.stationSaleProductBottle;
+    return switch (index) {
+      0 => l10n.stationBalanceField6,
+      1 => l10n.stationBalanceField7,
+      2 => l10n.stationBalanceField8,
+      _ => '',
+    };
   }
   switch (index) {
     case 0:
@@ -20,7 +23,11 @@ String stationSaleProductLabel(
     case 2:
       return l10n.stationSaleProductMahdi;
     case 3:
-      return l10n.couponProduct;
+      return l10n.productTemplateCoupon1;
+    case 4:
+      return l10n.productTemplateCoupon2;
+    case 5:
+      return l10n.productTemplateCoupon3;
     default:
       return '';
   }

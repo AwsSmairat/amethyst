@@ -12,11 +12,6 @@ class StationBalanceDashboardCard extends StatelessWidget {
     final l10n = context.l10n;
     final theme = Theme.of(context);
     return Card(
-      elevation: 0,
-      color: AppColors.surfaceLowest,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-      ),
       child: Padding(
         padding: const EdgeInsets.all(20),
         child: Column(
@@ -26,7 +21,7 @@ class StationBalanceDashboardCard extends StatelessWidget {
               children: <Widget>[
                 Icon(
                   Icons.table_chart_outlined,
-                  color: AppColors.primary,
+                  color: AppColors.brandPrimary,
                   size: 28,
                 ),
                 const SizedBox(width: 12),

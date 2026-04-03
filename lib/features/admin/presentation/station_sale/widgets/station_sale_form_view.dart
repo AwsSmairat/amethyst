@@ -39,8 +39,12 @@ class StationSaleFormView extends StatelessWidget {
               SnackBar(content: Text(l10n.stationSalesRecorded)),
             );
           } else if (state.submitError != null) {
+            final String msg = state.submitError ==
+                    kStationSaleInsufficientStockSubmitMarker
+                ? l10n.stationSaleSubmitInsufficientStock
+                : state.submitError!;
             ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text(state.submitError!)),
+              SnackBar(content: Text(msg)),
             );
           }
         },
@@ -109,7 +113,7 @@ class StationSaleFormView extends StatelessWidget {
                 ),
                 const SizedBox(height: 12),
                 if (state.entryKind == StationSaleEntryKind.filling &&
-                    state.colCount == 4) ...<Widget>[
+                    state.colCount == 6) ...<Widget>[
                   _productRow(
                     context,
                     state: state,
@@ -124,6 +128,14 @@ class StationSaleFormView extends StatelessWidget {
                     busy: busy,
                     start: 2,
                     end: 4,
+                  ),
+                  const SizedBox(height: 12),
+                  _productRow(
+                    context,
+                    state: state,
+                    busy: busy,
+                    start: 4,
+                    end: 6,
                   ),
                 ] else
                   _productRow(
@@ -157,6 +169,16 @@ class StationSaleFormView extends StatelessWidget {
                       child: Text(l10n.stationSaleWithFilling),
                     ),
                   ),
+                  if (state.withFilling) ...<Widget>[
+                    const SizedBox(height: 8),
+                    Text(
+                      l10n.stationSaleWithFillingPriceHint,
+                      textAlign: TextAlign.center,
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            color: scheme.onSurfaceVariant,
+                          ),
+                    ),
+                  ],
                 ],
                 const SizedBox(height: 20),
                 FilledButton(
@@ -230,6 +252,13 @@ class StationSaleFormView extends StatelessWidget {
                 onCouponToggle: state.showCouponUnderProduct1And2 && i < 2
                     ? () => cubit.toggleCouponLine(i)
                     : null,
+                stationStockAvailable:
+                    i < state.columnSkipsStationStock.length &&
+                            !state.columnSkipsStationStock[i]
+                        ? (i < state.columnStationStock.length
+                            ? state.columnStationStock[i]
+                            : null)
+                        : null,
               ),
             ),
           ),

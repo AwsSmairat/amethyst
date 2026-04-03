@@ -42,6 +42,8 @@ export function mapStationSale(s) {
     unitPrice: serializeDecimal(s.unitPrice),
     totalAmount: serializeDecimal(s.totalAmount),
     product: s.product ? mapProduct(s.product) : s.product,
+    /** يظهر في قائمة المبيعات (كوبون، …) — صريح لأن بعض نسخ Prisma قد لا تُرجِع الحقل في الـ spread */
+    note: s.note != null && String(s.note).trim() !== '' ? String(s.note) : null,
   };
 }
 

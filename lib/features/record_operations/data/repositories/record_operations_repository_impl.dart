@@ -32,6 +32,7 @@ final class RecordOperationsRepositoryImpl implements RecordOperationsRepository
     required double unitPrice,
     bool fillingSale = false,
     int? fillingLineSlot,
+    String? note,
   }) =>
       _api.createStationSale(
         productId: productId,
@@ -39,6 +40,7 @@ final class RecordOperationsRepositoryImpl implements RecordOperationsRepository
         unitPrice: unitPrice,
         fillingSale: fillingSale,
         fillingLineSlot: fillingLineSlot,
+        note: note,
       );
 
   @override

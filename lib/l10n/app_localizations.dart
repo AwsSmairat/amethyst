@@ -274,6 +274,12 @@ abstract class AppLocalizations {
   /// **'المنتجات'**
   String get products;
 
+  /// No description provided for @menuStationStock.
+  ///
+  /// In ar, this message translates to:
+  /// **'مخزون المحطة'**
+  String get menuStationStock;
+
   /// No description provided for @vehicles.
   ///
   /// In ar, this message translates to:
@@ -387,6 +393,36 @@ abstract class AppLocalizations {
   /// In ar, this message translates to:
   /// **'تعديل أسعار المنتجات'**
   String get titleProductPrices;
+
+  /// No description provided for @stationStockPricingSection.
+  ///
+  /// In ar, this message translates to:
+  /// **'مخزون المحطة — التسعير'**
+  String get stationStockPricingSection;
+
+  /// No description provided for @allProductsSectionTitle.
+  ///
+  /// In ar, this message translates to:
+  /// **'جميع المنتجات'**
+  String get allProductsSectionTitle;
+
+  /// No description provided for @stationProductNotInCatalog.
+  ///
+  /// In ar, this message translates to:
+  /// **'غير مُعرَّف في المنتجات. أضِف المنتج لتحديد السعر وربط المخزون.'**
+  String get stationProductNotInCatalog;
+
+  /// No description provided for @addStationProductWithPrice.
+  ///
+  /// In ar, this message translates to:
+  /// **'إضافة وتحديد السعر'**
+  String get addStationProductWithPrice;
+
+  /// No description provided for @apiProductNameHint.
+  ///
+  /// In ar, this message translates to:
+  /// **'الاسم في النظام: {name}'**
+  String apiProductNameHint(String name);
 
   /// No description provided for @editProductPriceTitle.
   ///
@@ -529,7 +565,7 @@ abstract class AppLocalizations {
   /// No description provided for @productPricesEmptyHint.
   ///
   /// In ar, this message translates to:
-  /// **'لا توجد منتجات بعد. اضغط «إضافة منتج» واستخدم القوالب (جالون، قاروره، مهدي، كوبون ١٢/٢٤/٥٠).'**
+  /// **'لا توجد منتجات بعد. اضغط «إضافة منتج» واستخدم القوالب (جالون، قاروره، مهدي، ق سعودي/اردني، ج فارغ، كوبون ١٢/٢٤/٥٠).'**
   String get productPricesEmptyHint;
 
   /// No description provided for @kpiDrivers.
@@ -663,6 +699,12 @@ abstract class AppLocalizations {
   /// In ar, this message translates to:
   /// **'إجمالي المبيعات: {amount}'**
   String salesTotal(String amount);
+
+  /// No description provided for @totalSalesAmountLabel.
+  ///
+  /// In ar, this message translates to:
+  /// **'إجمالي المبيعات'**
+  String get totalSalesAmountLabel;
 
   /// No description provided for @daysWithSales.
   ///
@@ -1450,6 +1492,72 @@ abstract class AppLocalizations {
   /// **'المبيعات الشهرية'**
   String get monthlySalesDetail;
 
+  /// No description provided for @monthYearPeriodLabel.
+  ///
+  /// In ar, this message translates to:
+  /// **'الشهر والسنة'**
+  String get monthYearPeriodLabel;
+
+  /// No description provided for @combinedTotalLabel.
+  ///
+  /// In ar, this message translates to:
+  /// **'الإجمالي'**
+  String get combinedTotalLabel;
+
+  /// No description provided for @currentCalendarMonthChip.
+  ///
+  /// In ar, this message translates to:
+  /// **'الشهر الحالي'**
+  String get currentCalendarMonthChip;
+
+  /// No description provided for @previousCalendarMonthChip.
+  ///
+  /// In ar, this message translates to:
+  /// **'الشهر السابق'**
+  String get previousCalendarMonthChip;
+
+  /// No description provided for @monthlyExpensesTotalLabel.
+  ///
+  /// In ar, this message translates to:
+  /// **'إجمالي مصاريف الشهر'**
+  String get monthlyExpensesTotalLabel;
+
+  /// No description provided for @noExpensesThisMonth.
+  ///
+  /// In ar, this message translates to:
+  /// **'لا مصاريف في هذا الشهر.'**
+  String get noExpensesThisMonth;
+
+  /// No description provided for @expenseLinesSection.
+  ///
+  /// In ar, this message translates to:
+  /// **'تفاصيل المصاريف'**
+  String get expenseLinesSection;
+
+  /// No description provided for @expenseDayDateLabel.
+  ///
+  /// In ar, this message translates to:
+  /// **'التاريخ'**
+  String get expenseDayDateLabel;
+
+  /// No description provided for @expenseDayTotalLabel.
+  ///
+  /// In ar, this message translates to:
+  /// **'إجمالي اليوم'**
+  String get expenseDayTotalLabel;
+
+  /// No description provided for @noExpensesThisDay.
+  ///
+  /// In ar, this message translates to:
+  /// **'لا مصاريف في هذا اليوم.'**
+  String get noExpensesThisDay;
+
+  /// No description provided for @yesterdayChip.
+  ///
+  /// In ar, this message translates to:
+  /// **'أمس'**
+  String get yesterdayChip;
+
   /// No description provided for @myVehicleSales.
   ///
   /// In ar, this message translates to:
@@ -1839,6 +1947,12 @@ abstract class AppLocalizations {
   /// **'مع تعبئة'**
   String get stationSaleWithFilling;
 
+  /// No description provided for @stationSaleWithFillingPriceHint.
+  ///
+  /// In ar, this message translates to:
+  /// **'يُضاف ٠٫٥٠ لسعر كل وحدة على المنتجات التي تُباع.'**
+  String get stationSaleWithFillingPriceHint;
+
   /// No description provided for @stationSaleBack.
   ///
   /// In ar, this message translates to:
@@ -1868,6 +1982,42 @@ abstract class AppLocalizations {
   /// In ar, this message translates to:
   /// **'تم تسجيل مبيعات المحطة'**
   String get stationSalesRecorded;
+
+  /// No description provided for @stationSaleValidationNeedLine.
+  ///
+  /// In ar, this message translates to:
+  /// **'حدّد كمية واحدة على الأقل لمنتج واحد (لا يلزم تعبئة كل الأعمدة).'**
+  String get stationSaleValidationNeedLine;
+
+  /// No description provided for @stationSaleValidationInvalidRow.
+  ///
+  /// In ar, this message translates to:
+  /// **'هذا المنتج غير مربوط في «أسعار المنتجات» أو غير موجود. اضبط المنتجات لدى السوبر أدمن، أو اجعل الكمية 0 للصفوف التي لا تبيعها.'**
+  String get stationSaleValidationInvalidRow;
+
+  /// No description provided for @stationSaleValidationCheckPrice.
+  ///
+  /// In ar, this message translates to:
+  /// **'سعر أحد المنتجات غير معرّف — راجع «أسعار المنتجات».'**
+  String get stationSaleValidationCheckPrice;
+
+  /// No description provided for @stationSaleValidationInsufficientStock.
+  ///
+  /// In ar, this message translates to:
+  /// **'الكمية أكبر من مخزون المحطة المتاح لهذا المنتج.'**
+  String get stationSaleValidationInsufficientStock;
+
+  /// No description provided for @stationSaleSubmitInsufficientStock.
+  ///
+  /// In ar, this message translates to:
+  /// **'المخزون تغيّر أو غير كافٍ. أعد فتح الشاشة أو قلّل الكمية.'**
+  String get stationSaleSubmitInsufficientStock;
+
+  /// No description provided for @stationSaleStockAvailable.
+  ///
+  /// In ar, this message translates to:
+  /// **'المخزون: {count}'**
+  String stationSaleStockAvailable(int count);
 
   /// No description provided for @operationDateLabel.
   ///

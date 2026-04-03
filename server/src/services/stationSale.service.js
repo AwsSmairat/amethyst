@@ -38,7 +38,7 @@ function fillingLineSlotAsInt(body) {
     return null;
   }
   const n = Number(raw);
-  if (!Number.isInteger(n) || n < 0 || n > 3) {
+  if (!Number.isInteger(n) || n < 0 || n > 5) {
     return null;
   }
   return n;
@@ -162,6 +162,20 @@ export async function createStationSale(body, actor) {
 
     const totalAmount = qty * unitPriceNum;
 
+    let noteToSave = null;
+    if (body.note != null && String(body.note).trim() !== '') {
+      noteToSave = String(body.note).trim().slice(0, 500);
+    }
+    if (
+      noteToSave == null &&
+      fillingSale &&
+      slot !== null &&
+      slot <= 1 &&
+      unitPriceNum === 0
+    ) {
+      noteToSave = 'كوبون';
+    }
+
     const sale = await tx.stationSale.create({
       data: {
         productId: body.productId,
@@ -169,6 +183,7 @@ export async function createStationSale(body, actor) {
         unitPrice: body.unitPrice,
         totalAmount,
         soldById: actor.id,
+        ...(noteToSave != null ? { note: noteToSave } : {}),
       },
       include: {
         product: true,
@@ -185,6 +200,7 @@ export async function createStationSale(body, actor) {
         quantity: body.quantity,
         totalAmount,
         ...(skipStationStock ? { skipStationStock: true } : {}),
+        ...(noteToSave != null ? { note: noteToSave } : {}),
       },
     });
 

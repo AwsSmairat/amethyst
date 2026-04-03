@@ -38,7 +38,8 @@ class _SuperAdminDashboardBody extends StatelessWidget {
                 Text(state.message, textAlign: TextAlign.center),
                 const SizedBox(height: 12),
                 FilledButton(
-                  onPressed: () => context.read<SuperAdminDashboardCubit>().load(),
+                  onPressed: () =>
+                      context.read<SuperAdminDashboardCubit>().load(),
                   child: Text(context.l10n.retry),
                 ),
               ],
@@ -60,9 +61,9 @@ class _SuperAdminDashboardBody extends StatelessWidget {
               Text(
                 l10n.overview,
                 style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                      fontWeight: FontWeight.w800,
-                      color: AppColors.primaryText,
-                    ),
+                  fontWeight: FontWeight.w800,
+                  color: AppColors.primaryText,
+                ),
               ),
               const SizedBox(height: 16),
               _KpiGrid(
@@ -80,10 +81,10 @@ class _SuperAdminDashboardBody extends StatelessWidget {
                   ),
                   _KpiCard(
                     label: l10n.kpiProductPrices,
-                    value: '${d['totalProducts'] ?? 0}',
+                    value:
+                        '${d['productsWithPrice'] ?? d['totalProducts'] ?? 0}',
                     icon: Icons.price_change_outlined,
-                    onTap: () =>
-                        context.push('/super-admin/product-prices'),
+                    onTap: () => context.push('/super-admin/product-prices'),
                   ),
                   _KpiCard(
                     label: l10n.kpiDrivers,
@@ -114,13 +115,15 @@ class _SuperAdminDashboardBody extends StatelessWidget {
                     label: l10n.expensesToday,
                     value: expenses.toStringAsFixed(0),
                     icon: Icons.payments,
-                    onTap: () => context.push('/super-admin/kpi/expenses-today'),
+                    onTap: () =>
+                        context.push('/super-admin/kpi/expenses-today'),
                   ),
                   _KpiCard(
                     label: l10n.monthlyExpenses,
                     value: monthlyExpenses.toStringAsFixed(0),
                     icon: Icons.account_balance_wallet_outlined,
-                    onTap: () => context.push('/super-admin/kpi/expenses-month'),
+                    onTap: () =>
+                        context.push('/super-admin/kpi/expenses-month'),
                   ),
                   _KpiCard(
                     label: l10n.monthlySales,
@@ -133,9 +136,9 @@ class _SuperAdminDashboardBody extends StatelessWidget {
               const SizedBox(height: 24),
               Text(
                 l10n.stockSnapshot,
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w800,
-                    ),
+                style: Theme.of(
+                  context,
+                ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
               ),
               const SizedBox(height: 8),
               Text(
@@ -175,10 +178,8 @@ class _KpiGrid extends StatelessWidget {
           runSpacing: 12,
           children: children
               .map(
-                (c) => SizedBox(
-                  width: (w - 12 * (cross - 1)) / cross,
-                  child: c,
-                ),
+                (c) =>
+                    SizedBox(width: (w - 12 * (cross - 1)) / cross, child: c),
               )
               .toList(growable: false),
         );
@@ -206,7 +207,7 @@ class _KpiCard extends StatelessWidget {
       padding: const EdgeInsets.all(16),
       child: Row(
         children: <Widget>[
-          Icon(icon, color: AppColors.primaryContainer),
+          Icon(icon, color: AppColors.brandPrimary),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
@@ -215,16 +216,16 @@ class _KpiCard extends StatelessWidget {
                 Text(
                   label.toUpperCase(),
                   style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                        letterSpacing: 0.8,
-                        color: AppColors.onSurfaceVariant,
-                      ),
+                    letterSpacing: 0.8,
+                    color: AppColors.onSurfaceVariant,
+                  ),
                 ),
                 const SizedBox(height: 4),
                 Text(
                   value,
-                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                        fontWeight: FontWeight.w800,
-                      ),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
                 ),
               ],
             ),
@@ -238,16 +239,8 @@ class _KpiCard extends StatelessWidget {
       ),
     );
     return Card(
-      elevation: 0,
-      color: AppColors.surfaceLowest,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       clipBehavior: onTap != null ? Clip.antiAlias : Clip.none,
-      child: onTap == null
-          ? content
-          : InkWell(
-              onTap: onTap,
-              child: content,
-            ),
+      child: onTap == null ? content : InkWell(onTap: onTap, child: content),
     );
   }
 }

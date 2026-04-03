@@ -4,6 +4,16 @@ export const stationSaleCreateSchema = z.object({
   productId: z.string().uuid(),
   quantity: z.coerce.number().int().positive(),
   unitPrice: z.coerce.number().nonnegative(),
+  note: z.preprocess(
+    (v) => {
+      if (v === undefined || v === null || v === '') {
+        return undefined;
+      }
+      const t = String(v).trim();
+      return t.length === 0 ? undefined : t.slice(0, 500);
+    },
+    z.string().max(500).optional()
+  ),
   /** بيع «تعبئة»: جالون وقارورة لا يخصمان من مخزون المحطة (يُحدَّد من التطبيق). */
   fillingSale: z.preprocess(
     (val) => {
@@ -29,7 +39,7 @@ export const stationSaleCreateSchema = z.object({
     },
     z.boolean().optional()
   ),
-  /** تعبئة: ٠ جالون، ١ قارورة — تخطي خصم مخزون المحطة لهذين العمودين فقط. */
+  /** تعبئة: فهرس العمود ٠–٥ (جالون، قارورة، مهدي، ثلاثة دفاتر كوبون). */
   fillingLineSlot: z.preprocess(
     (val) => {
       if (val === undefined || val === null) {
@@ -41,7 +51,7 @@ export const stationSaleCreateSchema = z.object({
       }
       return Math.trunc(n);
     },
-    z.number().int().min(0).max(3).optional()
+    z.number().int().min(0).max(5).optional()
   ),
   filling_slot: z.preprocess(
     (val) => {
@@ -54,7 +64,7 @@ export const stationSaleCreateSchema = z.object({
       }
       return Math.trunc(n);
     },
-    z.number().int().min(0).max(3).optional()
+    z.number().int().min(0).max(5).optional()
   ),
 }).transform((d) => {
   const slot = d.fillingLineSlot ?? d.filling_slot;

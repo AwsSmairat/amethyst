@@ -45,7 +45,8 @@ final class AmethystApi {
   Future<Map<String, dynamic>> getDashboardSuperAdmin() async {
     try {
       final res = await _dio.get<Map<String, dynamic>>('/dashboard/super-admin');
-      return DioClient.unwrapMap(res);
+      final map = DioClient.unwrapMap(res);
+      return _flattenSuperAdminDashboard(map);
     } on DioException catch (e) {
       _client.throwFromDio(e);
     }
@@ -266,6 +267,7 @@ final class AmethystApi {
     required double unitPrice,
     bool fillingSale = false,
     int? fillingLineSlot,
+    String? note,
   }) async {
     try {
       final Map<String, dynamic> data = <String, dynamic>{
@@ -280,6 +282,19 @@ final class AmethystApi {
         data['fillingLineSlot'] = slot;
         // احتياط إن وُجد وسيط يتعامل مع snake_case فقط
         data['filling_slot'] = slot;
+      }
+      // ملاحظة «كوبون» لبيع التعبئة (جالون/قارورة بسعر 0) — نرسلها حتى لو ضاعت في طبقة أخرى.
+      String? noteOut;
+      if (note != null && note.trim().isNotEmpty) {
+        noteOut = note.trim();
+      } else if (fillingSale &&
+          fillingLineSlot != null &&
+          fillingLineSlot < 2 &&
+          unitPrice == 0) {
+        noteOut = 'كوبون';
+      }
+      if (noteOut != null && noteOut.isNotEmpty) {
+        data['note'] = noteOut;
       }
       final res = await _dio.post<Map<String, dynamic>>(
         '/station-sales',
@@ -316,18 +331,20 @@ final class AmethystApi {
     }
   }
 
+  /// `limit` على الخادم بحد أقصى 100 ([listQuerySchema]).
   Future<Map<String, dynamic>> listExpenses({
     int page = 1,
     int limit = 100,
     String? dateFrom,
     String? dateTo,
   }) async {
+    final int safeLimit = limit.clamp(1, 100);
     try {
       final res = await _dio.get<Map<String, dynamic>>(
         '/expenses',
         queryParameters: <String, dynamic>{
           'page': page,
-          'limit': limit,
+          'limit': safeLimit,
           if (dateFrom != null) 'dateFrom': dateFrom,
           if (dateTo != null) 'dateTo': dateTo,
         },
@@ -468,6 +485,29 @@ final class AmethystApi {
       _client.throwFromDio(e);
     }
   }
+}
+
+/// `/dashboard/super-admin` uses the same envelope as other roles; KPI widgets
+/// expect flat keys (`totalSalesToday`, `totalUsers`, …).
+Map<String, dynamic> _flattenSuperAdminDashboard(Map<String, dynamic> root) {
+  final Object? details = root['details'];
+  final Object? metrics = root['metrics'];
+  if (details is! Map<String, dynamic> || metrics is! Map<String, dynamic>) {
+    return root;
+  }
+  final Object? counts = details['counts'];
+  final Map<String, dynamic> c =
+      counts is Map<String, dynamic> ? counts : <String, dynamic>{};
+  return <String, dynamic>{
+    ...root,
+    ...metrics,
+    'totalUsers': c['users'] ?? 0,
+    'totalAdmins': c['admins'] ?? 0,
+    'totalDrivers': c['drivers'] ?? 0,
+    'totalVehicles': c['vehicles'] ?? 0,
+    'totalProducts': c['products'] ?? 0,
+    'productsWithPrice': c['pricedProducts'] ?? 0,
+  };
 }
 
 /// `/dashboard/driver` is normalized to `{ role, metrics, details }` on the

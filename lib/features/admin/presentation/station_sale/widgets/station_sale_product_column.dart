@@ -14,6 +14,7 @@ class StationSaleProductColumn extends StatelessWidget {
     this.showCouponButton = false,
     this.couponActive = false,
     this.onCouponToggle,
+    this.stationStockAvailable,
   });
 
   final int index;
@@ -25,6 +26,8 @@ class StationSaleProductColumn extends StatelessWidget {
   final bool showCouponButton;
   final bool couponActive;
   final VoidCallback? onCouponToggle;
+  /// `null` = لا يُعرض (مثلاً تعبئة بدون خصم مخزون). غير ذلك يُظهر مخزون المحطة الحالي.
+  final int? stationStockAvailable;
 
   @override
   Widget build(BuildContext context) {
@@ -102,6 +105,17 @@ class StationSaleProductColumn extends StatelessWidget {
             ),
           ],
         ),
+        if (stationStockAvailable != null) ...<Widget>[
+          const SizedBox(height: 6),
+          Text(
+            l10n.stationSaleStockAvailable(stationStockAvailable!),
+            textAlign: TextAlign.center,
+            style: theme.textTheme.labelSmall?.copyWith(
+                  color: AppColors.onSurfaceVariant,
+                  fontWeight: FontWeight.w600,
+                ),
+          ),
+        ],
         if (showCouponButton &&
             quantity > 0 &&
             onCouponToggle != null) ...<Widget>[

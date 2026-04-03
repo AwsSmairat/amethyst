@@ -30,6 +30,7 @@
   "users": "المستخدمون",
   "admins": "المديرون",
   "products": "المنتجات",
+  "menuStationStock": "مخزون المحطة",
   "vehicles": "المركبات",
   "vehicleLoads": "تحميلات المركبات",
   "stationSales": "مبيعات المحطة",
@@ -55,6 +56,14 @@
   "kpiAdmins": "المديرون",
   "kpiProductPrices": "أسعار المنتجات",
   "titleProductPrices": "تعديل أسعار المنتجات",
+  "stationStockPricingSection": "مخزون المحطة — التسعير",
+  "allProductsSectionTitle": "جميع المنتجات",
+  "stationProductNotInCatalog": "غير مُعرَّف في المنتجات. أضِف المنتج لتحديد السعر وربط المخزون.",
+  "addStationProductWithPrice": "إضافة وتحديد السعر",
+  "apiProductNameHint": "الاسم في النظام: {name}",
+  "@apiProductNameHint": {
+    "placeholders": {"name": {"type": "String"}}
+  },
   "editProductPriceTitle": "تحديد سعر المنتج",
   "productPriceFieldLabel": "السعر",
   "priceUpdated": "تم حفظ السعر",
@@ -81,7 +90,7 @@
   "@deleteProductConfirmBody": {
     "placeholders": {"name": {"type": "String"}}
   },
-  "productPricesEmptyHint": "لا توجد منتجات بعد. اضغط «إضافة منتج» واستخدم القوالب (جالون، قاروره، مهدي، كوبون ١٢/٢٤/٥٠).",
+  "productPricesEmptyHint": "لا توجد منتجات بعد. اضغط «إضافة منتج» واستخدم القوالب (جالون، قاروره، مهدي، ق سعودي/اردني، ج فارغ، كوبون ١٢/٢٤/٥٠).",
   "kpiDrivers": "السائقون",
   "kpiVehicles": "المركبات",
   "salesToday": "مبيعات اليوم",
@@ -122,6 +131,7 @@
   "@salesTotal": {
     "placeholders": {"amount": {"type": "String"}}
   },
+  "totalSalesAmountLabel": "إجمالي المبيعات",
   "daysWithSales": "أيام المبيعات",
   "titleUsers": "المستخدمون",
   "addUser": "إضافة مستخدم",
@@ -286,6 +296,17 @@
   "expensesTodayDetail": "مصاريف اليوم",
   "monthlyExpensesDetail": "المصاريف الشهرية",
   "monthlySalesDetail": "المبيعات الشهرية",
+  "monthYearPeriodLabel": "الشهر والسنة",
+  "combinedTotalLabel": "الإجمالي",
+  "currentCalendarMonthChip": "الشهر الحالي",
+  "previousCalendarMonthChip": "الشهر السابق",
+  "monthlyExpensesTotalLabel": "إجمالي مصاريف الشهر",
+  "noExpensesThisMonth": "لا مصاريف في هذا الشهر.",
+  "expenseLinesSection": "تفاصيل المصاريف",
+  "expenseDayDateLabel": "التاريخ",
+  "expenseDayTotalLabel": "إجمالي اليوم",
+  "noExpensesThisDay": "لا مصاريف في هذا اليوم.",
+  "yesterdayChip": "أمس",
   "myVehicleSales": "مبيعات مركبتي",
   "notesAndSummary": "ملاحظات وملخص",
   "driverNotesTitle": "ملاحظات",
@@ -388,11 +409,23 @@
   "stationSaleProductBottle": "قاروره",
   "stationSaleProductMahdi": "مهدي",
   "stationSaleWithFilling": "مع تعبئة",
+  "stationSaleWithFillingPriceHint": "يُضاف ٠٫٥٠ لسعر كل وحدة على المنتجات التي تُباع.",
   "stationSaleBack": "رجوع",
   "addStationSale": "إضافة بيع",
   "openStationSalesList": "عرض قائمة مبيعات المحطة",
   "stationSaleRecorded": "تم تسجيل بيع المحطة",
   "stationSalesRecorded": "تم تسجيل مبيعات المحطة",
+  "stationSaleValidationNeedLine": "حدّد كمية واحدة على الأقل لمنتج واحد (لا يلزم تعبئة كل الأعمدة).",
+  "stationSaleValidationInvalidRow": "هذا المنتج غير مربوط في «أسعار المنتجات» أو غير موجود. اضبط المنتجات لدى السوبر أدمن، أو اجعل الكمية 0 للصفوف التي لا تبيعها.",
+  "stationSaleValidationCheckPrice": "سعر أحد المنتجات غير معرّف — راجع «أسعار المنتجات».",
+  "stationSaleValidationInsufficientStock": "الكمية أكبر من مخزون المحطة المتاح لهذا المنتج.",
+  "stationSaleSubmitInsufficientStock": "المخزون تغيّر أو غير كافٍ. أعد فتح الشاشة أو قلّل الكمية.",
+  "stationSaleStockAvailable": "المخزون: {count}",
+  "@stationSaleStockAvailable": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
   "operationDateLabel": "تاريخ العملية",
   "sellerLabel": "البائع",
   "totalAmountLabel": "الإجمالي",

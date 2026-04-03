@@ -99,6 +99,9 @@ class AppLocalizationsAr extends AppLocalizations {
   String get products => 'المنتجات';
 
   @override
+  String get menuStationStock => 'مخزون المحطة';
+
+  @override
   String get vehicles => 'المركبات';
 
   @override
@@ -156,6 +159,24 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get titleProductPrices => 'تعديل أسعار المنتجات';
+
+  @override
+  String get stationStockPricingSection => 'مخزون المحطة — التسعير';
+
+  @override
+  String get allProductsSectionTitle => 'جميع المنتجات';
+
+  @override
+  String get stationProductNotInCatalog =>
+      'غير مُعرَّف في المنتجات. أضِف المنتج لتحديد السعر وربط المخزون.';
+
+  @override
+  String get addStationProductWithPrice => 'إضافة وتحديد السعر';
+
+  @override
+  String apiProductNameHint(String name) {
+    return 'الاسم في النظام: $name';
+  }
 
   @override
   String get editProductPriceTitle => 'تحديد سعر المنتج';
@@ -231,7 +252,7 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get productPricesEmptyHint =>
-      'لا توجد منتجات بعد. اضغط «إضافة منتج» واستخدم القوالب (جالون، قاروره، مهدي، كوبون ١٢/٢٤/٥٠).';
+      'لا توجد منتجات بعد. اضغط «إضافة منتج» واستخدم القوالب (جالون، قاروره، مهدي، ق سعودي/اردني، ج فارغ، كوبون ١٢/٢٤/٥٠).';
 
   @override
   String get kpiDrivers => 'السائقون';
@@ -308,6 +329,9 @@ class AppLocalizationsAr extends AppLocalizations {
   String salesTotal(String amount) {
     return 'إجمالي المبيعات: $amount';
   }
+
+  @override
+  String get totalSalesAmountLabel => 'إجمالي المبيعات';
 
   @override
   String get daysWithSales => 'أيام المبيعات';
@@ -716,6 +740,39 @@ class AppLocalizationsAr extends AppLocalizations {
   String get monthlySalesDetail => 'المبيعات الشهرية';
 
   @override
+  String get monthYearPeriodLabel => 'الشهر والسنة';
+
+  @override
+  String get combinedTotalLabel => 'الإجمالي';
+
+  @override
+  String get currentCalendarMonthChip => 'الشهر الحالي';
+
+  @override
+  String get previousCalendarMonthChip => 'الشهر السابق';
+
+  @override
+  String get monthlyExpensesTotalLabel => 'إجمالي مصاريف الشهر';
+
+  @override
+  String get noExpensesThisMonth => 'لا مصاريف في هذا الشهر.';
+
+  @override
+  String get expenseLinesSection => 'تفاصيل المصاريف';
+
+  @override
+  String get expenseDayDateLabel => 'التاريخ';
+
+  @override
+  String get expenseDayTotalLabel => 'إجمالي اليوم';
+
+  @override
+  String get noExpensesThisDay => 'لا مصاريف في هذا اليوم.';
+
+  @override
+  String get yesterdayChip => 'أمس';
+
+  @override
   String get myVehicleSales => 'مبيعات مركبتي';
 
   @override
@@ -929,6 +986,10 @@ class AppLocalizationsAr extends AppLocalizations {
   String get stationSaleWithFilling => 'مع تعبئة';
 
   @override
+  String get stationSaleWithFillingPriceHint =>
+      'يُضاف ٠٫٥٠ لسعر كل وحدة على المنتجات التي تُباع.';
+
+  @override
   String get stationSaleBack => 'رجوع';
 
   @override
@@ -942,6 +1003,31 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get stationSalesRecorded => 'تم تسجيل مبيعات المحطة';
+
+  @override
+  String get stationSaleValidationNeedLine =>
+      'حدّد كمية واحدة على الأقل لمنتج واحد (لا يلزم تعبئة كل الأعمدة).';
+
+  @override
+  String get stationSaleValidationInvalidRow =>
+      'هذا المنتج غير مربوط في «أسعار المنتجات» أو غير موجود. اضبط المنتجات لدى السوبر أدمن، أو اجعل الكمية 0 للصفوف التي لا تبيعها.';
+
+  @override
+  String get stationSaleValidationCheckPrice =>
+      'سعر أحد المنتجات غير معرّف — راجع «أسعار المنتجات».';
+
+  @override
+  String get stationSaleValidationInsufficientStock =>
+      'الكمية أكبر من مخزون المحطة المتاح لهذا المنتج.';
+
+  @override
+  String get stationSaleSubmitInsufficientStock =>
+      'المخزون تغيّر أو غير كافٍ. أعد فتح الشاشة أو قلّل الكمية.';
+
+  @override
+  String stationSaleStockAvailable(int count) {
+    return 'المخزون: $count';
+  }
 
   @override
   String get operationDateLabel => 'تاريخ العملية';

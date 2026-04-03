@@ -5,10 +5,13 @@ abstract final class StationSaleApiProductNames {
     'Water Bottle',
     'Water Carton',
     'Coupon',
+    'Coupon 2',
+    'Coupon 3',
   ];
 
   static const List<String> emptySale = <String>[
-    'Water Gallon',
-    'Water Bottle',
+    'Saudi Bottle',
+    'Jordanian Bottle',
+    'Empty Gallon',
   ];
 }

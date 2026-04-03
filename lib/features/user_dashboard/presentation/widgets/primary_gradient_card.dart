@@ -16,14 +16,14 @@ class PrimaryGradientCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return DecoratedBox(
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         gradient: AppColors.primaryGradient,
-        borderRadius: BorderRadius.all(Radius.circular(24)),
+        borderRadius: const BorderRadius.all(Radius.circular(24)),
         boxShadow: <BoxShadow>[
           BoxShadow(
-            color: Color.fromRGBO(11, 111, 164, 0.20),
+            color: AppColors.brandPrimary.withValues(alpha: 0.22),
             blurRadius: 24,
-            offset: Offset(0, 12),
+            offset: const Offset(0, 12),
           ),
         ],
       ),
@@ -37,4 +37,3 @@ class PrimaryGradientCard extends StatelessWidget {
     );
   }
 }
-

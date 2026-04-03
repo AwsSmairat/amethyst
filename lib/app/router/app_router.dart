@@ -153,13 +153,8 @@ GoRouter createAppRouter(AuthCubit authCubit) {
                 builder: (_, __) => const SuperAdminProductPricesPage(),
               ),
               GoRoute(
-                path: 'products',
-                builder: (BuildContext context, _) => BlocProvider(
-                  create: (_) =>
-                      JsonListCubit(() => sl<AmethystApi>().listProducts())
-                        ..load(),
-                  child: JsonListPage(title: context.l10n.titleProducts),
-                ),
+                path: 'station-balance',
+                builder: (_, __) => const AdminStationBalancePage(),
               ),
               GoRoute(
                 path: 'vehicles',

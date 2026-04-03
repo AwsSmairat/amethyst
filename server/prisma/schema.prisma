@@ -116,6 +116,8 @@ model StationSale {
   quantity    Int
   unitPrice   Decimal  @map("unit_price") @db.Decimal(12, 2)
   totalAmount Decimal  @map("total_amount") @db.Decimal(14, 2)
+  /// ملاحظة اختيارية (مثلاً «كوبون» لبيع التعبئة).
+  note        String?  @map("note") @db.Text
   soldById    String   @map("sold_by_id")
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")

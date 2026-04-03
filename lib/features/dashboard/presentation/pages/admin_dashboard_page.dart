@@ -27,11 +27,6 @@ class AdminDashboardPage extends StatelessWidget {
           ),
           const SizedBox(height: 16),
           Card(
-            elevation: 0,
-            color: AppColors.surfaceLowest,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(16),
-            ),
             child: Padding(
               padding: const EdgeInsets.all(20),
               child: Column(
@@ -41,7 +36,7 @@ class AdminDashboardPage extends StatelessWidget {
                     children: <Widget>[
                       Icon(
                         Icons.local_shipping_outlined,
-                        color: AppColors.primary,
+                        color: AppColors.brandPrimary,
                         size: 28,
                       ),
                       const SizedBox(width: 12),
@@ -72,8 +67,7 @@ class AdminDashboardPage extends StatelessWidget {
                   Align(
                     alignment: AlignmentDirectional.centerStart,
                     child: TextButton(
-                      onPressed: () =>
-                          context.push('/admin/vehicle-loads'),
+                      onPressed: () => context.push('/admin/vehicle-loads'),
                       child: Text(l10n.openVehicleLoadsList),
                     ),
                   ),
@@ -83,11 +77,6 @@ class AdminDashboardPage extends StatelessWidget {
           ),
           const SizedBox(height: 16),
           Card(
-            elevation: 0,
-            color: AppColors.surfaceLowest,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(16),
-            ),
             child: Padding(
               padding: const EdgeInsets.all(20),
               child: Column(
@@ -97,7 +86,7 @@ class AdminDashboardPage extends StatelessWidget {
                     children: <Widget>[
                       Icon(
                         Icons.storefront_outlined,
-                        color: AppColors.primary,
+                        color: AppColors.brandPrimary,
                         size: 28,
                       ),
                       const SizedBox(width: 12),
@@ -138,11 +127,6 @@ class AdminDashboardPage extends StatelessWidget {
           ),
           const SizedBox(height: 16),
           Card(
-            elevation: 0,
-            color: AppColors.surfaceLowest,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(16),
-            ),
             child: Padding(
               padding: const EdgeInsets.all(20),
               child: Column(
@@ -152,7 +136,7 @@ class AdminDashboardPage extends StatelessWidget {
                     children: <Widget>[
                       Icon(
                         Icons.payments_outlined,
-                        color: AppColors.primary,
+                        color: AppColors.brandPrimary,
                         size: 28,
                       ),
                       const SizedBox(width: 12),

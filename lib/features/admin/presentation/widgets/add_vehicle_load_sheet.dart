@@ -1,5 +1,6 @@
 import 'package:amethyst/core/data/amethyst_api.dart';
 import 'package:amethyst/core/l10n/context_l10n.dart';
+import 'package:amethyst/core/utils/parse_quantity_input.dart';
 import 'package:amethyst/core/theme/app_colors.dart';
 import 'package:amethyst/di/injection.dart';
 import 'package:amethyst/features/record_operations/domain/usecases/record_operation_usecases.dart';
@@ -141,17 +142,21 @@ class _AddVehicleLoadBodyState extends State<_AddVehicleLoadBody> {
     for (var i = 0; i < _rowCount; i++) {
       final String? pid = _productIds[i];
       final String raw = _qtyCtrls[i].text.trim();
-      if (pid == null && raw.isEmpty) {
+      // صف غير مستخدم: فارغ أو ٠ — لا يُشترط تعبئة كل المنتجات.
+      if (raw.isEmpty) {
         continue;
       }
-      if (pid == null) {
+      final int? q = parseLoosePositiveIntField(raw);
+      if (q == null) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(l10n.vehicleLoadInvalidRow)),
         );
         return null;
       }
-      final int? q = int.tryParse(raw);
-      if (q == null || q < 1) {
+      if (q <= 0) {
+        continue;
+      }
+      if (pid == null) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(l10n.vehicleLoadInvalidRow)),
         );

@@ -8,10 +8,12 @@ String stationSaleValidationMessage(
 ) {
   switch (error) {
     case StationSaleValidationError.needLine:
-      return l10n.vehicleLoadNeedOneLine;
+      return l10n.stationSaleValidationNeedLine;
     case StationSaleValidationError.invalidRow:
-      return l10n.vehicleLoadInvalidRow;
+      return l10n.stationSaleValidationInvalidRow;
     case StationSaleValidationError.checkPrice:
-      return l10n.checkQtyPrice;
+      return l10n.stationSaleValidationCheckPrice;
+    case StationSaleValidationError.insufficientStock:
+      return l10n.stationSaleValidationInsufficientStock;
   }
 }

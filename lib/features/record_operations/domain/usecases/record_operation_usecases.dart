@@ -20,6 +20,7 @@ final class CreateStationSaleUseCase {
     required double unitPrice,
     bool fillingSale = false,
     int? fillingLineSlot,
+    String? note,
   }) =>
       _repository.createStationSale(
         productId: productId,
@@ -27,6 +28,7 @@ final class CreateStationSaleUseCase {
         unitPrice: unitPrice,
         fillingSale: fillingSale,
         fillingLineSlot: fillingLineSlot,
+        note: note,
       );
 }
 

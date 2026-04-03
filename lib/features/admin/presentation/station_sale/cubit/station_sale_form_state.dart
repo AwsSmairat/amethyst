@@ -15,10 +15,12 @@ final class StationSaleFormState extends Equatable {
     required this.withFilling,
     required this.couponLine1On,
     required this.couponLine2On,
+    required this.columnSkipsStationStock,
+    required this.columnStationStock,
   });
 
   factory StationSaleFormState.initial(StationSaleEntryKind entryKind) {
-    final int n = entryKind == StationSaleEntryKind.filling ? 4 : 2;
+    final int n = entryKind == StationSaleEntryKind.filling ? 6 : 3;
     return StationSaleFormState(
       entryKind: entryKind,
       loadingProducts: true,
@@ -30,6 +32,8 @@ final class StationSaleFormState extends Equatable {
       withFilling: false,
       couponLine1On: false,
       couponLine2On: false,
+      columnSkipsStationStock: List<bool>.filled(n, false),
+      columnStationStock: List<int>.filled(n, 0),
     );
   }
 
@@ -45,13 +49,16 @@ final class StationSaleFormState extends Equatable {
   final bool withFilling;
   final bool couponLine1On;
   final bool couponLine2On;
+  /// يُحدَّد من الخادم (تعبئة: جالون/قارورة العمودين ٠–١ وما شابه لا يُخصم).
+  final List<bool> columnSkipsStationStock;
+  /// لقطة مخزون المحطة عند التحميل (للأعمدة التي يُخصم منها).
+  final List<int> columnStationStock;
 
   int get colCount =>
-      entryKind == StationSaleEntryKind.filling ? 4 : 2;
+      entryKind == StationSaleEntryKind.filling ? 6 : 3;
 
   bool get showCouponUnderProduct1And2 =>
-      entryKind == StationSaleEntryKind.filling ||
-      entryKind == StationSaleEntryKind.emptySale;
+      entryKind == StationSaleEntryKind.filling;
 
   StationSaleFormState copyWith({
     bool? loadingProducts,
@@ -67,6 +74,8 @@ final class StationSaleFormState extends Equatable {
     bool? withFilling,
     bool? couponLine1On,
     bool? couponLine2On,
+    List<bool>? columnSkipsStationStock,
+    List<int>? columnStationStock,
   }) {
     return StationSaleFormState(
       entryKind: entryKind,
@@ -81,6 +90,9 @@ final class StationSaleFormState extends Equatable {
       withFilling: withFilling ?? this.withFilling,
       couponLine1On: couponLine1On ?? this.couponLine1On,
       couponLine2On: couponLine2On ?? this.couponLine2On,
+      columnSkipsStationStock:
+          columnSkipsStationStock ?? this.columnSkipsStationStock,
+      columnStationStock: columnStationStock ?? this.columnStationStock,
     );
   }
 
@@ -98,5 +110,7 @@ final class StationSaleFormState extends Equatable {
         withFilling,
         couponLine1On,
         couponLine2On,
+        columnSkipsStationStock,
+        columnStationStock,
       ];
 }

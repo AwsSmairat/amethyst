@@ -251,16 +251,40 @@ class _StationSaleLine extends StatelessWidget {
     final dynamic qty = item['quantity'];
     final String unitStr = _formatMoney(item['unitPrice']);
     final String totalStr = _formatMoney(item['totalAmount']);
+    String note = item['note']?.toString().trim() ?? '';
+    if (note.isEmpty) {
+      final double? up = _parseMoneyAmount(item['unitPrice']);
+      if (up != null && up == 0) {
+        note = context.l10n.couponButton;
+      }
+    }
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: <Widget>[
-        Text(
-          productTitle.isNotEmpty ? productTitle : l10n.product,
-          style: theme.textTheme.titleMedium?.copyWith(
-            fontWeight: FontWeight.w800,
-            color: AppColors.primaryText,
-          ),
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: <Widget>[
+            Expanded(
+              child: Text(
+                productTitle.isNotEmpty ? productTitle : l10n.product,
+                style: theme.textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.w800,
+                  color: AppColors.primaryText,
+                ),
+              ),
+            ),
+            if (note.isNotEmpty) ...<Widget>[
+              const SizedBox(width: 8),
+              Text(
+                note,
+                style: theme.textTheme.labelLarge?.copyWith(
+                  fontWeight: FontWeight.w800,
+                  color: theme.colorScheme.primary,
+                ),
+              ),
+            ],
+          ],
         ),
         if (seller.isNotEmpty) ...<Widget>[
           const SizedBox(height: 6),
@@ -323,6 +347,16 @@ String _formatMoney(dynamic v) {
   if (v is num) return v.toStringAsFixed(2);
   final double? d = double.tryParse(v.toString());
   return d != null ? d.toStringAsFixed(2) : v.toString();
+}
+
+double? _parseMoneyAmount(dynamic v) {
+  if (v == null) {
+    return null;
+  }
+  if (v is num) {
+    return v.toDouble();
+  }
+  return double.tryParse(v.toString());
 }
 
 DateTime? _parseDate(dynamic v) {

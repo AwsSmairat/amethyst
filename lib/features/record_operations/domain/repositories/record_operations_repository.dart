@@ -16,6 +16,7 @@ abstract class RecordOperationsRepository {
     required double unitPrice,
     bool fillingSale = false,
     int? fillingLineSlot,
+    String? note,
   });
 
   Future<void> createVehicleSale({

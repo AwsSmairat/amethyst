@@ -50,7 +50,7 @@ class DriverSalesPage extends StatelessWidget {
           onPressed: () => showAddVehicleSaleSheet(context),
           icon: const Icon(Icons.add),
           label: Text(l10n.addSale),
-          backgroundColor: AppColors.primaryContainer,
+          backgroundColor: AppColors.brandPrimary,
         ),
         body: BlocBuilder<JsonListCubit, ListLoadState>(
           builder: (BuildContext context, ListLoadState state) {

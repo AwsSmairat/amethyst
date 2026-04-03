@@ -4,6 +4,47 @@ const int kStationBalanceRowCount = 13;
 /// آخر فهرس للبند الثابت (قبل الصف الاختياري).
 const int kStationBalanceLastFixedRowIndex = 11;
 
+/// صفوف رصيد المحطة التي تُثبَّت في لوحة التسعير (ترتيب العرض):
+/// ك يافا، ش كبير/وسط/صغير، ق سعودي/اردني، ج فارغ، ق ١٠ لتر.
+const List<int> kStationPricingBalanceRowIndices = <int>[
+  1,
+  2,
+  3,
+  4,
+  5,
+  6,
+  7,
+  8,
+];
+
+/// اسم ووحدة إنشاء المنتج في الـ API عند عدم وجوده (يتطابق مع [StationBalanceProductLookup]).
+({String name, String unitType}) stationBalanceSeedSpecForRow(int rowIndex) {
+  switch (rowIndex) {
+    case 1:
+      return (name: 'Carton Yafa', unitType: 'carton');
+    case 2:
+      return (name: 'Shanta Large', unitType: 'carton');
+    case 3:
+      return (name: 'Shanta Medium', unitType: 'carton');
+    case 4:
+      return (name: 'Shanta Small', unitType: 'carton');
+    case 5:
+      return (name: 'Saudi Bottle', unitType: 'bottle');
+    case 6:
+      return (name: 'Jordanian Bottle', unitType: 'bottle');
+    case 7:
+      return (name: 'Empty Gallon', unitType: 'gallon');
+    case 8:
+      return (name: 'Bottle 10 Liter', unitType: 'bottle');
+    default:
+      throw ArgumentError.value(
+        rowIndex,
+        'rowIndex',
+        'use kStationPricingBalanceRowIndices only',
+      );
+  }
+}
+
 /// أسماء المنتج في الـ API لكل صف (يُجرى البحث بالتطابق بدون حساسية لحالة الأحرف).
 abstract final class StationBalanceProductLookup {
   static const List<List<String>> nameCandidates = <List<String>>[
