@@ -1,6 +1,9 @@
 import 'dart:typed_data';
 
 abstract class RecordOperationsRepository {
+  /// عناصر المنتجات من الـ API (قائمة خرائط خام).
+  Future<List<Map<String, dynamic>>> listProductItems();
+
   Future<void> createStationSale({
     required String productId,
     required int quantity,

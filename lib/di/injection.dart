@@ -66,6 +66,9 @@ void setupDependencies() {
     () => RecordOperationsRepositoryImpl(sl<AmethystApi>()),
   );
 
+  sl.registerLazySingleton<ListProductItemsUseCase>(
+    () => ListProductItemsUseCase(sl<RecordOperationsRepository>()),
+  );
   sl.registerLazySingleton<CreateStationSaleUseCase>(
     () => CreateStationSaleUseCase(sl<RecordOperationsRepository>()),
   );

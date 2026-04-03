@@ -371,6 +371,57 @@ class AppLocalizationsAr extends AppLocalizations {
   String get stationExpenses => 'مصاريف المحطة';
 
   @override
+  String get stationBalanceTitle => 'رصيد المحطة';
+
+  @override
+  String get stationBalanceSubtitle => 'تسجيل أرصدة البنود';
+
+  @override
+  String get addStationBalance => 'تسجيل الرصيد';
+
+  @override
+  String get stationBalanceSaved => 'تم حفظ البيانات';
+
+  @override
+  String get stationBalanceField1 => 'ك مهدي';
+
+  @override
+  String get stationBalanceField2 => 'ك يافا';
+
+  @override
+  String get stationBalanceField3 => 'ش كبير';
+
+  @override
+  String get stationBalanceField4 => 'ش وسط';
+
+  @override
+  String get stationBalanceField5 => 'ش صغير';
+
+  @override
+  String get stationBalanceField6 => 'ق سعودي';
+
+  @override
+  String get stationBalanceField7 => 'ق اردني';
+
+  @override
+  String get stationBalanceField8 => 'ج فارغ';
+
+  @override
+  String get stationBalanceField9 => 'ق ١٠ لتر';
+
+  @override
+  String get stationBalanceField10 => 'ق ارضية';
+
+  @override
+  String get stationBalanceField11 => 'ج ارضية';
+
+  @override
+  String get stationBalanceField12 => 'دفتر كوبون';
+
+  @override
+  String get stationBalanceField13Optional => 'حقل إضافي (اختياري)';
+
+  @override
   String get expenseTankWater => 'تنك مي';
 
   @override
@@ -700,6 +751,9 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get stationSaleWithFilling => 'مع تعبئة';
+
+  @override
+  String get stationSaleBack => 'رجوع';
 
   @override
   String get addStationSale => 'إضافة بيع';

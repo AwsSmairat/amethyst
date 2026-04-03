@@ -1,6 +1,14 @@
 import 'package:amethyst/features/record_operations/domain/repositories/record_operations_repository.dart';
 import 'dart:typed_data';
 
+final class ListProductItemsUseCase {
+  ListProductItemsUseCase(this._repository);
+
+  final RecordOperationsRepository _repository;
+
+  Future<List<Map<String, dynamic>>> call() => _repository.listProductItems();
+}
+
 final class CreateStationSaleUseCase {
   CreateStationSaleUseCase(this._repository);
 

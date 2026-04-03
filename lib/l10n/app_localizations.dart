@@ -790,6 +790,108 @@ abstract class AppLocalizations {
   /// **'مصاريف المحطة'**
   String get stationExpenses;
 
+  /// No description provided for @stationBalanceTitle.
+  ///
+  /// In ar, this message translates to:
+  /// **'رصيد المحطة'**
+  String get stationBalanceTitle;
+
+  /// No description provided for @stationBalanceSubtitle.
+  ///
+  /// In ar, this message translates to:
+  /// **'تسجيل أرصدة البنود'**
+  String get stationBalanceSubtitle;
+
+  /// No description provided for @addStationBalance.
+  ///
+  /// In ar, this message translates to:
+  /// **'تسجيل الرصيد'**
+  String get addStationBalance;
+
+  /// No description provided for @stationBalanceSaved.
+  ///
+  /// In ar, this message translates to:
+  /// **'تم حفظ البيانات'**
+  String get stationBalanceSaved;
+
+  /// No description provided for @stationBalanceField1.
+  ///
+  /// In ar, this message translates to:
+  /// **'ك مهدي'**
+  String get stationBalanceField1;
+
+  /// No description provided for @stationBalanceField2.
+  ///
+  /// In ar, this message translates to:
+  /// **'ك يافا'**
+  String get stationBalanceField2;
+
+  /// No description provided for @stationBalanceField3.
+  ///
+  /// In ar, this message translates to:
+  /// **'ش كبير'**
+  String get stationBalanceField3;
+
+  /// No description provided for @stationBalanceField4.
+  ///
+  /// In ar, this message translates to:
+  /// **'ش وسط'**
+  String get stationBalanceField4;
+
+  /// No description provided for @stationBalanceField5.
+  ///
+  /// In ar, this message translates to:
+  /// **'ش صغير'**
+  String get stationBalanceField5;
+
+  /// No description provided for @stationBalanceField6.
+  ///
+  /// In ar, this message translates to:
+  /// **'ق سعودي'**
+  String get stationBalanceField6;
+
+  /// No description provided for @stationBalanceField7.
+  ///
+  /// In ar, this message translates to:
+  /// **'ق اردني'**
+  String get stationBalanceField7;
+
+  /// No description provided for @stationBalanceField8.
+  ///
+  /// In ar, this message translates to:
+  /// **'ج فارغ'**
+  String get stationBalanceField8;
+
+  /// No description provided for @stationBalanceField9.
+  ///
+  /// In ar, this message translates to:
+  /// **'ق ١٠ لتر'**
+  String get stationBalanceField9;
+
+  /// No description provided for @stationBalanceField10.
+  ///
+  /// In ar, this message translates to:
+  /// **'ق ارضية'**
+  String get stationBalanceField10;
+
+  /// No description provided for @stationBalanceField11.
+  ///
+  /// In ar, this message translates to:
+  /// **'ج ارضية'**
+  String get stationBalanceField11;
+
+  /// No description provided for @stationBalanceField12.
+  ///
+  /// In ar, this message translates to:
+  /// **'دفتر كوبون'**
+  String get stationBalanceField12;
+
+  /// No description provided for @stationBalanceField13Optional.
+  ///
+  /// In ar, this message translates to:
+  /// **'حقل إضافي (اختياري)'**
+  String get stationBalanceField13Optional;
+
   /// No description provided for @expenseTankWater.
   ///
   /// In ar, this message translates to:
@@ -1406,6 +1508,12 @@ abstract class AppLocalizations {
   /// In ar, this message translates to:
   /// **'مع تعبئة'**
   String get stationSaleWithFilling;
+
+  /// No description provided for @stationSaleBack.
+  ///
+  /// In ar, this message translates to:
+  /// **'رجوع'**
+  String get stationSaleBack;
 
   /// No description provided for @addStationSale.
   ///

@@ -8,6 +8,14 @@ final class RecordOperationsRepositoryImpl implements RecordOperationsRepository
   final AmethystApi _api;
 
   @override
+  Future<List<Map<String, dynamic>>> listProductItems() async {
+    final Map<String, dynamic> p = await _api.listProducts();
+    return (p['items'] as List<dynamic>? ?? <dynamic>[])
+        .whereType<Map<String, dynamic>>()
+        .toList(growable: false);
+  }
+
+  @override
   Future<void> createStationSale({
     required String productId,
     required int quantity,
