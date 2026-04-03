@@ -5,6 +5,67 @@ import { parsePagination, parseSort } from '../utils/pagination.js';
 import { parseDateRange, startOfDay, endOfDay } from '../utils/dateRange.js';
 import { mapStationSale } from '../utils/serialize.js';
 
+/**
+ * أسماء المنتجات الافتراضية لعمودي الجالون والقارورة في وضع التعبئة (مرادفة
+ * `StationSaleApiProductNames.filling` في التطبيق). تُستخدم كاحتياط إذا كان
+ * `unit_type` في قاعدة البيانات غير مطابق لـ gallon/bottle.
+ */
+const FILLING_SKIP_STATION_STOCK_BY_NAME = new Set([
+  'Water Gallon',
+  'Water Bottle',
+]);
+
+/** مطابقة بدون حساسية لحالة الأحرف + أسماء شائعة بالعربي إن وُجدت في قاعدة البيانات. */
+const FILLING_SKIP_STATION_STOCK_BY_NAME_LOWER = new Set(
+  [...FILLING_SKIP_STATION_STOCK_BY_NAME].map((n) => n.toLowerCase())
+);
+
+function isFillingSaleRequest(v) {
+  if (v === true || v === 1) {
+    return true;
+  }
+  if (typeof v === 'string') {
+    const s = v.trim().toLowerCase();
+    return s === 'true' || s === '1';
+  }
+  return false;
+}
+
+/** بعد التحقق من Zod يكون الرقم؛ احتياطاً لقيم نصية أو BigInt. */
+function fillingLineSlotAsInt(body) {
+  const raw = body.fillingLineSlot;
+  if (raw === undefined || raw === null || raw === '') {
+    return null;
+  }
+  const n = Number(raw);
+  if (!Number.isInteger(n) || n < 0 || n > 3) {
+    return null;
+  }
+  return n;
+}
+
+function productNameSuggestsFillingSkipStock(name) {
+  if (!name || typeof name !== 'string') {
+    return false;
+  }
+  const t = name.trim();
+  if (FILLING_SKIP_STATION_STOCK_BY_NAME.has(t)) {
+    return true;
+  }
+  const lower = t.toLowerCase();
+  if (FILLING_SKIP_STATION_STOCK_BY_NAME_LOWER.has(lower)) {
+    return true;
+  }
+  // أسماء عربية شائعة لعمودي الجالون/القارورة عندما لا يطابق الاسم الإنجليزي.
+  if (t.includes('جالون')) {
+    return true;
+  }
+  if (t.includes('قارورة') || t.includes('قاروره')) {
+    return true;
+  }
+  return false;
+}
+
 export async function listStationSales(query, actor) {
   if (actor.role === 'driver') {
     throw new AppError('Forbidden', 403, 'FORBIDDEN');
@@ -66,25 +127,45 @@ export async function createStationSale(body, actor) {
     if (!product || !product.isActive) {
       throw new AppError('Product not found or inactive', 404, 'NOT_FOUND');
     }
-    if (product.stationStock < body.quantity) {
-      throw new AppError(
-        'Insufficient station stock',
-        400,
-        'INSUFFICIENT_STOCK'
-      );
+
+    const fillingSale = isFillingSaleRequest(body.fillingSale);
+    const slot = fillingLineSlotAsInt(body);
+    const skipGallonBottleColumns =
+      fillingSale && slot !== null && (slot === 0 || slot === 1);
+    const trimmedName =
+      typeof product.name === 'string' ? product.name.trim() : '';
+    const nameMatchesFillingSkip =
+      trimmedName.length > 0 && productNameSuggestsFillingSkipStock(trimmedName);
+    const skipStationStock =
+      skipGallonBottleColumns ||
+      (fillingSale &&
+        (product.unitType === 'gallon' ||
+          product.unitType === 'bottle' ||
+          nameMatchesFillingSkip));
+
+    const qty = Number(body.quantity);
+    const unitPriceNum = Number(body.unitPrice);
+
+    if (!skipStationStock) {
+      if (product.stationStock < qty) {
+        throw new AppError(
+          'Insufficient station stock',
+          400,
+          'INSUFFICIENT_STOCK'
+        );
+      }
+      await tx.product.update({
+        where: { id: body.productId },
+        data: { stationStock: { decrement: qty } },
+      });
     }
 
-    const totalAmount = body.quantity * body.unitPrice;
-
-    await tx.product.update({
-      where: { id: body.productId },
-      data: { stationStock: { decrement: body.quantity } },
-    });
+    const totalAmount = qty * unitPriceNum;
 
     const sale = await tx.stationSale.create({
       data: {
         productId: body.productId,
-        quantity: body.quantity,
+        quantity: qty,
         unitPrice: body.unitPrice,
         totalAmount,
         soldById: actor.id,
@@ -100,7 +181,11 @@ export async function createStationSale(body, actor) {
       action: 'STATION_SALE_CREATE',
       entityType: 'StationSale',
       entityId: sale.id,
-      details: { quantity: body.quantity, totalAmount },
+      details: {
+        quantity: body.quantity,
+        totalAmount,
+        ...(skipStationStock ? { skipStationStock: true } : {}),
+      },
     });
 
     return mapStationSale(sale);

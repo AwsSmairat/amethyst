@@ -79,6 +79,7 @@ export async function superAdminDashboard() {
     lowStock,
     recentAudit,
     stockSnapshot,
+    totalProducts,
   ] = await Promise.all([
     prisma.user.count(),
     prisma.user.count({ where: { role: 'admin' } }),
@@ -103,6 +104,7 @@ export async function superAdminDashboard() {
       },
     }),
     remainingStockSnapshot(),
+    prisma.product.count({ where: { isActive: true } }),
   ]);
 
   const totalMonthlySales = monthlyStation + monthlyVehicle;
@@ -114,6 +116,7 @@ export async function superAdminDashboard() {
     totalAdmins,
     totalDrivers,
     totalVehicles,
+    totalProducts,
     totalSalesToday,
     stationSalesToday: stationToday,
     vehicleSalesToday: vehicleToday,

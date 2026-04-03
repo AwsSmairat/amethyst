@@ -2,6 +2,7 @@
   "@@locale": "ar",
   "appTitle": "أماتيست",
   "retry": "إعادة المحاولة",
+  "cancel": "إلغاء",
   "notFound": "غير موجود",
   "unknownReport": "تقرير غير معروف",
   "nothingHereYet": "لا يوجد شيء بعد.",
@@ -52,6 +53,35 @@
   },
   "kpiUsers": "المستخدمون",
   "kpiAdmins": "المديرون",
+  "kpiProductPrices": "أسعار المنتجات",
+  "titleProductPrices": "تعديل أسعار المنتجات",
+  "editProductPriceTitle": "تحديد سعر المنتج",
+  "productPriceFieldLabel": "السعر",
+  "priceUpdated": "تم حفظ السعر",
+  "enterValidPrice": "أدخل سعراً أكبر من صفر",
+  "addProduct": "إضافة منتج",
+  "productNameLabel": "اسم المنتج (كما في النظام)",
+  "unitTypeLabel": "نوع الوحدة",
+  "unitTypeGallon": "جالون",
+  "unitTypeBottle": "قارورة",
+  "unitTypeCarton": "كرتون",
+  "unitTypeCoupon": "كوبون",
+  "productTemplatesHint": "اختر قالباً لملء الاسم تلقائياً (مطابق للتحميل والمبيعات)، ثم عدّل السعر.",
+  "productTemplateGallon": "جالون",
+  "productTemplateBottle": "قاروره",
+  "productTemplateCartonMahdi": "مهدي (كرتون)",
+  "productTemplateCoupon1": "كوبون ١٢",
+  "productTemplateCoupon2": "كوبون ٢٤",
+  "productTemplateCoupon3": "كوبون ٥٠",
+  "productCreated": "تم إنشاء المنتج",
+  "productDeleted": "تم حذف المنتج",
+  "deleteProduct": "حذف",
+  "deleteProductConfirmTitle": "حذف المنتج",
+  "deleteProductConfirmBody": "حذف {name}؟ لا يمكن التراجع.",
+  "@deleteProductConfirmBody": {
+    "placeholders": {"name": {"type": "String"}}
+  },
+  "productPricesEmptyHint": "لا توجد منتجات بعد. اضغط «إضافة منتج» واستخدم القوالب (جالون، قاروره، مهدي، كوبون ١٢/٢٤/٥٠).",
   "kpiDrivers": "السائقون",
   "kpiVehicles": "المركبات",
   "salesToday": "مبيعات اليوم",
@@ -94,6 +124,42 @@
   },
   "daysWithSales": "أيام المبيعات",
   "titleUsers": "المستخدمون",
+  "addUser": "إضافة مستخدم",
+  "titleDrivers": "السائقون",
+  "addDriver": "إضافة سائق",
+  "addVehicle": "إضافة مركبة",
+  "vehicleNumberLabel": "رقم / لوحة المركبة",
+  "vehicleNotesOptional": "ملاحظات (اختياري)",
+  "driverOptionalLabel": "السائق (اختياري)",
+  "vehicleCreated": "تم إنشاء المركبة",
+  "vehicleDeleted": "تم حذف المركبة",
+  "deleteVehicle": "حذف",
+  "deleteVehicleConfirmTitle": "حذف المركبة",
+  "deleteVehicleConfirmBody": "هل تريد حذف المركبة {name}؟",
+  "@deleteVehicleConfirmBody": {
+    "placeholders": {
+      "name": {"type": "String"}
+    }
+  },
+  "deleteUser": "حذف",
+  "deleteUserConfirmTitle": "حذف المستخدم",
+  "deleteUserConfirmBody": "هل تريد حذف {name}؟",
+  "@deleteUserConfirmBody": {
+    "placeholders": {
+      "name": {"type": "String"}
+    }
+  },
+  "userRoleLabel": "الدور",
+  "userRoleAdminOption": "مدير",
+  "userRoleDriverOption": "سائق",
+  "userRoleSuperAdmin": "مسؤول عام",
+  "userCreated": "تم إنشاء المستخدم",
+  "userDeleted": "تم حذف المستخدم",
+  "cannotDeleteSelf": "لا يمكن حذف حسابك الحالي",
+  "newUserFullName": "الاسم الكامل",
+  "newUserPhone": "الهاتف",
+  "newUserEmail": "البريد الإلكتروني",
+  "newUserPassword": "كلمة المرور",
   "titleAdmins": "المديرون",
   "titleProducts": "المنتجات",
   "titleVehicles": "المركبات",
@@ -163,6 +229,15 @@
   "stationBalanceField11": "ج ارضية",
   "stationBalanceField12": "دفتر كوبون",
   "stationBalanceField13Optional": "حقل إضافي (اختياري)",
+  "stationBalanceInvalidQuantity": "تأكد أن الكميات أرقام صحيحة وغير سالبة.",
+  "stationBalanceSaveRowUnlinked": "لا يوجد منتج في النظام يطابق البند: {name}",
+  "@stationBalanceSaveRowUnlinked": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "expenseTankWater": "تنك مي",
   "expenseCartons": "كراتين مي",
   "expenseCartonsWater": "كراتين مي",
@@ -322,6 +397,12 @@
   "sellerLabel": "البائع",
   "totalAmountLabel": "الإجمالي",
   "vehicleLoadProductsSection": "المنتجات والكميات المحمّلة",
+  "vehicleLoadRowGallon": "جالون",
+  "vehicleLoadRowBottle": "قاروره",
+  "vehicleLoadRowCarton": "ك مهدي",
+  "vehicleLoadCouponBook1": "كوبون ١٢",
+  "vehicleLoadCouponBook2": "كوبون ٢٤",
+  "vehicleLoadCouponBook3": "كوبون ٥٠",
   "productRow": "منتج {n}",
   "@productRow": {
     "placeholders": {"n": {"type": "int"}}

@@ -1,3 +1,4 @@
+import 'package:amethyst/core/utils/parse_dynamic_double.dart';
 import 'package:amethyst/core/data/amethyst_api.dart';
 import 'package:amethyst/core/l10n/context_l10n.dart';
 import 'package:amethyst/core/theme/app_colors.dart';
@@ -98,7 +99,7 @@ class _AddVehicleSaleBodyState extends State<_AddVehicleSaleBody> {
           final match = name.isNotEmpty ? byName[name] : null;
           _productIds[i] = match?['id'] as String?;
           _productLabels[i] = match?['name']?.toString() ?? name;
-          _unitPrices[i] = _parsePrice(match?['price']);
+          _unitPrices[i] = parseDynamicDouble(match?['price']);
         }
         _loadingCtx = false;
       });
@@ -463,10 +464,4 @@ class _VehicleSaleColumn extends StatelessWidget {
       ],
     );
   }
-}
-
-double? _parsePrice(dynamic v) {
-  if (v == null) return null;
-  if (v is num) return v.toDouble();
-  return double.tryParse(v.toString());
 }

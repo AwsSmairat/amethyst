@@ -22,10 +22,14 @@ export async function register(body) {
     );
   }
   const passwordHash = await hashPassword(body.password);
+  const phone =
+    body.phone != null && String(body.phone).trim() !== ''
+      ? String(body.phone).trim()
+      : null;
   const user = await prisma.user.create({
     data: {
       fullName: body.fullName,
-      phone: body.phone,
+      phone,
       email: body.email.toLowerCase(),
       passwordHash,
       role: 'super_admin',

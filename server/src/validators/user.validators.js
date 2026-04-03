@@ -1,9 +1,9 @@
 import { z } from 'zod';
 import { userRoleEnum } from './common.js';
 
+/** No `phone` field — creation is email-only; service stores `phone: null` (DB allows null). */
 export const createUserSchema = z.object({
   fullName: z.string().min(2).max(200),
-  phone: z.string().min(8).max(20),
   email: z.string().email(),
   password: z.string().min(8).max(128),
   role: z.enum(['admin', 'driver']),

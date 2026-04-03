@@ -71,6 +71,7 @@ class _SuperAdminDashboardBody extends StatelessWidget {
                     label: l10n.kpiUsers,
                     value: '${d['totalUsers'] ?? 0}',
                     icon: Icons.people,
+                    onTap: () => context.push('/super-admin/users'),
                   ),
                   _KpiCard(
                     label: l10n.kpiAdmins,
@@ -78,14 +79,23 @@ class _SuperAdminDashboardBody extends StatelessWidget {
                     icon: Icons.admin_panel_settings,
                   ),
                   _KpiCard(
+                    label: l10n.kpiProductPrices,
+                    value: '${d['totalProducts'] ?? 0}',
+                    icon: Icons.price_change_outlined,
+                    onTap: () =>
+                        context.push('/super-admin/product-prices'),
+                  ),
+                  _KpiCard(
                     label: l10n.kpiDrivers,
                     value: '${d['totalDrivers'] ?? 0}',
                     icon: Icons.drive_eta,
+                    onTap: () => context.push('/super-admin/drivers'),
                   ),
                   _KpiCard(
                     label: l10n.kpiVehicles,
                     value: '${d['totalVehicles'] ?? 0}',
                     icon: Icons.local_shipping,
+                    onTap: () => context.push('/super-admin/vehicles'),
                   ),
                   _KpiCard(
                     label: l10n.salesToday,

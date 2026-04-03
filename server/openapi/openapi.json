@@ -663,7 +663,7 @@
       },
       "RegisterRequest": {
         "type": "object",
-        "required": ["fullName", "phone", "email", "password", "role"],
+        "required": ["fullName", "email", "password", "role"],
         "properties": {
           "fullName": { "type": "string" },
           "phone": { "type": "string" },
@@ -695,10 +695,9 @@
       },
       "CreateUserRequest": {
         "type": "object",
-        "required": ["fullName", "phone", "email", "password", "role"],
+        "required": ["fullName", "email", "password", "role"],
         "properties": {
           "fullName": { "type": "string" },
-          "phone": { "type": "string" },
           "email": { "type": "string" },
           "password": { "type": "string" },
           "role": { "type": "string", "enum": ["admin", "driver"] }

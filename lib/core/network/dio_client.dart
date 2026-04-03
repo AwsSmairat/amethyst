@@ -98,8 +98,23 @@ final class DioClient {
     final res = e.response;
     if (res?.data is Map<String, dynamic>) {
       final m = res!.data as Map<String, dynamic>;
+      final String base = m['message']?.toString() ?? e.message ?? 'Network error';
+      final Object? rawErrors = m['errors'];
+      String detail = base;
+      if (rawErrors is List<dynamic> && rawErrors.isNotEmpty) {
+        final Object? first = rawErrors.first;
+        if (first is Map<String, dynamic>) {
+          final String path = first['path']?.toString() ?? '';
+          final String msg = first['message']?.toString() ?? '';
+          if (path.isNotEmpty && msg.isNotEmpty) {
+            detail = '$base: $path — $msg';
+          } else if (msg.isNotEmpty) {
+            detail = '$base: $msg';
+          }
+        }
+      }
       throw ApiException(
-        m['message']?.toString() ?? e.message ?? 'Network error',
+        detail,
         statusCode: res.statusCode,
         code: m['code']?.toString(),
       );

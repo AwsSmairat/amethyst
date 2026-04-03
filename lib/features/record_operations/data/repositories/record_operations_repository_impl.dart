@@ -16,15 +16,29 @@ final class RecordOperationsRepositoryImpl implements RecordOperationsRepository
   }
 
   @override
+  Future<void> patchProductStationStock({
+    required String productId,
+    required int stationStock,
+  }) =>
+      _api.patchProductStationStock(
+        id: productId,
+        stationStock: stationStock,
+      );
+
+  @override
   Future<void> createStationSale({
     required String productId,
     required int quantity,
     required double unitPrice,
+    bool fillingSale = false,
+    int? fillingLineSlot,
   }) =>
       _api.createStationSale(
         productId: productId,
         quantity: quantity,
         unitPrice: unitPrice,
+        fillingSale: fillingSale,
+        fillingLineSlot: fillingLineSlot,
       );
 
   @override

@@ -9,6 +9,7 @@ import 'package:amethyst/features/auth/domain/usecases/logout_usecase.dart';
 import 'package:amethyst/features/auth/presentation/cubit/auth_cubit.dart';
 import 'package:amethyst/features/record_operations/data/repositories/record_operations_repository_impl.dart';
 import 'package:amethyst/features/record_operations/domain/repositories/record_operations_repository.dart';
+import 'package:amethyst/features/admin/domain/usecases/save_station_balance_usecase.dart';
 import 'package:amethyst/features/record_operations/domain/usecases/record_operation_usecases.dart';
 import 'package:amethyst/features/user_dashboard/data/repositories/user_dashboard_repository_impl.dart';
 import 'package:amethyst/features/user_dashboard/domain/repositories/user_dashboard_repository.dart';
@@ -83,6 +84,9 @@ void setupDependencies() {
   );
   sl.registerLazySingleton<CreateVehicleLoadUseCase>(
     () => CreateVehicleLoadUseCase(sl<RecordOperationsRepository>()),
+  );
+  sl.registerLazySingleton<SaveStationBalanceUseCase>(
+    () => SaveStationBalanceUseCase(sl<RecordOperationsRepository>()),
   );
 
   sl.registerLazySingleton<UserDashboardRepository>(

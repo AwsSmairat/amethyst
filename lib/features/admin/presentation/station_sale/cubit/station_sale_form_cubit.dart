@@ -1,6 +1,6 @@
 import 'package:amethyst/features/admin/presentation/station_sale/station_sale_api_product_names.dart';
 import 'package:amethyst/features/admin/presentation/station_sale/station_sale_entry_kind.dart';
-import 'package:amethyst/features/admin/presentation/station_sale/station_sale_parse_price.dart';
+import 'package:amethyst/core/utils/parse_dynamic_double.dart';
 import 'package:amethyst/features/admin/presentation/station_sale/station_sale_validation.dart';
 import 'package:amethyst/features/admin/presentation/station_sale/cubit/station_sale_form_state.dart';
 import 'package:amethyst/features/record_operations/domain/usecases/record_operation_usecases.dart';
@@ -10,6 +10,8 @@ typedef StationSaleLine = ({
   String productId,
   int quantity,
   double unitPrice,
+  /// في شاشة التعبئة: ٠ = جالون، ١ = قارورة، ٢ = مهدي، ٣ = كوبون.
+  int columnIndex,
 });
 
 typedef _LineBuild = ({
@@ -38,6 +40,9 @@ final class StationSaleFormCubit extends Cubit<StationSaleFormState> {
       final Map<String, Map<String, dynamic>> byName =
           <String, Map<String, dynamic>>{};
       for (final Map<String, dynamic> pr in items) {
+        if (pr['isActive'] == false) {
+          continue;
+        }
         final String? n = pr['name']?.toString();
         if (n != null) {
           byName[n] = pr;
@@ -56,7 +61,27 @@ final class StationSaleFormCubit extends Cubit<StationSaleFormState> {
         final Map<String, dynamic>? match =
             name.isNotEmpty ? byName[name] : null;
         ids[i] = match?['id'] as String?;
-        prices[i] = parseStationSalePrice(match?['price']);
+        prices[i] = parseDynamicDouble(match?['price']);
+      }
+      for (var i = 0; i < state.colCount; i++) {
+        if (ids[i] != null) {
+          continue;
+        }
+        final String? want =
+            _unitTypeForStationSaleSlot(state.entryKind, i);
+        if (want == null) {
+          continue;
+        }
+        for (final Map<String, dynamic> pr in items) {
+          if (pr['isActive'] == false) {
+            continue;
+          }
+          if (_unitTypeFromProductJson(pr) == want) {
+            ids[i] = pr['id'] as String?;
+            prices[i] = parseDynamicDouble(pr['price']);
+            break;
+          }
+        }
       }
       emit(
         state.copyWith(
@@ -138,6 +163,7 @@ final class StationSaleFormCubit extends Cubit<StationSaleFormState> {
           productId: pid,
           quantity: q,
           unitPrice: unit,
+          columnIndex: i,
         ),
       );
     }
@@ -169,11 +195,15 @@ final class StationSaleFormCubit extends Cubit<StationSaleFormState> {
       ),
     );
     try {
+      final bool fillingSale =
+          state.entryKind == StationSaleEntryKind.filling;
       for (final StationSaleLine line in lines) {
         await _createStationSale(
           productId: line.productId,
           quantity: line.quantity,
           unitPrice: line.unitPrice,
+          fillingSale: fillingSale,
+          fillingLineSlot: fillingSale ? line.columnIndex : null,
         );
       }
       emit(
@@ -191,4 +221,31 @@ final class StationSaleFormCubit extends Cubit<StationSaleFormState> {
       );
     }
   }
+}
+
+String? _unitTypeFromProductJson(Map<String, dynamic> pr) {
+  final Object? u = pr['unitType'] ?? pr['type'];
+  final String? s = u?.toString();
+  if (s == null || s.isEmpty) {
+    return null;
+  }
+  return s;
+}
+
+/// يطابق أعمدة الشاشة مع `ProductUnitType` في الـ API عندما لا يطابق الاسم الإنجليزي الثابت.
+String? _unitTypeForStationSaleSlot(StationSaleEntryKind kind, int index) {
+  if (kind == StationSaleEntryKind.emptySale) {
+    return switch (index) {
+      0 => 'gallon',
+      1 => 'bottle',
+      _ => null,
+    };
+  }
+  return switch (index) {
+    0 => 'gallon',
+    1 => 'bottle',
+    2 => 'carton',
+    3 => 'coupon',
+    _ => null,
+  };
 }

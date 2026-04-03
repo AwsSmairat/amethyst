@@ -106,6 +106,12 @@ abstract class AppLocalizations {
   /// **'إعادة المحاولة'**
   String get retry;
 
+  /// No description provided for @cancel.
+  ///
+  /// In ar, this message translates to:
+  /// **'إلغاء'**
+  String get cancel;
+
   /// No description provided for @notFound.
   ///
   /// In ar, this message translates to:
@@ -370,6 +376,162 @@ abstract class AppLocalizations {
   /// **'المديرون'**
   String get kpiAdmins;
 
+  /// No description provided for @kpiProductPrices.
+  ///
+  /// In ar, this message translates to:
+  /// **'أسعار المنتجات'**
+  String get kpiProductPrices;
+
+  /// No description provided for @titleProductPrices.
+  ///
+  /// In ar, this message translates to:
+  /// **'تعديل أسعار المنتجات'**
+  String get titleProductPrices;
+
+  /// No description provided for @editProductPriceTitle.
+  ///
+  /// In ar, this message translates to:
+  /// **'تحديد سعر المنتج'**
+  String get editProductPriceTitle;
+
+  /// No description provided for @productPriceFieldLabel.
+  ///
+  /// In ar, this message translates to:
+  /// **'السعر'**
+  String get productPriceFieldLabel;
+
+  /// No description provided for @priceUpdated.
+  ///
+  /// In ar, this message translates to:
+  /// **'تم حفظ السعر'**
+  String get priceUpdated;
+
+  /// No description provided for @enterValidPrice.
+  ///
+  /// In ar, this message translates to:
+  /// **'أدخل سعراً أكبر من صفر'**
+  String get enterValidPrice;
+
+  /// No description provided for @addProduct.
+  ///
+  /// In ar, this message translates to:
+  /// **'إضافة منتج'**
+  String get addProduct;
+
+  /// No description provided for @productNameLabel.
+  ///
+  /// In ar, this message translates to:
+  /// **'اسم المنتج (كما في النظام)'**
+  String get productNameLabel;
+
+  /// No description provided for @unitTypeLabel.
+  ///
+  /// In ar, this message translates to:
+  /// **'نوع الوحدة'**
+  String get unitTypeLabel;
+
+  /// No description provided for @unitTypeGallon.
+  ///
+  /// In ar, this message translates to:
+  /// **'جالون'**
+  String get unitTypeGallon;
+
+  /// No description provided for @unitTypeBottle.
+  ///
+  /// In ar, this message translates to:
+  /// **'قارورة'**
+  String get unitTypeBottle;
+
+  /// No description provided for @unitTypeCarton.
+  ///
+  /// In ar, this message translates to:
+  /// **'كرتون'**
+  String get unitTypeCarton;
+
+  /// No description provided for @unitTypeCoupon.
+  ///
+  /// In ar, this message translates to:
+  /// **'كوبون'**
+  String get unitTypeCoupon;
+
+  /// No description provided for @productTemplatesHint.
+  ///
+  /// In ar, this message translates to:
+  /// **'اختر قالباً لملء الاسم تلقائياً (مطابق للتحميل والمبيعات)، ثم عدّل السعر.'**
+  String get productTemplatesHint;
+
+  /// No description provided for @productTemplateGallon.
+  ///
+  /// In ar, this message translates to:
+  /// **'جالون'**
+  String get productTemplateGallon;
+
+  /// No description provided for @productTemplateBottle.
+  ///
+  /// In ar, this message translates to:
+  /// **'قاروره'**
+  String get productTemplateBottle;
+
+  /// No description provided for @productTemplateCartonMahdi.
+  ///
+  /// In ar, this message translates to:
+  /// **'مهدي (كرتون)'**
+  String get productTemplateCartonMahdi;
+
+  /// No description provided for @productTemplateCoupon1.
+  ///
+  /// In ar, this message translates to:
+  /// **'كوبون ١٢'**
+  String get productTemplateCoupon1;
+
+  /// No description provided for @productTemplateCoupon2.
+  ///
+  /// In ar, this message translates to:
+  /// **'كوبون ٢٤'**
+  String get productTemplateCoupon2;
+
+  /// No description provided for @productTemplateCoupon3.
+  ///
+  /// In ar, this message translates to:
+  /// **'كوبون ٥٠'**
+  String get productTemplateCoupon3;
+
+  /// No description provided for @productCreated.
+  ///
+  /// In ar, this message translates to:
+  /// **'تم إنشاء المنتج'**
+  String get productCreated;
+
+  /// No description provided for @productDeleted.
+  ///
+  /// In ar, this message translates to:
+  /// **'تم حذف المنتج'**
+  String get productDeleted;
+
+  /// No description provided for @deleteProduct.
+  ///
+  /// In ar, this message translates to:
+  /// **'حذف'**
+  String get deleteProduct;
+
+  /// No description provided for @deleteProductConfirmTitle.
+  ///
+  /// In ar, this message translates to:
+  /// **'حذف المنتج'**
+  String get deleteProductConfirmTitle;
+
+  /// No description provided for @deleteProductConfirmBody.
+  ///
+  /// In ar, this message translates to:
+  /// **'حذف {name}؟ لا يمكن التراجع.'**
+  String deleteProductConfirmBody(String name);
+
+  /// No description provided for @productPricesEmptyHint.
+  ///
+  /// In ar, this message translates to:
+  /// **'لا توجد منتجات بعد. اضغط «إضافة منتج» واستخدم القوالب (جالون، قاروره، مهدي، كوبون ١٢/٢٤/٥٠).'**
+  String get productPricesEmptyHint;
+
   /// No description provided for @kpiDrivers.
   ///
   /// In ar, this message translates to:
@@ -513,6 +675,162 @@ abstract class AppLocalizations {
   /// In ar, this message translates to:
   /// **'المستخدمون'**
   String get titleUsers;
+
+  /// No description provided for @addUser.
+  ///
+  /// In ar, this message translates to:
+  /// **'إضافة مستخدم'**
+  String get addUser;
+
+  /// No description provided for @titleDrivers.
+  ///
+  /// In ar, this message translates to:
+  /// **'السائقون'**
+  String get titleDrivers;
+
+  /// No description provided for @addDriver.
+  ///
+  /// In ar, this message translates to:
+  /// **'إضافة سائق'**
+  String get addDriver;
+
+  /// No description provided for @addVehicle.
+  ///
+  /// In ar, this message translates to:
+  /// **'إضافة مركبة'**
+  String get addVehicle;
+
+  /// No description provided for @vehicleNumberLabel.
+  ///
+  /// In ar, this message translates to:
+  /// **'رقم / لوحة المركبة'**
+  String get vehicleNumberLabel;
+
+  /// No description provided for @vehicleNotesOptional.
+  ///
+  /// In ar, this message translates to:
+  /// **'ملاحظات (اختياري)'**
+  String get vehicleNotesOptional;
+
+  /// No description provided for @driverOptionalLabel.
+  ///
+  /// In ar, this message translates to:
+  /// **'السائق (اختياري)'**
+  String get driverOptionalLabel;
+
+  /// No description provided for @vehicleCreated.
+  ///
+  /// In ar, this message translates to:
+  /// **'تم إنشاء المركبة'**
+  String get vehicleCreated;
+
+  /// No description provided for @vehicleDeleted.
+  ///
+  /// In ar, this message translates to:
+  /// **'تم حذف المركبة'**
+  String get vehicleDeleted;
+
+  /// No description provided for @deleteVehicle.
+  ///
+  /// In ar, this message translates to:
+  /// **'حذف'**
+  String get deleteVehicle;
+
+  /// No description provided for @deleteVehicleConfirmTitle.
+  ///
+  /// In ar, this message translates to:
+  /// **'حذف المركبة'**
+  String get deleteVehicleConfirmTitle;
+
+  /// No description provided for @deleteVehicleConfirmBody.
+  ///
+  /// In ar, this message translates to:
+  /// **'هل تريد حذف المركبة {name}؟'**
+  String deleteVehicleConfirmBody(String name);
+
+  /// No description provided for @deleteUser.
+  ///
+  /// In ar, this message translates to:
+  /// **'حذف'**
+  String get deleteUser;
+
+  /// No description provided for @deleteUserConfirmTitle.
+  ///
+  /// In ar, this message translates to:
+  /// **'حذف المستخدم'**
+  String get deleteUserConfirmTitle;
+
+  /// No description provided for @deleteUserConfirmBody.
+  ///
+  /// In ar, this message translates to:
+  /// **'هل تريد حذف {name}؟'**
+  String deleteUserConfirmBody(String name);
+
+  /// No description provided for @userRoleLabel.
+  ///
+  /// In ar, this message translates to:
+  /// **'الدور'**
+  String get userRoleLabel;
+
+  /// No description provided for @userRoleAdminOption.
+  ///
+  /// In ar, this message translates to:
+  /// **'مدير'**
+  String get userRoleAdminOption;
+
+  /// No description provided for @userRoleDriverOption.
+  ///
+  /// In ar, this message translates to:
+  /// **'سائق'**
+  String get userRoleDriverOption;
+
+  /// No description provided for @userRoleSuperAdmin.
+  ///
+  /// In ar, this message translates to:
+  /// **'مسؤول عام'**
+  String get userRoleSuperAdmin;
+
+  /// No description provided for @userCreated.
+  ///
+  /// In ar, this message translates to:
+  /// **'تم إنشاء المستخدم'**
+  String get userCreated;
+
+  /// No description provided for @userDeleted.
+  ///
+  /// In ar, this message translates to:
+  /// **'تم حذف المستخدم'**
+  String get userDeleted;
+
+  /// No description provided for @cannotDeleteSelf.
+  ///
+  /// In ar, this message translates to:
+  /// **'لا يمكن حذف حسابك الحالي'**
+  String get cannotDeleteSelf;
+
+  /// No description provided for @newUserFullName.
+  ///
+  /// In ar, this message translates to:
+  /// **'الاسم الكامل'**
+  String get newUserFullName;
+
+  /// No description provided for @newUserPhone.
+  ///
+  /// In ar, this message translates to:
+  /// **'الهاتف'**
+  String get newUserPhone;
+
+  /// No description provided for @newUserEmail.
+  ///
+  /// In ar, this message translates to:
+  /// **'البريد الإلكتروني'**
+  String get newUserEmail;
+
+  /// No description provided for @newUserPassword.
+  ///
+  /// In ar, this message translates to:
+  /// **'كلمة المرور'**
+  String get newUserPassword;
 
   /// No description provided for @titleAdmins.
   ///
@@ -891,6 +1209,18 @@ abstract class AppLocalizations {
   /// In ar, this message translates to:
   /// **'حقل إضافي (اختياري)'**
   String get stationBalanceField13Optional;
+
+  /// No description provided for @stationBalanceInvalidQuantity.
+  ///
+  /// In ar, this message translates to:
+  /// **'تأكد أن الكميات أرقام صحيحة وغير سالبة.'**
+  String get stationBalanceInvalidQuantity;
+
+  /// No description provided for @stationBalanceSaveRowUnlinked.
+  ///
+  /// In ar, this message translates to:
+  /// **'لا يوجد منتج في النظام يطابق البند: {name}'**
+  String stationBalanceSaveRowUnlinked(String name);
 
   /// No description provided for @expenseTankWater.
   ///
@@ -1562,6 +1892,42 @@ abstract class AppLocalizations {
   /// In ar, this message translates to:
   /// **'المنتجات والكميات المحمّلة'**
   String get vehicleLoadProductsSection;
+
+  /// No description provided for @vehicleLoadRowGallon.
+  ///
+  /// In ar, this message translates to:
+  /// **'جالون'**
+  String get vehicleLoadRowGallon;
+
+  /// No description provided for @vehicleLoadRowBottle.
+  ///
+  /// In ar, this message translates to:
+  /// **'قاروره'**
+  String get vehicleLoadRowBottle;
+
+  /// No description provided for @vehicleLoadRowCarton.
+  ///
+  /// In ar, this message translates to:
+  /// **'ك مهدي'**
+  String get vehicleLoadRowCarton;
+
+  /// No description provided for @vehicleLoadCouponBook1.
+  ///
+  /// In ar, this message translates to:
+  /// **'كوبون ١٢'**
+  String get vehicleLoadCouponBook1;
+
+  /// No description provided for @vehicleLoadCouponBook2.
+  ///
+  /// In ar, this message translates to:
+  /// **'كوبون ٢٤'**
+  String get vehicleLoadCouponBook2;
+
+  /// No description provided for @vehicleLoadCouponBook3.
+  ///
+  /// In ar, this message translates to:
+  /// **'كوبون ٥٠'**
+  String get vehicleLoadCouponBook3;
 
   /// No description provided for @productRow.
   ///

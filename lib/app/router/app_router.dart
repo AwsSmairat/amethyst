@@ -13,10 +13,15 @@ import 'package:amethyst/features/admin/presentation/widgets/add_station_sale_sh
 import 'package:amethyst/features/catalog/presentation/pages/station_sales_list_page.dart';
 import 'package:amethyst/features/catalog/presentation/pages/vehicle_loads_list_page.dart';
 import 'package:amethyst/features/dashboard/presentation/pages/admin_dashboard_page.dart';
+import 'package:amethyst/features/dashboard/presentation/pages/admin_station_balance_page.dart';
 import 'package:amethyst/features/dashboard/presentation/pages/reports_page.dart';
 import 'package:amethyst/features/dashboard/presentation/pages/sales_working_days_page.dart';
 import 'package:amethyst/features/dashboard/presentation/pages/super_admin_dashboard_page.dart';
+import 'package:amethyst/features/dashboard/presentation/pages/super_admin_users_page.dart';
+import 'package:amethyst/features/dashboard/presentation/pages/super_admin_drivers_page.dart';
 import 'package:amethyst/features/dashboard/presentation/pages/super_admin_kpi_drilldown_page.dart';
+import 'package:amethyst/features/dashboard/presentation/pages/super_admin_product_prices_page.dart';
+import 'package:amethyst/features/dashboard/presentation/pages/super_admin_vehicles_page.dart';
 import 'package:amethyst/features/driver/presentation/pages/driver_expenses_page.dart';
 import 'package:amethyst/features/driver/presentation/pages/driver_loads_page.dart';
 import 'package:amethyst/features/driver/presentation/pages/driver_notes_page.dart';
@@ -124,15 +129,11 @@ GoRouter createAppRouter(AuthCubit authCubit) {
               ),
               GoRoute(
                 path: 'users',
-                builder: (BuildContext context, _) => BlocProvider(
-                  create: (_) =>
-                      JsonListCubit(() => sl<AmethystApi>().listUsers())
-                        ..load(),
-                  child: JsonListPage(
-                    title: context.l10n.titleUsers,
-                    subtitleBuilder: _userSubtitle,
-                  ),
-                ),
+                builder: (_, __) => const SuperAdminUsersPage(),
+              ),
+              GoRoute(
+                path: 'drivers',
+                builder: (_, __) => const SuperAdminDriversPage(),
               ),
               GoRoute(
                 path: 'admins',
@@ -148,6 +149,10 @@ GoRouter createAppRouter(AuthCubit authCubit) {
                 ),
               ),
               GoRoute(
+                path: 'product-prices',
+                builder: (_, __) => const SuperAdminProductPricesPage(),
+              ),
+              GoRoute(
                 path: 'products',
                 builder: (BuildContext context, _) => BlocProvider(
                   create: (_) =>
@@ -158,15 +163,7 @@ GoRouter createAppRouter(AuthCubit authCubit) {
               ),
               GoRoute(
                 path: 'vehicles',
-                builder: (BuildContext context, _) => BlocProvider(
-                  create: (_) =>
-                      JsonListCubit(() => sl<AmethystApi>().listVehicles())
-                        ..load(),
-                  child: JsonListPage(
-                    title: context.l10n.titleVehicles,
-                    subtitleBuilder: _vehicleSubtitle,
-                  ),
-                ),
+                builder: (_, __) => const SuperAdminVehiclesPage(),
               ),
               GoRoute(
                 path: 'vehicle-loads',
@@ -297,6 +294,10 @@ GoRouter createAppRouter(AuthCubit authCubit) {
                 ),
               ),
               GoRoute(
+                path: 'station-balance',
+                builder: (_, __) => const AdminStationBalancePage(),
+              ),
+              GoRoute(
                 path: 'products',
                 builder: (BuildContext context, _) => BlocProvider(
                   create: (_) =>
@@ -407,8 +408,5 @@ GoRouter createAppRouter(AuthCubit authCubit) {
 
 String _userSubtitle(BuildContext context, Map<String, dynamic> m) =>
     '${m['role'] ?? ''} · ${m['email'] ?? ''}';
-
-String _vehicleSubtitle(BuildContext context, Map<String, dynamic> m) =>
-    m['driverId'] != null ? context.l10n.driverAssigned : context.l10n.noDriver;
 
 bool _isAdminRole(Map<String, dynamic> m) => m['role'] == 'admin';

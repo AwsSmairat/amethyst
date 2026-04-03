@@ -4,10 +4,18 @@ abstract class RecordOperationsRepository {
   /// عناصر المنتجات من الـ API (قائمة خرائط خام).
   Future<List<Map<String, dynamic>>> listProductItems();
 
+  /// تحديث مخزون المحطة لمنتج (PATCH /products/:id/stock).
+  Future<void> patchProductStationStock({
+    required String productId,
+    required int stationStock,
+  });
+
   Future<void> createStationSale({
     required String productId,
     required int quantity,
     required double unitPrice,
+    bool fillingSale = false,
+    int? fillingLineSlot,
   });
 
   Future<void> createVehicleSale({

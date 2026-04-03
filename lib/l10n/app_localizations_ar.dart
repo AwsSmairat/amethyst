@@ -15,6 +15,9 @@ class AppLocalizationsAr extends AppLocalizations {
   String get retry => 'إعادة المحاولة';
 
   @override
+  String get cancel => 'إلغاء';
+
+  @override
   String get notFound => 'غير موجود';
 
   @override
@@ -149,6 +152,88 @@ class AppLocalizationsAr extends AppLocalizations {
   String get kpiAdmins => 'المديرون';
 
   @override
+  String get kpiProductPrices => 'أسعار المنتجات';
+
+  @override
+  String get titleProductPrices => 'تعديل أسعار المنتجات';
+
+  @override
+  String get editProductPriceTitle => 'تحديد سعر المنتج';
+
+  @override
+  String get productPriceFieldLabel => 'السعر';
+
+  @override
+  String get priceUpdated => 'تم حفظ السعر';
+
+  @override
+  String get enterValidPrice => 'أدخل سعراً أكبر من صفر';
+
+  @override
+  String get addProduct => 'إضافة منتج';
+
+  @override
+  String get productNameLabel => 'اسم المنتج (كما في النظام)';
+
+  @override
+  String get unitTypeLabel => 'نوع الوحدة';
+
+  @override
+  String get unitTypeGallon => 'جالون';
+
+  @override
+  String get unitTypeBottle => 'قارورة';
+
+  @override
+  String get unitTypeCarton => 'كرتون';
+
+  @override
+  String get unitTypeCoupon => 'كوبون';
+
+  @override
+  String get productTemplatesHint =>
+      'اختر قالباً لملء الاسم تلقائياً (مطابق للتحميل والمبيعات)، ثم عدّل السعر.';
+
+  @override
+  String get productTemplateGallon => 'جالون';
+
+  @override
+  String get productTemplateBottle => 'قاروره';
+
+  @override
+  String get productTemplateCartonMahdi => 'مهدي (كرتون)';
+
+  @override
+  String get productTemplateCoupon1 => 'كوبون ١٢';
+
+  @override
+  String get productTemplateCoupon2 => 'كوبون ٢٤';
+
+  @override
+  String get productTemplateCoupon3 => 'كوبون ٥٠';
+
+  @override
+  String get productCreated => 'تم إنشاء المنتج';
+
+  @override
+  String get productDeleted => 'تم حذف المنتج';
+
+  @override
+  String get deleteProduct => 'حذف';
+
+  @override
+  String get deleteProductConfirmTitle => 'حذف المنتج';
+
+  @override
+  String deleteProductConfirmBody(String name) {
+    return 'حذف $name؟ لا يمكن التراجع.';
+  }
+
+  @override
+  String get productPricesEmptyHint =>
+      'لا توجد منتجات بعد. اضغط «إضافة منتج» واستخدم القوالب (جالون، قاروره، مهدي، كوبون ١٢/٢٤/٥٠).';
+
+  @override
   String get kpiDrivers => 'السائقون';
 
   @override
@@ -229,6 +314,88 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get titleUsers => 'المستخدمون';
+
+  @override
+  String get addUser => 'إضافة مستخدم';
+
+  @override
+  String get titleDrivers => 'السائقون';
+
+  @override
+  String get addDriver => 'إضافة سائق';
+
+  @override
+  String get addVehicle => 'إضافة مركبة';
+
+  @override
+  String get vehicleNumberLabel => 'رقم / لوحة المركبة';
+
+  @override
+  String get vehicleNotesOptional => 'ملاحظات (اختياري)';
+
+  @override
+  String get driverOptionalLabel => 'السائق (اختياري)';
+
+  @override
+  String get vehicleCreated => 'تم إنشاء المركبة';
+
+  @override
+  String get vehicleDeleted => 'تم حذف المركبة';
+
+  @override
+  String get deleteVehicle => 'حذف';
+
+  @override
+  String get deleteVehicleConfirmTitle => 'حذف المركبة';
+
+  @override
+  String deleteVehicleConfirmBody(String name) {
+    return 'هل تريد حذف المركبة $name؟';
+  }
+
+  @override
+  String get deleteUser => 'حذف';
+
+  @override
+  String get deleteUserConfirmTitle => 'حذف المستخدم';
+
+  @override
+  String deleteUserConfirmBody(String name) {
+    return 'هل تريد حذف $name؟';
+  }
+
+  @override
+  String get userRoleLabel => 'الدور';
+
+  @override
+  String get userRoleAdminOption => 'مدير';
+
+  @override
+  String get userRoleDriverOption => 'سائق';
+
+  @override
+  String get userRoleSuperAdmin => 'مسؤول عام';
+
+  @override
+  String get userCreated => 'تم إنشاء المستخدم';
+
+  @override
+  String get userDeleted => 'تم حذف المستخدم';
+
+  @override
+  String get cannotDeleteSelf => 'لا يمكن حذف حسابك الحالي';
+
+  @override
+  String get newUserFullName => 'الاسم الكامل';
+
+  @override
+  String get newUserPhone => 'الهاتف';
+
+  @override
+  String get newUserEmail => 'البريد الإلكتروني';
+
+  @override
+  String get newUserPassword => 'كلمة المرور';
 
   @override
   String get titleAdmins => 'المديرون';
@@ -420,6 +587,15 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get stationBalanceField13Optional => 'حقل إضافي (اختياري)';
+
+  @override
+  String get stationBalanceInvalidQuantity =>
+      'تأكد أن الكميات أرقام صحيحة وغير سالبة.';
+
+  @override
+  String stationBalanceSaveRowUnlinked(String name) {
+    return 'لا يوجد منتج في النظام يطابق البند: $name';
+  }
 
   @override
   String get expenseTankWater => 'تنك مي';
@@ -778,6 +954,24 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get vehicleLoadProductsSection => 'المنتجات والكميات المحمّلة';
+
+  @override
+  String get vehicleLoadRowGallon => 'جالون';
+
+  @override
+  String get vehicleLoadRowBottle => 'قاروره';
+
+  @override
+  String get vehicleLoadRowCarton => 'ك مهدي';
+
+  @override
+  String get vehicleLoadCouponBook1 => 'كوبون ١٢';
+
+  @override
+  String get vehicleLoadCouponBook2 => 'كوبون ٢٤';
+
+  @override
+  String get vehicleLoadCouponBook3 => 'كوبون ٥٠';
 
   @override
   String productRow(int n) {

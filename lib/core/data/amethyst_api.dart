@@ -1,6 +1,14 @@
 import 'package:amethyst/core/network/dio_client.dart';
 import 'package:dio/dio.dart';
+import 'dart:math';
 import 'dart:typed_data';
+
+/// Satisfies older APIs that still validate `phone` on POST /users (e.g. production
+/// before deploy). Current server Zod strips unknown keys and stores `null` in DB.
+String _syntheticPhoneForUserCreate() {
+  final int n = Random().nextInt(90000000) + 10000000;
+  return '+1000$n';
+}
 
 /// Central HTTP facade for Amethyst REST endpoints (data layer only).
 final class AmethystApi {
@@ -65,11 +73,136 @@ final class AmethystApi {
   Future<Map<String, dynamic>> listProducts({int page = 1, int limit = 100}) =>
       _getPaginated('/products', page: page, limit: limit);
 
+  Future<Map<String, dynamic>> createProduct({
+    required String name,
+    required String unitType,
+    required double price,
+    int stationStock = 0,
+  }) async {
+    try {
+      final res = await _dio.post<Map<String, dynamic>>(
+        '/products',
+        data: <String, dynamic>{
+          'name': name,
+          'unitType': unitType,
+          'price': price,
+          'stationStock': stationStock,
+        },
+      );
+      return DioClient.unwrapMap(res);
+    } on DioException catch (e) {
+      _client.throwFromDio(e);
+    }
+  }
+
+  Future<void> patchProductStationStock({
+    required String id,
+    required int stationStock,
+  }) async {
+    try {
+      final res = await _dio.patch<Map<String, dynamic>>(
+        '/products/$id/stock',
+        data: <String, dynamic>{'stationStock': stationStock},
+      );
+      DioClient.unwrapMap(res);
+    } on DioException catch (e) {
+      _client.throwFromDio(e);
+    }
+  }
+
+  Future<Map<String, dynamic>> updateProduct({
+    required String id,
+    double? price,
+  }) async {
+    try {
+      final res = await _dio.put<Map<String, dynamic>>(
+        '/products/$id',
+        data: <String, dynamic>{
+          if (price != null) 'price': price,
+        },
+      );
+      return DioClient.unwrapMap(res);
+    } on DioException catch (e) {
+      _client.throwFromDio(e);
+    }
+  }
+
+  Future<void> deleteProduct(String id) async {
+    try {
+      final res = await _dio.delete<Map<String, dynamic>>('/products/$id');
+      DioClient.unwrapData(res);
+    } on DioException catch (e) {
+      _client.throwFromDio(e);
+    }
+  }
+
   Future<Map<String, dynamic>> listVehicles({int page = 1, int limit = 100}) =>
       _getPaginated('/vehicles', page: page, limit: limit);
 
+  Future<Map<String, dynamic>> createVehicle({
+    required String vehicleNumber,
+    String? driverId,
+    String? notes,
+  }) async {
+    try {
+      final res = await _dio.post<Map<String, dynamic>>(
+        '/vehicles',
+        data: <String, dynamic>{
+          'vehicleNumber': vehicleNumber,
+          if (driverId != null && driverId.isNotEmpty) 'driverId': driverId,
+          if (notes != null && notes.trim().isNotEmpty) 'notes': notes.trim(),
+        },
+      );
+      return DioClient.unwrapMap(res);
+    } on DioException catch (e) {
+      _client.throwFromDio(e);
+    }
+  }
+
+  Future<void> deleteVehicle(String id) async {
+    try {
+      final res = await _dio.delete<Map<String, dynamic>>('/vehicles/$id');
+      DioClient.unwrapData(res);
+    } on DioException catch (e) {
+      _client.throwFromDio(e);
+    }
+  }
+
+  /// `limit` must be ≤ 100 (API query validation).
   Future<Map<String, dynamic>> listUsers({int page = 1, int limit = 100}) =>
       _getPaginated('/users', page: page, limit: limit);
+
+  Future<Map<String, dynamic>> createUser({
+    required String fullName,
+    required String email,
+    required String password,
+    required String role,
+  }) async {
+    try {
+      final res = await _dio.post<Map<String, dynamic>>(
+        '/users',
+        data: <String, dynamic>{
+          'fullName': fullName,
+          'email': email,
+          'password': password,
+          'role': role,
+          'phone': _syntheticPhoneForUserCreate(),
+        },
+      );
+      return DioClient.unwrapMap(res);
+    } on DioException catch (e) {
+      _client.throwFromDio(e);
+    }
+  }
+
+  Future<void> deleteUser(String id) async {
+    try {
+      final res = await _dio.delete<Map<String, dynamic>>('/users/$id');
+      DioClient.unwrapData(res);
+    } on DioException catch (e) {
+      _client.throwFromDio(e);
+    }
+  }
 
   Future<Map<String, dynamic>> listVehicleLoads({
     int page = 1,
@@ -131,15 +264,26 @@ final class AmethystApi {
     required String productId,
     required int quantity,
     required double unitPrice,
+    bool fillingSale = false,
+    int? fillingLineSlot,
   }) async {
     try {
+      final Map<String, dynamic> data = <String, dynamic>{
+        'productId': productId,
+        'quantity': quantity,
+        'unitPrice': unitPrice,
+        'fillingSale': fillingSale,
+      };
+      // تعبئة: يجب إرسال فهرس العمود دائماً (٠ و١ = بدون خصم مخزون). القيمة ٠ صالحة.
+      if (fillingSale) {
+        final int slot = fillingLineSlot!;
+        data['fillingLineSlot'] = slot;
+        // احتياط إن وُجد وسيط يتعامل مع snake_case فقط
+        data['filling_slot'] = slot;
+      }
       final res = await _dio.post<Map<String, dynamic>>(
         '/station-sales',
-        data: <String, dynamic>{
-          'productId': productId,
-          'quantity': quantity,
-          'unitPrice': unitPrice,
-        },
+        data: data,
       );
       return DioClient.unwrapMap(res);
     } on DioException catch (e) {

@@ -30,13 +30,17 @@ class _AddVehicleLoadBody extends StatefulWidget {
 }
 
 class _AddVehicleLoadBodyState extends State<_AddVehicleLoadBody> {
-  static const int _rowCount = 3;
+  static const int _rowCount = 6;
 
   /// ترتيب ثابت لأسماء المنتجات (كما في الخادم) — بدون قوائم اختيار.
+  /// ثلاثة أصناف كوبون (١٢ / ٢٤ / ٥٠): أنشئ منتجات `Coupon` و `Coupon 2` و `Coupon 3`.
   static const List<String> _kFixedProductNames = <String>[
     'Water Gallon',
     'Water Bottle',
     'Water Carton',
+    'Coupon',
+    'Coupon 2',
+    'Coupon 3',
   ];
 
   final List<TextEditingController> _qtyCtrls =
@@ -116,6 +120,19 @@ class _AddVehicleLoadBodyState extends State<_AddVehicleLoadBody> {
       c.dispose();
     }
     super.dispose();
+  }
+
+  String _productRowTitle(BuildContext context, int index) {
+    final l10n = context.l10n;
+    return switch (index) {
+      0 => l10n.vehicleLoadRowGallon,
+      1 => l10n.vehicleLoadRowBottle,
+      2 => l10n.vehicleLoadRowCarton,
+      3 => l10n.vehicleLoadCouponBook1,
+      4 => l10n.vehicleLoadCouponBook2,
+      5 => l10n.vehicleLoadCouponBook3,
+      _ => l10n.productRow(index + 1),
+    };
   }
 
   List<({String productId, int quantityLoaded})>? _collectLines() {
@@ -238,7 +255,7 @@ class _AddVehicleLoadBodyState extends State<_AddVehicleLoadBody> {
                 for (var i = 0; i < _rowCount; i++) ...<Widget>[
                   InputDecorator(
                     decoration: InputDecoration(
-                      labelText: l10n.productRow(i + 1),
+                      labelText: _productRowTitle(context, i),
                       alignLabelWithHint: true,
                     ),
                     child: Padding(

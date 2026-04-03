@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-const unitType = z.enum(['bottle', 'carton', 'gallon']);
+const unitType = z.enum(['bottle', 'carton', 'gallon', 'coupon']);
 
 export const createProductSchema = z
   .object({
@@ -20,7 +20,7 @@ export const createProductSchema = z
     isActive: d.isActive,
   }))
   .refine((d) => d.unitType != null, {
-    message: 'Provide unitType or type (bottle | carton | gallon)',
+    message: 'Provide unitType or type (bottle | carton | gallon | coupon)',
     path: ['unitType'],
   });
 

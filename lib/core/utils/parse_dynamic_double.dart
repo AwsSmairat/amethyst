@@ -1,4 +1,5 @@
-double? parseStationSalePrice(dynamic v) {
+/// تحويل قيم الـ API (رقم، Decimal، أو نص) إلى `double`.
+double? parseDynamicDouble(dynamic v) {
   if (v == null) {
     return null;
   }

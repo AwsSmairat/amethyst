@@ -69,10 +69,14 @@ export async function createUser(body, actor) {
     throw new AppError('Only super admin can create users', 403, 'FORBIDDEN');
   }
   const passwordHash = await hashPassword(body.password);
+  const phone =
+    body.phone != null && String(body.phone).trim() !== ''
+      ? String(body.phone).trim()
+      : null;
   const user = await prisma.user.create({
     data: {
       fullName: body.fullName,
-      phone: body.phone,
+      phone,
       email: body.email.toLowerCase(),
       passwordHash,
       role: body.role,
