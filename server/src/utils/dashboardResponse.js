@@ -18,6 +18,7 @@ export function normalizeDashboard(role, raw) {
         totalProfitToday: raw.totalProfitToday ?? 0,
         totalMonthlyExpenses: raw.totalMonthlyExpenses ?? 0,
         totalMonthlySales: raw.totalMonthlySales ?? 0,
+        totalMonthlyCartonSales: raw.totalMonthlyCartonSales ?? 0,
         remainingStationStock: raw.remainingStationStock ?? 0,
         remainingOnVehicles: raw.remainingOnVehicles ?? 0,
         remainingOnVehicle: null,

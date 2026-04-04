@@ -52,6 +52,18 @@ final class AmethystApi {
     }
   }
 
+  /// مخزون الكراتين، السعر المرجعي، مبيعات الشهر (متجر / منزل).
+  Future<Map<String, dynamic>> getSuperAdminCartonSummary() async {
+    try {
+      final res = await _dio.get<Map<String, dynamic>>(
+        '/dashboard/super-admin/carton-summary',
+      );
+      return DioClient.unwrapMap(res);
+    } on DioException catch (e) {
+      _client.throwFromDio(e);
+    }
+  }
+
   Future<Map<String, dynamic>> getDashboardAdmin() async {
     try {
       final res = await _dio.get<Map<String, dynamic>>('/dashboard/admin');

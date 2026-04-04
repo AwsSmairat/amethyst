@@ -52,6 +52,7 @@ class _SuperAdminDashboardBody extends StatelessWidget {
         final expenses = _num(d['totalExpensesToday']);
         final monthlyExpenses = _num(d['totalMonthlyExpenses']);
         final monthly = _num(d['totalMonthlySales']);
+        final monthlyCartons = _num(d['totalMonthlyCartonSales']);
         final l10n = context.l10n;
         return RefreshIndicator(
           onRefresh: () => context.read<SuperAdminDashboardCubit>().load(),
@@ -130,6 +131,13 @@ class _SuperAdminDashboardBody extends StatelessWidget {
                     value: monthly.toStringAsFixed(0),
                     icon: Icons.calendar_month,
                     onTap: () => context.push('/super-admin/kpi/sales-month'),
+                  ),
+                  _KpiCard(
+                    label: l10n.cartonSalesMonthly,
+                    value: monthlyCartons.toStringAsFixed(0),
+                    icon: Icons.inventory_2_outlined,
+                    onTap: () =>
+                        context.push('/super-admin/carton-sales'),
                   ),
                 ],
               ),

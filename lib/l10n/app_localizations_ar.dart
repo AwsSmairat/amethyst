@@ -276,6 +276,21 @@ class AppLocalizationsAr extends AppLocalizations {
   String get monthlySales => 'المبيعات الشهرية';
 
   @override
+  String get cartonSalesMonthly => 'مبيع الكراتين';
+
+  @override
+  String get cartonStockLabel => 'مخزون كراتين';
+
+  @override
+  String get cartonPriceLabel => 'ثمن الكراتين';
+
+  @override
+  String get cartonSalesHomeLabel => 'بيع الكراتين منزل';
+
+  @override
+  String get cartonSalesStoreLabel => 'بيع الكراتين متجر';
+
+  @override
   String get chipSalesToday => 'مبيعات اليوم';
 
   @override

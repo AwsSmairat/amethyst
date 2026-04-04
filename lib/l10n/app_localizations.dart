@@ -610,6 +610,36 @@ abstract class AppLocalizations {
   /// **'المبيعات الشهرية'**
   String get monthlySales;
 
+  /// No description provided for @cartonSalesMonthly.
+  ///
+  /// In ar, this message translates to:
+  /// **'مبيع الكراتين'**
+  String get cartonSalesMonthly;
+
+  /// No description provided for @cartonStockLabel.
+  ///
+  /// In ar, this message translates to:
+  /// **'مخزون كراتين'**
+  String get cartonStockLabel;
+
+  /// No description provided for @cartonPriceLabel.
+  ///
+  /// In ar, this message translates to:
+  /// **'ثمن الكراتين'**
+  String get cartonPriceLabel;
+
+  /// No description provided for @cartonSalesHomeLabel.
+  ///
+  /// In ar, this message translates to:
+  /// **'بيع الكراتين منزل'**
+  String get cartonSalesHomeLabel;
+
+  /// No description provided for @cartonSalesStoreLabel.
+  ///
+  /// In ar, this message translates to:
+  /// **'بيع الكراتين متجر'**
+  String get cartonSalesStoreLabel;
+
   /// No description provided for @chipSalesToday.
   ///
   /// In ar, this message translates to:

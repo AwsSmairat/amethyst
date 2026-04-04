@@ -8,6 +8,11 @@ export const superAdmin = asyncHandler(async (req, res) => {
   return success(res, normalizeDashboard('super_admin', raw));
 });
 
+export const superAdminCartonSummary = asyncHandler(async (req, res) => {
+  const data = await service.superAdminCartonSummary();
+  return success(res, data);
+});
+
 export const admin = asyncHandler(async (req, res) => {
   const raw = await service.adminDashboard();
   return success(res, normalizeDashboard('admin', raw));

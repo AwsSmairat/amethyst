@@ -16,6 +16,7 @@ import 'package:amethyst/features/dashboard/presentation/pages/admin_dashboard_p
 import 'package:amethyst/features/dashboard/presentation/pages/admin_station_balance_page.dart';
 import 'package:amethyst/features/dashboard/presentation/pages/reports_page.dart';
 import 'package:amethyst/features/dashboard/presentation/pages/sales_working_days_page.dart';
+import 'package:amethyst/features/dashboard/presentation/pages/super_admin_carton_sales_page.dart';
 import 'package:amethyst/features/dashboard/presentation/pages/super_admin_dashboard_page.dart';
 import 'package:amethyst/features/dashboard/presentation/pages/super_admin_users_page.dart';
 import 'package:amethyst/features/dashboard/presentation/pages/super_admin_drivers_page.dart';
@@ -106,6 +107,10 @@ GoRouter createAppRouter(AuthCubit authCubit) {
               GoRoute(
                 path: 'dashboard',
                 builder: (_, __) => const SuperAdminDashboardPage(),
+              ),
+              GoRoute(
+                path: 'carton-sales',
+                builder: (_, __) => const SuperAdminCartonSalesPage(),
               ),
               GoRoute(
                 path: 'sales-working-days',

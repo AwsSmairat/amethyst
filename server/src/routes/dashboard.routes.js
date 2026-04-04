@@ -7,6 +7,11 @@ const r = Router();
 
 r.use(authenticate);
 
+r.get(
+  '/super-admin/carton-summary',
+  authorize('super_admin'),
+  ctrl.superAdminCartonSummary,
+);
 r.get('/super-admin', authorize('super_admin'), ctrl.superAdmin);
 r.get('/admin', authorize('super_admin', 'admin'), ctrl.admin);
 r.get('/driver', authorize('driver'), ctrl.driver);

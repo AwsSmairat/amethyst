@@ -19,6 +19,27 @@ async function sumVehicleSales(from, to) {
   return rows.reduce((a, r) => a + Number(r.totalAmount), 0);
 }
 
+/** Sum sold units (quantity) for products with unit type `carton` in the date range. */
+async function sumCartonSalesQuantity(from, to) {
+  const [station, vehicle] = await Promise.all([
+    prisma.stationSale.aggregate({
+      where: {
+        createdAt: { gte: from, lte: to },
+        product: { unitType: 'carton' },
+      },
+      _sum: { quantity: true },
+    }),
+    prisma.vehicleSale.aggregate({
+      where: {
+        createdAt: { gte: from, lte: to },
+        product: { unitType: 'carton' },
+      },
+      _sum: { quantity: true },
+    }),
+  ]);
+  return (station._sum.quantity ?? 0) + (vehicle._sum.quantity ?? 0);
+}
+
 async function sumExpenses(from, to) {
   const rows = await prisma.expense.findMany({
     where: { createdAt: { gte: from, lte: to } },
@@ -81,6 +102,7 @@ export async function superAdminDashboard() {
     stockSnapshot,
     totalProducts,
     pricedProductsCount,
+    monthlyCartonQty,
   ] = await Promise.all([
     prisma.user.count(),
     prisma.user.count({ where: { role: 'admin' } }),
@@ -109,6 +131,7 @@ export async function superAdminDashboard() {
     prisma.product.count({
       where: { isActive: true, price: { gt: 0 } },
     }),
+    sumCartonSalesQuantity(monthStart, monthEnd),
   ]);
 
   const totalMonthlySales = monthlyStation + monthlyVehicle;
@@ -129,10 +152,78 @@ export async function superAdminDashboard() {
     totalMonthlyExpenses: monthlyExpenses,
     totalProfitToday,
     totalMonthlySales,
+    totalMonthlyCartonSales: monthlyCartonQty,
     remainingStationStock: stockSnapshot.remainingStationStock,
     remainingOnVehicles: stockSnapshot.remainingOnVehicles,
     lowStockProducts: lowStock.map(mapProduct),
     recentActivities: recentAudit,
+  };
+}
+
+/**
+ * تفاصيل الكراتين للسوبر أدمن: مخزون المحطة، سعر مرجعي، مبيعات الشهر (متجر = محطة، منزل = مركبة).
+ */
+export async function superAdminCartonSummary() {
+  const now = new Date();
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+  const monthEnd = new Date(
+    now.getFullYear(),
+    now.getMonth() + 1,
+    0,
+    23,
+    59,
+    59,
+    999
+  );
+
+  const [stockAgg, stationCarton, vehicleCarton, cartonProducts] =
+    await Promise.all([
+      prisma.product.aggregate({
+        where: { isActive: true, unitType: 'carton' },
+        _sum: { stationStock: true },
+      }),
+      prisma.stationSale.aggregate({
+        where: {
+          createdAt: { gte: monthStart, lte: monthEnd },
+          product: { unitType: 'carton' },
+        },
+        _sum: { quantity: true },
+      }),
+      prisma.vehicleSale.aggregate({
+        where: {
+          createdAt: { gte: monthStart, lte: monthEnd },
+          product: { unitType: 'carton' },
+        },
+        _sum: { quantity: true },
+      }),
+      prisma.product.findMany({
+        where: { isActive: true, unitType: 'carton' },
+        select: { price: true, stationStock: true },
+      }),
+    ]);
+
+  const cartonStock = stockAgg._sum.stationStock ?? 0;
+  let cartonUnitPrice = 0;
+  if (cartonProducts.length > 0) {
+    const stockWeighted = cartonProducts.reduce((a, p) => a + p.stationStock, 0);
+    if (stockWeighted > 0) {
+      cartonUnitPrice =
+        cartonProducts.reduce(
+          (a, p) => a + Number(p.price) * p.stationStock,
+          0
+        ) / stockWeighted;
+    } else {
+      cartonUnitPrice =
+        cartonProducts.reduce((a, p) => a + Number(p.price), 0) /
+        cartonProducts.length;
+    }
+  }
+
+  return {
+    cartonStock,
+    cartonUnitPrice,
+    monthlyCartonSalesStoreQty: stationCarton._sum.quantity ?? 0,
+    monthlyCartonSalesHomeQty: vehicleCarton._sum.quantity ?? 0,
   };
 }
 
