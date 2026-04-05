@@ -12,6 +12,7 @@ final class VehicleSaleSubmitCubit extends Cubit<SubmitState> {
     required String productId,
     required int quantity,
     required double unitPrice,
+    String saleDestination = 'home',
   }) async {
     emit(const SubmitLoading());
     try {
@@ -20,6 +21,7 @@ final class VehicleSaleSubmitCubit extends Cubit<SubmitState> {
         productId: productId,
         quantity: quantity,
         unitPrice: unitPrice,
+        saleDestination: saleDestination,
       );
       emit(const SubmitSuccess());
     } on Object catch (e) {
@@ -30,6 +32,7 @@ final class VehicleSaleSubmitCubit extends Cubit<SubmitState> {
   Future<void> submitLines({
     required String vehicleId,
     required List<({String productId, int quantity, double unitPrice})> lines,
+    String saleDestination = 'home',
   }) async {
     emit(const SubmitLoading());
     try {
@@ -39,6 +42,7 @@ final class VehicleSaleSubmitCubit extends Cubit<SubmitState> {
           productId: line.productId,
           quantity: line.quantity,
           unitPrice: line.unitPrice,
+          saleDestination: saleDestination,
         );
       }
       emit(const SubmitSuccess());

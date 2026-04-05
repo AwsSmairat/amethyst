@@ -77,4 +77,6 @@ export const vehicleSaleCreateSchema = z.object({
   productId: z.string().uuid(),
   quantity: z.coerce.number().int().positive(),
   unitPrice: z.coerce.number().nonnegative(),
+  /** `store` = بيع من السيارة للمتاجر؛ الافتراضي `home`. */
+  saleDestination: z.enum(['home', 'store']).optional(),
 });

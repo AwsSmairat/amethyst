@@ -625,19 +625,19 @@ abstract class AppLocalizations {
   /// No description provided for @cartonPriceLabel.
   ///
   /// In ar, this message translates to:
-  /// **'ثمن الكراتين'**
+  /// **'مجموع بيع الكراتين (الشهر الحالي)'**
   String get cartonPriceLabel;
 
   /// No description provided for @cartonSalesHomeLabel.
   ///
   /// In ar, this message translates to:
-  /// **'بيع الكراتين منزل'**
+  /// **'بيع الكراتين منزل (المحطة + السيارة)'**
   String get cartonSalesHomeLabel;
 
   /// No description provided for @cartonSalesStoreLabel.
   ///
   /// In ar, this message translates to:
-  /// **'بيع الكراتين متجر'**
+  /// **'بيع الكراتين متجر (من السيارة للمتاجر)'**
   String get cartonSalesStoreLabel;
 
   /// No description provided for @chipSalesToday.

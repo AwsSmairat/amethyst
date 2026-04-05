@@ -311,6 +311,10 @@ class _AddVehicleSaleBodyState extends State<_AddVehicleSaleBody> {
                             context.read<VehicleSaleSubmitCubit>().submitLines(
                                   vehicleId: _vehicleId!,
                                   lines: lines,
+                                  saleDestination:
+                                      _selectedPlace == VehicleSalePlace.store
+                                          ? 'store'
+                                          : 'home',
                                 );
                           },
                     child: busy

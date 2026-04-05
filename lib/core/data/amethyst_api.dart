@@ -52,7 +52,7 @@ final class AmethystApi {
     }
   }
 
-  /// مخزون الكراتين، السعر المرجعي، مبيعات الشهر (متجر / منزل).
+  /// مخزون الكراتين، مجموع مبالغ الشهر؛ منزل = محطة+سيارة؛ متجر = سيارة→متجر فقط.
   Future<Map<String, dynamic>> getSuperAdminCartonSummary() async {
     try {
       final res = await _dio.get<Map<String, dynamic>>(
@@ -326,6 +326,7 @@ final class AmethystApi {
     required String productId,
     required int quantity,
     required double unitPrice,
+    String saleDestination = 'home',
   }) async {
     try {
       final res = await _dio.post<Map<String, dynamic>>(
@@ -335,6 +336,7 @@ final class AmethystApi {
           'productId': productId,
           'quantity': quantity,
           'unitPrice': unitPrice,
+          'saleDestination': saleDestination,
         },
       );
       return DioClient.unwrapMap(res);

@@ -49,12 +49,14 @@ final class RecordOperationsRepositoryImpl implements RecordOperationsRepository
     required String productId,
     required int quantity,
     required double unitPrice,
+    String saleDestination = 'home',
   }) =>
       _api.createVehicleSale(
         vehicleId: vehicleId,
         productId: productId,
         quantity: quantity,
         unitPrice: unitPrice,
+        saleDestination: saleDestination,
       );
 
   @override

@@ -124,6 +124,9 @@ export async function createVehicleSale(body, actor) {
 
     const totalAmount = body.quantity * body.unitPrice;
 
+    const saleDestination =
+      body.saleDestination === 'store' ? 'store' : 'home';
+
     const sale = await tx.vehicleSale.create({
       data: {
         vehicleId: body.vehicleId,
@@ -132,6 +135,7 @@ export async function createVehicleSale(body, actor) {
         quantity: body.quantity,
         unitPrice: body.unitPrice,
         totalAmount,
+        saleDestination,
       },
       include: {
         vehicle: true,
@@ -145,7 +149,7 @@ export async function createVehicleSale(body, actor) {
       action: 'VEHICLE_SALE_CREATE',
       entityType: 'VehicleSale',
       entityId: sale.id,
-      details: { quantity: body.quantity, totalAmount },
+      details: { quantity: body.quantity, totalAmount, saleDestination },
     });
 
     return mapVehicleSale(sale);

@@ -8,7 +8,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
 
-/// تفاصيل الكراتين: مخزون المحطة، السعر المرجعي، مبيعات الشهر (متجر / منزل).
+/// تفاصيل الكراتين: منزل = محطة+كل مبيعات الكراتين من السيارة؛ متجر = من السيارة للمتاجر فقط.
 class SuperAdminCartonSalesPage extends StatelessWidget {
   const SuperAdminCartonSalesPage({super.key});
 
@@ -91,7 +91,7 @@ class _SuperAdminCartonSalesBody extends StatelessWidget {
                     ),
                     _InfoRow(
                       label: l10n.cartonPriceLabel,
-                      value: _formatPrice(d['cartonUnitPrice']),
+                      value: _formatPrice(d['monthlyCartonSalesTotalAmount']),
                       icon: Icons.payments_outlined,
                     ),
                     _InfoRow(

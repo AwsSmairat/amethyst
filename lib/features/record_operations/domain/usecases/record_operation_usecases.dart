@@ -42,12 +42,14 @@ final class CreateVehicleSaleUseCase {
     required String productId,
     required int quantity,
     required double unitPrice,
+    String saleDestination = 'home',
   }) =>
       _repository.createVehicleSale(
         vehicleId: vehicleId,
         productId: productId,
         quantity: quantity,
         unitPrice: unitPrice,
+        saleDestination: saleDestination,
       );
 }
 

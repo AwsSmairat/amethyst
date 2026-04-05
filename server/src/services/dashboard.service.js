@@ -161,7 +161,9 @@ export async function superAdminDashboard() {
 }
 
 /**
- * تفاصيل الكراتين للسوبر أدمن: مخزون المحطة، سعر مرجعي، مبيعات الشهر (متجر = محطة، منزل = مركبة).
+ * تفاصيل الكراتين للسوبر أدمن: مخزون المحطة، مجموع مبالغ الشهر، كميات الشهر.
+ * - monthlyCartonSalesHomeQty: محطة + كل مبيعات الكراتين من السيارة.
+ * - monthlyCartonSalesStoreQty: كراتين بيعت من السيارة للمتاجر فقط (saleDestination = store).
  */
 export async function superAdminCartonSummary() {
   const now = new Date();
@@ -176,54 +178,69 @@ export async function superAdminCartonSummary() {
     999
   );
 
-  const [stockAgg, stationCarton, vehicleCarton, cartonProducts] =
-    await Promise.all([
-      prisma.product.aggregate({
-        where: { isActive: true, unitType: 'carton' },
-        _sum: { stationStock: true },
-      }),
-      prisma.stationSale.aggregate({
-        where: {
-          createdAt: { gte: monthStart, lte: monthEnd },
-          product: { unitType: 'carton' },
-        },
-        _sum: { quantity: true },
-      }),
-      prisma.vehicleSale.aggregate({
-        where: {
-          createdAt: { gte: monthStart, lte: monthEnd },
-          product: { unitType: 'carton' },
-        },
-        _sum: { quantity: true },
-      }),
-      prisma.product.findMany({
-        where: { isActive: true, unitType: 'carton' },
-        select: { price: true, stationStock: true },
-      }),
-    ]);
+  const [
+    stockAgg,
+    stationCartonQty,
+    vehicleCartonQty,
+    vehicleCartonStoreQty,
+    stationCartonAmount,
+    vehicleCartonAmount,
+  ] = await Promise.all([
+    prisma.product.aggregate({
+      where: { isActive: true, unitType: 'carton' },
+      _sum: { stationStock: true },
+    }),
+    prisma.stationSale.aggregate({
+      where: {
+        createdAt: { gte: monthStart, lte: monthEnd },
+        product: { unitType: 'carton' },
+      },
+      _sum: { quantity: true },
+    }),
+    prisma.vehicleSale.aggregate({
+      where: {
+        createdAt: { gte: monthStart, lte: monthEnd },
+        product: { unitType: 'carton' },
+      },
+      _sum: { quantity: true },
+    }),
+    prisma.vehicleSale.aggregate({
+      where: {
+        createdAt: { gte: monthStart, lte: monthEnd },
+        product: { unitType: 'carton' },
+        saleDestination: 'store',
+      },
+      _sum: { quantity: true },
+    }),
+    prisma.stationSale.aggregate({
+      where: {
+        createdAt: { gte: monthStart, lte: monthEnd },
+        product: { unitType: 'carton' },
+      },
+      _sum: { totalAmount: true },
+    }),
+    prisma.vehicleSale.aggregate({
+      where: {
+        createdAt: { gte: monthStart, lte: monthEnd },
+        product: { unitType: 'carton' },
+      },
+      _sum: { totalAmount: true },
+    }),
+  ]);
 
   const cartonStock = stockAgg._sum.stationStock ?? 0;
-  let cartonUnitPrice = 0;
-  if (cartonProducts.length > 0) {
-    const stockWeighted = cartonProducts.reduce((a, p) => a + p.stationStock, 0);
-    if (stockWeighted > 0) {
-      cartonUnitPrice =
-        cartonProducts.reduce(
-          (a, p) => a + Number(p.price) * p.stationStock,
-          0
-        ) / stockWeighted;
-    } else {
-      cartonUnitPrice =
-        cartonProducts.reduce((a, p) => a + Number(p.price), 0) /
-        cartonProducts.length;
-    }
-  }
+  const monthlyCartonSalesTotalAmount =
+    Number(stationCartonAmount._sum.totalAmount ?? 0) +
+    Number(vehicleCartonAmount._sum.totalAmount ?? 0);
+
+  const stationQ = stationCartonQty._sum.quantity ?? 0;
+  const vehicleQ = vehicleCartonQty._sum.quantity ?? 0;
 
   return {
     cartonStock,
-    cartonUnitPrice,
-    monthlyCartonSalesStoreQty: stationCarton._sum.quantity ?? 0,
-    monthlyCartonSalesHomeQty: vehicleCarton._sum.quantity ?? 0,
+    monthlyCartonSalesTotalAmount,
+    monthlyCartonSalesHomeQty: stationQ + vehicleQ,
+    monthlyCartonSalesStoreQty: vehicleCartonStoreQty._sum.quantity ?? 0,
   };
 }
 

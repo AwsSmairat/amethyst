@@ -24,6 +24,8 @@ abstract class RecordOperationsRepository {
     required String productId,
     required int quantity,
     required double unitPrice,
+    /// `store` = بيع من السيارة للمتاجر؛ `home` = للمنازل (الافتراضي).
+    String saleDestination = 'home',
   });
 
   Future<void> createExpense({
