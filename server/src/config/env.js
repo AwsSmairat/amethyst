@@ -16,6 +16,10 @@ const jwtSecret =
     ? jwtSecretRaw
     : 'change-me-in-production';
 
+/** IANA zone for «today» / «this month» aggregates (station is in Jordan). */
+const businessTimeZone =
+  process.env.BUSINESS_TIMEZONE?.trim() || 'Asia/Amman';
+
 export const env = {
   nodeEnv: process.env.NODE_ENV || 'development',
   port: Number(process.env.PORT) || 10000,
@@ -24,4 +28,5 @@ export const env = {
   jwtExpiresIn: process.env.JWT_EXPIRES_IN || '7d',
   bcryptRounds: Number(process.env.BCRYPT_ROUNDS) || 12,
   corsOrigin: process.env.CORS_ORIGIN || '*',
+  businessTimeZone,
 };

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:amethyst/core/data/amethyst_api.dart';
 import 'package:amethyst/core/l10n/context_l10n.dart';
 import 'package:amethyst/core/presentation/dashboard_load_state.dart';
@@ -20,8 +22,52 @@ class SuperAdminDashboardPage extends StatelessWidget {
   }
 }
 
-class _SuperAdminDashboardBody extends StatelessWidget {
+class _SuperAdminDashboardBody extends StatefulWidget {
   const _SuperAdminDashboardBody();
+
+  @override
+  State<_SuperAdminDashboardBody> createState() =>
+      _SuperAdminDashboardBodyState();
+}
+
+class _SuperAdminDashboardBodyState extends State<_SuperAdminDashboardBody>
+    with WidgetsBindingObserver {
+  Timer? _nextMidnightTimer;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _scheduleNextMidnightRefresh();
+    });
+  }
+
+  @override
+  void dispose() {
+    _nextMidnightTimer?.cancel();
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  void _scheduleNextMidnightRefresh() {
+    _nextMidnightTimer?.cancel();
+    final now = DateTime.now();
+    final nextMidnight = DateTime(now.year, now.month, now.day)
+        .add(const Duration(days: 1));
+    _nextMidnightTimer = Timer(nextMidnight.difference(now), () {
+      if (!mounted) return;
+      context.read<SuperAdminDashboardCubit>().load();
+      _scheduleNextMidnightRefresh();
+    });
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed && mounted) {
+      context.read<SuperAdminDashboardCubit>().load();
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -47,12 +93,12 @@ class _SuperAdminDashboardBody extends StatelessWidget {
           );
         }
         final d = (state as DashboardLoadSuccess).data;
-        final salesToday = _num(d['totalSalesToday']);
-        final profit = _num(d['totalProfitToday']);
-        final expenses = _num(d['totalExpensesToday']);
-        final monthlyExpenses = _num(d['totalMonthlyExpenses']);
-        final monthly = _num(d['totalMonthlySales']);
-        final monthlyCartons = _num(d['totalMonthlyCartonSales']);
+        final salesToday = _dashboardKpiNum(d['totalSalesToday']);
+        final profit = _dashboardKpiNum(d['totalProfitToday']);
+        final expenses = _dashboardKpiNum(d['totalExpensesToday']);
+        final monthlyExpenses = _dashboardKpiNum(d['totalMonthlyExpenses']);
+        final monthly = _dashboardKpiNum(d['totalMonthlySales']);
+        final monthlyCartons = _dashboardKpiNum(d['totalMonthlyCartonSales']);
         final l10n = context.l10n;
         return RefreshIndicator(
           onRefresh: () => context.read<SuperAdminDashboardCubit>().load(),
@@ -151,8 +197,10 @@ class _SuperAdminDashboardBody extends StatelessWidget {
               const SizedBox(height: 8),
               Text(
                 l10n.stockLine(
-                  _num(d['remainingStationStock']).toStringAsFixed(0),
-                  _num(d['remainingOnVehicles']).toStringAsFixed(0),
+                  _dashboardKpiNum(d['remainingStationStock'])
+                      .toStringAsFixed(0),
+                  _dashboardKpiNum(d['remainingOnVehicles'])
+                      .toStringAsFixed(0),
                 ),
                 style: Theme.of(context).textTheme.bodyLarge,
               ),
@@ -162,12 +210,12 @@ class _SuperAdminDashboardBody extends StatelessWidget {
       },
     );
   }
+}
 
-  double _num(dynamic v) {
-    if (v == null) return 0;
-    if (v is num) return v.toDouble();
-    return double.tryParse(v.toString()) ?? 0;
-  }
+double _dashboardKpiNum(dynamic v) {
+  if (v == null) return 0;
+  if (v is num) return v.toDouble();
+  return double.tryParse(v.toString()) ?? 0;
 }
 
 class _KpiGrid extends StatelessWidget {

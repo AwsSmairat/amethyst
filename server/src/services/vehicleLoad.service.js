@@ -2,7 +2,13 @@ import { prisma } from '../utils/prisma.js';
 import { AppError } from '../utils/AppError.js';
 import { auditLog } from './audit.service.js';
 import { parsePagination, parseSort } from '../utils/pagination.js';
-import { parseDateRange, startOfDay, endOfDay } from '../utils/dateRange.js';
+import { env } from '../config/env.js';
+import {
+  businessDayUtcRange,
+  parseDateRange,
+  startOfDay,
+  endOfDay,
+} from '../utils/dateRange.js';
 
 function remainingOnLoad(load) {
   return (
@@ -223,8 +229,10 @@ export async function getDriverCurrentLoads(actor) {
   }
 
   const now = new Date();
-  const dayStart = startOfDay(now);
-  const dayEnd = endOfDay(now);
+  const { start: dayStart, end: dayEnd } = businessDayUtcRange(
+    now,
+    env.businessTimeZone
+  );
 
   const loads = await prisma.vehicleLoad.findMany({
     where: {

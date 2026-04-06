@@ -1,6 +1,10 @@
+import { env } from '../config/env.js';
 import { prisma } from '../utils/prisma.js';
 import { AppError } from '../utils/AppError.js';
-import { startOfDay, endOfDay } from '../utils/dateRange.js';
+import {
+  businessDayUtcRange,
+  businessMonthUtcRange,
+} from '../utils/dateRange.js';
 import { mapProduct } from '../utils/serialize.js';
 
 const LOW_STOCK_THRESHOLD = 50;
@@ -73,17 +77,13 @@ async function remainingStockSnapshot() {
 
 export async function superAdminDashboard() {
   const now = new Date();
-  const dayStart = startOfDay(now);
-  const dayEnd = endOfDay(now);
-  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-  const monthEnd = new Date(
-    now.getFullYear(),
-    now.getMonth() + 1,
-    0,
-    23,
-    59,
-    59,
-    999
+  const { start: dayStart, end: dayEnd } = businessDayUtcRange(
+    now,
+    env.businessTimeZone
+  );
+  const { start: monthStart, end: monthEnd } = businessMonthUtcRange(
+    now,
+    env.businessTimeZone
   );
 
   const [
@@ -275,17 +275,13 @@ export async function superAdminCartonSummary({ year, month } = {}) {
 
 export async function adminDashboard() {
   const now = new Date();
-  const dayStart = startOfDay(now);
-  const dayEnd = endOfDay(now);
-  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-  const monthEnd = new Date(
-    now.getFullYear(),
-    now.getMonth() + 1,
-    0,
-    23,
-    59,
-    59,
-    999
+  const { start: dayStart, end: dayEnd } = businessDayUtcRange(
+    now,
+    env.businessTimeZone
+  );
+  const { start: monthStart, end: monthEnd } = businessMonthUtcRange(
+    now,
+    env.businessTimeZone
   );
 
   const products = await prisma.product.findMany({
@@ -351,8 +347,10 @@ export async function driverDashboard(actor) {
   }
 
   const now = new Date();
-  const dayStart = startOfDay(now);
-  const dayEnd = endOfDay(now);
+  const { start: dayStart, end: dayEnd } = businessDayUtcRange(
+    now,
+    env.businessTimeZone
+  );
 
   const vehicle = await prisma.vehicle.findFirst({
     where: { driverId: actor.id, isActive: true },
