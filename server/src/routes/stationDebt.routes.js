@@ -15,7 +15,7 @@ r.use(authenticate);
 
 r.get(
   '/',
-  authorize('super_admin', 'admin'),
+  authorize('super_admin', 'admin', 'driver'),
   validate(listQuerySchema, 'query'),
   ctrl.list
 );

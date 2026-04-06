@@ -1174,6 +1174,36 @@ abstract class AppLocalizations {
   /// **'إرجاع'**
   String get quickLogReturn;
 
+  /// No description provided for @driverQuickDebt.
+  ///
+  /// In ar, this message translates to:
+  /// **'الدين'**
+  String get driverQuickDebt;
+
+  /// No description provided for @driverQuickRepayment.
+  ///
+  /// In ar, this message translates to:
+  /// **'السداد'**
+  String get driverQuickRepayment;
+
+  /// No description provided for @driverRepaymentInfoTitle.
+  ///
+  /// In ar, this message translates to:
+  /// **'السداد'**
+  String get driverRepaymentInfoTitle;
+
+  /// No description provided for @driverRepaymentInfoBody.
+  ///
+  /// In ar, this message translates to:
+  /// **'تأكيد السداد وتسجيله في النظام يتم من قبل مدير المحطة. لعرض أسماء المدينين والمنتجات افتح «قائمة الدين».'**
+  String get driverRepaymentInfoBody;
+
+  /// No description provided for @driverRepaymentInfoOpenList.
+  ///
+  /// In ar, this message translates to:
+  /// **'قائمة الدين'**
+  String get driverRepaymentInfoOpenList;
+
   /// No description provided for @todaysInventory.
   ///
   /// In ar, this message translates to:
@@ -2234,6 +2264,12 @@ abstract class AppLocalizations {
   /// In ar, this message translates to:
   /// **'خادم الـ API قديم أو لا يتضمن مسارات الدين (تسجيل الدين وسداد الدين). انشر آخر نسخة من الخادم التي تتضمن POST /api/station-debt-entries/repay ثم شغّل npx prisma migrate deploy وأعد تشغيل الخادم.'**
   String get stationDebtErrorApiRouteMissing;
+
+  /// No description provided for @stationDebtErrorForbidden.
+  ///
+  /// In ar, this message translates to:
+  /// **'الخادم رفض الطلب (لا صلاحية). إن كنت سائقاً وتفتح «قائمة الدين»، غالباً خادم الـ API المنشور قديم — انشر آخر نسخة من الكود التي تسمح للسائق بقراءة GET /api/station-debt-entries، أو راجع المسؤول.'**
+  String get stationDebtErrorForbidden;
 
   /// No description provided for @stationDebtRepayNoUnpaid.
   ///

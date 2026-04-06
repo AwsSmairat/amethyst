@@ -586,6 +586,22 @@ class AppLocalizationsAr extends AppLocalizations {
   String get quickLogReturn => 'إرجاع';
 
   @override
+  String get driverQuickDebt => 'الدين';
+
+  @override
+  String get driverQuickRepayment => 'السداد';
+
+  @override
+  String get driverRepaymentInfoTitle => 'السداد';
+
+  @override
+  String get driverRepaymentInfoBody =>
+      'تأكيد السداد وتسجيله في النظام يتم من قبل مدير المحطة. لعرض أسماء المدينين والمنتجات افتح «قائمة الدين».';
+
+  @override
+  String get driverRepaymentInfoOpenList => 'قائمة الدين';
+
+  @override
   String get todaysInventory => 'مخزون اليوم';
 
   @override
@@ -1147,6 +1163,10 @@ class AppLocalizationsAr extends AppLocalizations {
   @override
   String get stationDebtErrorApiRouteMissing =>
       'خادم الـ API قديم أو لا يتضمن مسارات الدين (تسجيل الدين وسداد الدين). انشر آخر نسخة من الخادم التي تتضمن POST /api/station-debt-entries/repay ثم شغّل npx prisma migrate deploy وأعد تشغيل الخادم.';
+
+  @override
+  String get stationDebtErrorForbidden =>
+      'الخادم رفض الطلب (لا صلاحية). إن كنت سائقاً وتفتح «قائمة الدين»، غالباً خادم الـ API المنشور قديم — انشر آخر نسخة من الكود التي تسمح للسائق بقراءة GET /api/station-debt-entries، أو راجع المسؤول.';
 
   @override
   String get stationDebtRepayNoUnpaid =>

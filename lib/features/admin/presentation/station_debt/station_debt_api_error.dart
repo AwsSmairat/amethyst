@@ -7,12 +7,19 @@ const String kStationDebtInsufficientStockSubmitMarker =
 /// استجابة 404 «Not found» من `app.js` — المسار غير مسجّل على الخادم (غالباً نشر قديم).
 const String kStationDebtApiRouteMissingMarker = 'STATION_DEBT_API_ROUTE_MISSING';
 
+/// 403 من الخادم — غالباً نشر قديم لا يسمح للسائق بقراءة القائمة، أو حساب بلا صلاحية.
+const String kStationDebtForbiddenMarker = 'STATION_DEBT_FORBIDDEN';
+
 String mapStationDebtApiException(ApiException e) {
   if (e.code == 'INSUFFICIENT_STOCK') {
     return kStationDebtInsufficientStockSubmitMarker;
   }
   final String msg = e.message.trim();
   final String lower = msg.toLowerCase();
+  if (e.statusCode == 403 &&
+      (e.code == 'FORBIDDEN' || lower == 'forbidden')) {
+    return kStationDebtForbiddenMarker;
+  }
   /// 404 عام من Express بدون مسار (مثل POST /repay غير منشور على الخادم).
   if (e.statusCode == 404) {
     final bool isGenericNotFound = lower == 'not found' ||

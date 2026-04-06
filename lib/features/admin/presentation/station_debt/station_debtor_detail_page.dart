@@ -105,7 +105,7 @@ class _StationDebtorDetailPageState extends State<StationDebtorDetailPage> {
     final bool showRepay = sorted.isNotEmpty;
     final AuthState authState = context.watch<AuthCubit>().state;
     final bool repayAllowed = authState is AuthAuthenticated &&
-        authState.user.role != 'super_admin';
+        authState.user.role == 'admin';
 
     return Scaffold(
       appBar: AppBar(
@@ -186,6 +186,9 @@ String _repayErrorUserMessage(AppLocalizations l10n, ApiException e) {
   }
   if (mapped == kStationDebtInsufficientStockSubmitMarker) {
     return l10n.stationSaleSubmitInsufficientStock;
+  }
+  if (mapped == kStationDebtForbiddenMarker) {
+    return l10n.stationDebtErrorForbidden;
   }
   final String lower = e.message.toLowerCase();
   if (e.code == 'NOT_FOUND' &&

@@ -114,6 +114,9 @@ class StationDebtListPage extends StatelessWidget {
     if (raw == kStationDebtInsufficientStockSubmitMarker) {
       return context.l10n.stationSaleSubmitInsufficientStock;
     }
+    if (raw == kStationDebtForbiddenMarker) {
+      return context.l10n.stationDebtErrorForbidden;
+    }
     return raw;
   }
 }

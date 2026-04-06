@@ -43,6 +43,8 @@ class _StationDebtRegistrationPageState
         return l10n.stationSaleSubmitInsufficientStock;
       case kStationDebtApiRouteMissingMarker:
         return l10n.stationDebtErrorApiRouteMissing;
+      case kStationDebtForbiddenMarker:
+        return l10n.stationDebtErrorForbidden;
       default:
         return err;
     }

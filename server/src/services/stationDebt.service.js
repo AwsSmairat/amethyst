@@ -153,9 +153,6 @@ export async function repayStationDebtForDebtor(body, actor) {
 }
 
 export async function listStationDebtEntries(query, actor) {
-  if (actor.role === 'driver') {
-    throw new AppError('Forbidden', 403, 'FORBIDDEN');
-  }
   const page = Math.max(1, Number(query.page) || 1);
   const limit = Math.min(100, Math.max(1, Number(query.limit) || 50));
   const skip = (page - 1) * limit;

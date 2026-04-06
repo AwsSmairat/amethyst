@@ -76,7 +76,9 @@ class _UserDashboardView extends StatelessWidget {
                   padding: const EdgeInsets.fromLTRB(20, 18, 20, 32),
                   sliver: SliverList(
                     delegate: SliverChildListDelegate.fixed(<Widget>[
-                      _QuickActionsRow(),
+                      const _QuickActionsRow(),
+                      const SizedBox(height: 12),
+                      const _DriverDebtActionsRow(),
                       const SizedBox(height: 22),
                       _InventorySection(items: dashboard.inventory),
                       const SizedBox(height: 16),
@@ -94,6 +96,8 @@ class _UserDashboardView extends StatelessWidget {
 }
 
 class _QuickActionsRow extends StatelessWidget {
+  const _QuickActionsRow();
+
   @override
   Widget build(BuildContext context) {
     return Row(
@@ -122,6 +126,60 @@ class _QuickActionsRow extends StatelessWidget {
             label: context.l10n.quickLogReturn,
             tint: AppColors.primary,
             onTap: () => context.go('/driver/loads'),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _DriverDebtActionsRow extends StatelessWidget {
+  const _DriverDebtActionsRow();
+
+  static void _showRepaymentInfo(BuildContext context) {
+    final l10n = context.l10n;
+    showDialog<void>(
+      context: context,
+      builder: (BuildContext ctx) => AlertDialog(
+        title: Text(l10n.driverRepaymentInfoTitle),
+        content: Text(l10n.driverRepaymentInfoBody),
+        actions: <Widget>[
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: Text(l10n.cancel),
+          ),
+          FilledButton(
+            onPressed: () {
+              Navigator.of(ctx).pop();
+              context.push('/driver/dashboard/station-debt-list');
+            },
+            child: Text(l10n.driverRepaymentInfoOpenList),
+          ),
+        ],
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: <Widget>[
+        Expanded(
+          child: QuickActionButton(
+            icon: Icons.receipt_long_outlined,
+            label: context.l10n.driverQuickDebt,
+            tint: AppColors.brandPrimary,
+            onTap: () =>
+                context.push('/driver/dashboard/station-debt-list'),
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: QuickActionButton(
+            icon: Icons.paid_outlined,
+            label: context.l10n.driverQuickRepayment,
+            tint: AppColors.brandPrimary,
+            onTap: () => _showRepaymentInfo(context),
           ),
         ),
       ],
