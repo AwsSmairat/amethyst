@@ -1,7 +1,7 @@
 import { prisma } from '../utils/prisma.js';
 import { AppError } from '../utils/AppError.js';
 import { auditLog } from './audit.service.js';
-import { mapStationDebtEntry } from '../utils/serialize.js';
+import { mapStationDebtEntry, mapStationSale } from '../utils/serialize.js';
 import { shouldSkipStationStockForDebtProduct } from '../utils/stationStockSkip.js';
 
 /**
@@ -90,6 +90,68 @@ export async function createStationDebtEntries(body, actor) {
   });
 }
 
+/**
+ * سداد دين لمدين: إنشاء سجلات مبيعات محطة (بدون خصم مخزون — مُخصم سابقاً عند تسجيل الدين)
+ * ليُحتسب في مبيعات اليوم والإجمالي؛ وتحديد repaidAt على السجلات.
+ */
+export async function repayStationDebtForDebtor(body, actor) {
+  const debtorName = String(body.debtorName ?? '').trim();
+  if (!debtorName || debtorName.length > 200) {
+    throw new AppError('Invalid debtor name', 400, 'VALIDATION');
+  }
+
+  return prisma.$transaction(async (tx) => {
+    const entries = await tx.stationDebtEntry.findMany({
+      where: { debtorName, repaidAt: null },
+    });
+    if (entries.length === 0) {
+      throw new AppError('No unpaid debt for this person', 404, 'NOT_FOUND');
+    }
+
+    const now = new Date();
+    const sales = [];
+    for (const entry of entries) {
+      const sale = await tx.stationSale.create({
+        data: {
+          productId: entry.productId,
+          quantity: entry.quantity,
+          unitPrice: entry.unitPrice,
+          totalAmount: entry.totalAmount,
+          soldById: actor.id,
+          note: `سداد دين — ${debtorName}`.slice(0, 500),
+        },
+        include: {
+          product: true,
+          soldBy: { select: { id: true, fullName: true } },
+        },
+      });
+      sales.push(sale);
+      await tx.stationDebtEntry.update({
+        where: { id: entry.id },
+        data: { repaidAt: now },
+      });
+    }
+
+    await auditLog({
+      userId: actor.id,
+      action: 'STATION_DEBT_REPAY',
+      entityType: 'StationDebtEntry',
+      entityId: entries[0]?.id ?? null,
+      details: {
+        debtorName,
+        entryCount: entries.length,
+        saleCount: sales.length,
+      },
+    });
+
+    return {
+      debtorName,
+      repaidEntryCount: entries.length,
+      sales: sales.map((s) => mapStationSale(s)),
+    };
+  });
+}
+
 export async function listStationDebtEntries(query, actor) {
   if (actor.role === 'driver') {
     throw new AppError('Forbidden', 403, 'FORBIDDEN');
@@ -98,9 +160,12 @@ export async function listStationDebtEntries(query, actor) {
   const limit = Math.min(100, Math.max(1, Number(query.limit) || 50));
   const skip = (page - 1) * limit;
 
+  const where = { repaidAt: null };
+
   const [total, items] = await prisma.$transaction([
-    prisma.stationDebtEntry.count(),
+    prisma.stationDebtEntry.count({ where }),
     prisma.stationDebtEntry.findMany({
+      where,
       include: {
         product: true,
         recordedBy: { select: { id: true, fullName: true } },

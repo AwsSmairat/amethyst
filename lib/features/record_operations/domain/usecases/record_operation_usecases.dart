@@ -47,6 +47,15 @@ final class CreateStationDebtEntriesUseCase {
       );
 }
 
+final class RepayStationDebtUseCase {
+  RepayStationDebtUseCase(this._repository);
+
+  final RecordOperationsRepository _repository;
+
+  Future<Map<String, dynamic>> call({required String debtorName}) =>
+      _repository.repayStationDebt(debtorName: debtorName);
+}
+
 final class CreateVehicleSaleUseCase {
   CreateVehicleSaleUseCase(this._repository);
 

@@ -18,6 +18,9 @@ class AppLocalizationsAr extends AppLocalizations {
   String get cancel => 'إلغاء';
 
   @override
+  String get confirm => 'تأكيد';
+
+  @override
   String get notFound => 'غير موجود';
 
   @override
@@ -1096,6 +1099,11 @@ class AppLocalizationsAr extends AppLocalizations {
   String get titleStationDebtList => 'قائمة الدين';
 
   @override
+  String stationDebtDebtorLineCount(int count) {
+    return '$count سجل';
+  }
+
+  @override
   String get dashboardDebtRepaymentTitle => 'دين وسداد';
 
   @override
@@ -1132,7 +1140,24 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get stationDebtErrorApiRouteMissing =>
-      'خادم الـ API لا يوفّر مسار «تسجيل الدين» (إصدار قديم). انشر آخر نسخة من الخادم وشغّل ترحيل Prisma، أو اتصل بخادم محلي محدّث يتضمن /api/station-debt-entries.';
+      'خادم الـ API قديم أو لا يتضمن مسارات الدين (تسجيل الدين وسداد الدين). انشر آخر نسخة من الخادم التي تتضمن POST /api/station-debt-entries/repay ثم شغّل npx prisma migrate deploy وأعد تشغيل الخادم.';
+
+  @override
+  String get stationDebtRepayNoUnpaid =>
+      'لا يوجد دين غير مسدد لهذا الاسم. حدّث القائمة أو تحقق من الخادم.';
+
+  @override
+  String get stationDebtRepayButton => 'تم السداد';
+
+  @override
+  String get stationDebtRepayConfirmTitle => 'تأكيد السداد';
+
+  @override
+  String get stationDebtRepayConfirmMessage =>
+      'سيتم تسجيل هذه المبالغ كمبيعات محطة لهذا اليوم وتدخل في الإجمالي (المخزون سبق خصمه عند تسجيل الدين). هل تريد المتابعة؟';
+
+  @override
+  String get stationDebtRepaySuccess => 'تم تسجيل السداد في مبيعات المحطة.';
 
   @override
   String get stationSaleRecorded => 'تم تسجيل بيع المحطة';

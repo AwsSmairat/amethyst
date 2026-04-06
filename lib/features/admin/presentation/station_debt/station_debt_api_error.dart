@@ -12,10 +12,20 @@ String mapStationDebtApiException(ApiException e) {
     return kStationDebtInsufficientStockSubmitMarker;
   }
   final String msg = e.message.trim();
-  if (e.statusCode == 404 &&
-      e.code == 'NOT_FOUND' &&
-      (msg == 'Not found' || msg == 'Not Found')) {
-    return kStationDebtApiRouteMissingMarker;
+  final String lower = msg.toLowerCase();
+  /// 404 عام من Express بدون مسار (مثل POST /repay غير منشور على الخادم).
+  if (e.statusCode == 404) {
+    final bool isGenericNotFound = lower == 'not found' ||
+        (lower.startsWith('not found') &&
+            lower.length < 80 &&
+            !lower.contains('unpaid') &&
+            !lower.contains('product'));
+    if (e.code == 'NOT_FOUND' && isGenericNotFound) {
+      return kStationDebtApiRouteMissingMarker;
+    }
+    if (e.code == null && isGenericNotFound) {
+      return kStationDebtApiRouteMissingMarker;
+    }
   }
   return e.message;
 }

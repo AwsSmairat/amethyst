@@ -18,6 +18,7 @@ import 'package:amethyst/features/catalog/presentation/pages/vehicle_sales_hub_p
 import 'package:amethyst/features/admin/presentation/widgets/add_station_sale_sheet.dart';
 import 'package:amethyst/features/catalog/presentation/pages/station_sales_list_page.dart';
 import 'package:amethyst/features/admin/presentation/station_debt/station_debt_list_page.dart';
+import 'package:amethyst/features/admin/presentation/station_debt/station_debtor_detail_page.dart';
 import 'package:amethyst/features/admin/presentation/station_debt/station_debt_registration_page.dart';
 import 'package:amethyst/features/admin/presentation/station_debt/cubit/station_debt_registration_cubit.dart';
 import 'package:amethyst/features/dashboard/presentation/pages/admin_dashboard_page.dart';
@@ -320,6 +321,34 @@ GoRouter createAppRouter(AuthCubit authCubit) {
               GoRoute(
                 path: 'station-debt-list',
                 builder: (_, __) => const StationDebtListPage(),
+                routes: <RouteBase>[
+                  GoRoute(
+                    path: 'debtor',
+                    builder: (BuildContext context, GoRouterState state) {
+                      final Object? extra = state.extra;
+                      if (extra is! Map<String, dynamic>) {
+                        return Scaffold(
+                          appBar: AppBar(
+                            title: Text(context.l10n.titleStationDebtList),
+                          ),
+                          body: Center(child: Text(context.l10n.nothingHereYet)),
+                        );
+                      }
+                      final String debtorName =
+                          extra['debtorName'] as String? ?? '';
+                      final List<dynamic>? raw =
+                          extra['entries'] as List<dynamic>?;
+                      final List<Map<String, dynamic>> entries = raw
+                              ?.whereType<Map<String, dynamic>>()
+                              .toList(growable: false) ??
+                          <Map<String, dynamic>>[];
+                      return StationDebtorDetailPage(
+                        debtorName: debtorName,
+                        entries: entries,
+                      );
+                    },
+                  ),
+                ],
               ),
               GoRoute(
                 path: 'vehicle-loads',

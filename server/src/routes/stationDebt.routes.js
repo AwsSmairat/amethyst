@@ -3,7 +3,10 @@ import * as ctrl from '../controllers/stationDebt.controller.js';
 import { authenticate } from '../middlewares/auth.js';
 import { authorize } from '../middlewares/authorize.js';
 import { validate } from '../middlewares/validate.js';
-import { stationDebtCreateBatchSchema } from '../validators/stationDebt.validators.js';
+import {
+  stationDebtCreateBatchSchema,
+  stationDebtRepaySchema,
+} from '../validators/stationDebt.validators.js';
 import { listQuerySchema } from '../validators/common.js';
 
 const r = Router();
@@ -15,6 +18,12 @@ r.get(
   authorize('super_admin', 'admin'),
   validate(listQuerySchema, 'query'),
   ctrl.list
+);
+r.post(
+  '/repay',
+  authorize('super_admin', 'admin'),
+  validate(stationDebtRepaySchema),
+  ctrl.repay
 );
 r.post(
   '/',

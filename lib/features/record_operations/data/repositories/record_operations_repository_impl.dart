@@ -54,6 +54,12 @@ final class RecordOperationsRepositoryImpl implements RecordOperationsRepository
       );
 
   @override
+  Future<Map<String, dynamic>> repayStationDebt({
+    required String debtorName,
+  }) =>
+      _api.repayStationDebt(debtorName: debtorName);
+
+  @override
   Future<void> createVehicleSale({
     required String vehicleId,
     required String productId,

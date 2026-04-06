@@ -360,6 +360,21 @@ final class AmethystApi {
   }) =>
       _getPaginated('/station-debt-entries', page: page, limit: limit);
 
+  /// تسجيل سداد دين — يُنشئ مبيعات محطة (بدون خصم مخزون) ليُحتسب في مبيعات اليوم.
+  Future<Map<String, dynamic>> repayStationDebt({
+    required String debtorName,
+  }) async {
+    try {
+      final res = await _dio.post<Map<String, dynamic>>(
+        '/station-debt-entries/repay',
+        data: <String, dynamic>{'debtorName': debtorName},
+      );
+      return DioClient.unwrapMap(res);
+    } on DioException catch (e) {
+      _client.throwFromDio(e);
+    }
+  }
+
   /// [dateFrom] / [dateTo] بصيغة `yyyy-MM-dd` (يوم واحد: نفس القيمتين).
   Future<Map<String, dynamic>> listVehicleSales({
     int page = 1,

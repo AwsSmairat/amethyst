@@ -25,6 +25,10 @@ abstract class RecordOperationsRepository {
     required List<Map<String, dynamic>> lines,
   });
 
+  Future<Map<String, dynamic>> repayStationDebt({
+    required String debtorName,
+  });
+
   Future<void> createVehicleSale({
     required String vehicleId,
     required String productId,

@@ -11,3 +11,8 @@ export const list = asyncHandler(async (req, res) => {
   const result = await service.listStationDebtEntries(req.query, req.user);
   return paginated(res, result);
 });
+
+export const repay = asyncHandler(async (req, res) => {
+  const result = await service.repayStationDebtForDebtor(req.body, req.user);
+  return success(res, result, 'Debt repaid', 200);
+});

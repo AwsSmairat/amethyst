@@ -3,6 +3,7 @@
   "appTitle": "أماتيست",
   "retry": "إعادة المحاولة",
   "cancel": "إلغاء",
+  "confirm": "تأكيد",
   "notFound": "غير موجود",
   "unknownReport": "تقرير غير معروف",
   "nothingHereYet": "لا يوجد شيء بعد.",
@@ -467,6 +468,12 @@
   "openStationSalesList": "عرض قائمة مبيعات المحطة",
   "openStationDebtList": "عرض قائمة الدين",
   "titleStationDebtList": "قائمة الدين",
+  "stationDebtDebtorLineCount": "{count} سجل",
+  "@stationDebtDebtorLineCount": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
   "dashboardDebtRepaymentTitle": "دين وسداد",
   "dashboardDebtRepaymentAction": "تسجيل دين",
   "stationDebtRegistrationTitle": "دين وسداد",
@@ -478,7 +485,12 @@
   "stationDebtValidationNeedName": "اكتب اسم صاحب الدين.",
   "stationDebtValidationNeedLine": "حدّد كمية واحدة على الأقل لمنتج.",
   "stationDebtValidationMissingProduct": "تعذّر ربط أحد الأعمدة بمنتج في النظام.",
-  "stationDebtErrorApiRouteMissing": "خادم الـ API لا يوفّر مسار «تسجيل الدين» (إصدار قديم). انشر آخر نسخة من الخادم وشغّل ترحيل Prisma، أو اتصل بخادم محلي محدّث يتضمن /api/station-debt-entries.",
+  "stationDebtErrorApiRouteMissing": "خادم الـ API قديم أو لا يتضمن مسارات الدين (تسجيل الدين وسداد الدين). انشر آخر نسخة من الخادم التي تتضمن POST /api/station-debt-entries/repay ثم شغّل npx prisma migrate deploy وأعد تشغيل الخادم.",
+  "stationDebtRepayNoUnpaid": "لا يوجد دين غير مسدد لهذا الاسم. حدّث القائمة أو تحقق من الخادم.",
+  "stationDebtRepayButton": "تم السداد",
+  "stationDebtRepayConfirmTitle": "تأكيد السداد",
+  "stationDebtRepayConfirmMessage": "سيتم تسجيل هذه المبالغ كمبيعات محطة لهذا اليوم وتدخل في الإجمالي (المخزون سبق خصمه عند تسجيل الدين). هل تريد المتابعة؟",
+  "stationDebtRepaySuccess": "تم تسجيل السداد في مبيعات المحطة.",
   "stationSaleRecorded": "تم تسجيل بيع المحطة",
   "stationSalesRecorded": "تم تسجيل مبيعات المحطة",
   "stationSaleValidationNeedLine": "حدّد كمية واحدة على الأقل لمنتج واحد (لا يلزم تعبئة كل الأعمدة).",

@@ -138,23 +138,25 @@ model StationSale {
   @@map("station_sales")
 }
 
-/// تسجيل دين (اسم + أصناف) — بدون خصم من مخزون المحطة وبدون احتساب في مبيعات المحطة/لوحة اليوم.
+/// تسجيل دين (اسم + أصناف). عند السداد يُنشأ StationSale ويُحدَّد repaidAt.
 model StationDebtEntry {
-  id            String   @id @default(uuid())
-  debtorName    String   @map("debtor_name") @db.VarChar(200)
-  productId     String   @map("product_id")
+  id            String    @id @default(uuid())
+  debtorName    String    @map("debtor_name") @db.VarChar(200)
+  productId     String    @map("product_id")
   quantity      Int
-  unitPrice     Decimal  @map("unit_price") @db.Decimal(12, 2)
-  totalAmount   Decimal  @map("total_amount") @db.Decimal(14, 2)
-  recordedById  String   @map("recorded_by_id")
-  createdAt     DateTime @default(now()) @map("created_at")
-  updatedAt     DateTime @updatedAt @map("updated_at")
+  unitPrice     Decimal   @map("unit_price") @db.Decimal(12, 2)
+  totalAmount   Decimal   @map("total_amount") @db.Decimal(14, 2)
+  recordedById  String    @map("recorded_by_id")
+  repaidAt      DateTime? @map("repaid_at")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
 
   product    Product @relation(fields: [productId], references: [id])
   recordedBy User    @relation(fields: [recordedById], references: [id])
 
   @@index([createdAt])
   @@index([debtorName])
+  @@index([repaidAt])
   @@map("station_debt_entries")
 }
 

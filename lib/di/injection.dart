@@ -77,6 +77,9 @@ void setupDependencies() {
   sl.registerLazySingleton<CreateStationDebtEntriesUseCase>(
     () => CreateStationDebtEntriesUseCase(sl<RecordOperationsRepository>()),
   );
+  sl.registerLazySingleton<RepayStationDebtUseCase>(
+    () => RepayStationDebtUseCase(sl<RecordOperationsRepository>()),
+  );
   sl.registerFactory<StationDebtRegistrationCubit>(
     () => StationDebtRegistrationCubit(
       listProductItems: sl<ListProductItemsUseCase>(),

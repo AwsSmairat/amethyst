@@ -112,6 +112,12 @@ abstract class AppLocalizations {
   /// **'إلغاء'**
   String get cancel;
 
+  /// No description provided for @confirm.
+  ///
+  /// In ar, this message translates to:
+  /// **'تأكيد'**
+  String get confirm;
+
   /// No description provided for @notFound.
   ///
   /// In ar, this message translates to:
@@ -2139,6 +2145,12 @@ abstract class AppLocalizations {
   /// **'قائمة الدين'**
   String get titleStationDebtList;
 
+  /// No description provided for @stationDebtDebtorLineCount.
+  ///
+  /// In ar, this message translates to:
+  /// **'{count} سجل'**
+  String stationDebtDebtorLineCount(int count);
+
   /// No description provided for @dashboardDebtRepaymentTitle.
   ///
   /// In ar, this message translates to:
@@ -2208,8 +2220,38 @@ abstract class AppLocalizations {
   /// No description provided for @stationDebtErrorApiRouteMissing.
   ///
   /// In ar, this message translates to:
-  /// **'خادم الـ API لا يوفّر مسار «تسجيل الدين» (إصدار قديم). انشر آخر نسخة من الخادم وشغّل ترحيل Prisma، أو اتصل بخادم محلي محدّث يتضمن /api/station-debt-entries.'**
+  /// **'خادم الـ API قديم أو لا يتضمن مسارات الدين (تسجيل الدين وسداد الدين). انشر آخر نسخة من الخادم التي تتضمن POST /api/station-debt-entries/repay ثم شغّل npx prisma migrate deploy وأعد تشغيل الخادم.'**
   String get stationDebtErrorApiRouteMissing;
+
+  /// No description provided for @stationDebtRepayNoUnpaid.
+  ///
+  /// In ar, this message translates to:
+  /// **'لا يوجد دين غير مسدد لهذا الاسم. حدّث القائمة أو تحقق من الخادم.'**
+  String get stationDebtRepayNoUnpaid;
+
+  /// No description provided for @stationDebtRepayButton.
+  ///
+  /// In ar, this message translates to:
+  /// **'تم السداد'**
+  String get stationDebtRepayButton;
+
+  /// No description provided for @stationDebtRepayConfirmTitle.
+  ///
+  /// In ar, this message translates to:
+  /// **'تأكيد السداد'**
+  String get stationDebtRepayConfirmTitle;
+
+  /// No description provided for @stationDebtRepayConfirmMessage.
+  ///
+  /// In ar, this message translates to:
+  /// **'سيتم تسجيل هذه المبالغ كمبيعات محطة لهذا اليوم وتدخل في الإجمالي (المخزون سبق خصمه عند تسجيل الدين). هل تريد المتابعة؟'**
+  String get stationDebtRepayConfirmMessage;
+
+  /// No description provided for @stationDebtRepaySuccess.
+  ///
+  /// In ar, this message translates to:
+  /// **'تم تسجيل السداد في مبيعات المحطة.'**
+  String get stationDebtRepaySuccess;
 
   /// No description provided for @stationSaleRecorded.
   ///
