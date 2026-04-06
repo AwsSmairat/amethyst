@@ -135,6 +135,50 @@ class AdminDashboardPage extends StatelessWidget {
                   Row(
                     children: <Widget>[
                       Icon(
+                        Icons.account_balance_wallet_outlined,
+                        color: AppColors.brandPrimary,
+                        size: 28,
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          l10n.dashboardDebtRepaymentTitle,
+                          style: theme.textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 20),
+                  FilledButton.icon(
+                    onPressed: () =>
+                        context.push('/admin/station-debt-registration'),
+                    icon: const Icon(Icons.add),
+                    label: Text(l10n.dashboardDebtRepaymentAction),
+                  ),
+                  const SizedBox(height: 4),
+                  Align(
+                    alignment: AlignmentDirectional.centerStart,
+                    child: TextButton(
+                      onPressed: () => context.push('/admin/station-debt-list'),
+                      child: Text(l10n.openStationDebtList),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: <Widget>[
+                  Row(
+                    children: <Widget>[
+                      Icon(
                         Icons.payments_outlined,
                         color: AppColors.brandPrimary,
                         size: 28,

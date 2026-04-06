@@ -467,6 +467,66 @@ class AppLocalizationsAr extends AppLocalizations {
   String get titleVehicleSales => 'مبيعات المركبات';
 
   @override
+  String get vehicleSalesChooseVehicleHint =>
+      'اختر مركبة لعرض مبيعاتها بحسب اليوم.';
+
+  @override
+  String vehicleSalesDaysListTitle(String vehicle) {
+    return 'أيام المبيعات · $vehicle';
+  }
+
+  @override
+  String get vehicleSalesLinesSectionTitle => 'تفاصيل المبيعات';
+
+  @override
+  String get vehicleSaleDestinationHome => 'المنزل';
+
+  @override
+  String get vehicleSaleDestinationStore => 'المتجر';
+
+  @override
+  String vehicleSalesVehicleDayTitle(String vehicle, String date) {
+    return '$vehicle — $date';
+  }
+
+  @override
+  String get vehicleSalesPickDay => 'اختر اليوم';
+
+  @override
+  String get vehicleLoadsChooseVehicleHint =>
+      'اختر مركبة لعرض تحميلاتها بحسب اليوم.';
+
+  @override
+  String vehicleLoadsDaysListTitle(String vehicle) {
+    return 'أيام التحميل · $vehicle';
+  }
+
+  @override
+  String get vehicleLoadsSalesSummaryTitle => 'ملخص مبيعات اليوم';
+
+  @override
+  String get vehicleLoadsLoadsSectionTitle => 'التحميل على المركبة';
+
+  @override
+  String vehicleLoadsGrandTotalSales(String amount) {
+    return 'إجمالي المبيعات: $amount';
+  }
+
+  @override
+  String get stationSalesSummaryHeaderAmount => 'المبلغ';
+
+  @override
+  String get stationSalesSummaryHeaderQuantity => 'الكمية';
+
+  @override
+  String get stationSalesSummaryHeaderCoupon => 'كوبون';
+
+  @override
+  String stationSalesGrandTotalCoupon(String count) {
+    return 'إجمالي الكوبون: $count';
+  }
+
+  @override
   String get titleExpenses => 'المصاريف';
 
   @override
@@ -1028,6 +1088,51 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get openStationSalesList => 'عرض قائمة مبيعات المحطة';
+
+  @override
+  String get openStationDebtList => 'عرض قائمة الدين';
+
+  @override
+  String get titleStationDebtList => 'قائمة الدين';
+
+  @override
+  String get dashboardDebtRepaymentTitle => 'دين وسداد';
+
+  @override
+  String get dashboardDebtRepaymentAction => 'تسجيل دين';
+
+  @override
+  String get stationDebtRegistrationTitle => 'دين وسداد';
+
+  @override
+  String get stationDebtDebtorNameLabel => 'اسم صاحب الدين';
+
+  @override
+  String get stationDebtDebtorNameHint => 'اكتب الاسم كاملاً';
+
+  @override
+  String get stationDebtProductsSection => 'المنتجات والكميات (تسجيل دين)';
+
+  @override
+  String get stationDebtSubmit => 'تسجيل الدين';
+
+  @override
+  String get stationDebtRecorded => 'تم تسجيل الدين';
+
+  @override
+  String get stationDebtValidationNeedName => 'اكتب اسم صاحب الدين.';
+
+  @override
+  String get stationDebtValidationNeedLine =>
+      'حدّد كمية واحدة على الأقل لمنتج.';
+
+  @override
+  String get stationDebtValidationMissingProduct =>
+      'تعذّر ربط أحد الأعمدة بمنتج في النظام.';
+
+  @override
+  String get stationDebtErrorApiRouteMissing =>
+      'خادم الـ API لا يوفّر مسار «تسجيل الدين» (إصدار قديم). انشر آخر نسخة من الخادم وشغّل ترحيل Prisma، أو اتصل بخادم محلي محدّث يتضمن /api/station-debt-entries.';
 
   @override
   String get stationSaleRecorded => 'تم تسجيل بيع المحطة';

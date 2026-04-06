@@ -9,9 +9,17 @@ import 'package:amethyst/features/catalog/presentation/cubit/json_list_cubit.dar
 import 'package:amethyst/features/catalog/presentation/pages/expenses_hub_page.dart';
 import 'package:amethyst/features/catalog/presentation/pages/expense_category_report_page.dart';
 import 'package:amethyst/features/catalog/presentation/pages/json_list_page.dart';
+import 'package:amethyst/features/catalog/presentation/pages/vehicle_loads_hub_page.dart';
+import 'package:amethyst/features/catalog/presentation/pages/vehicle_loads_vehicle_day_page.dart';
+import 'package:amethyst/features/catalog/presentation/pages/vehicle_loads_vehicle_days_list_page.dart';
+import 'package:amethyst/features/catalog/presentation/pages/vehicle_sales_day_page.dart';
+import 'package:amethyst/features/catalog/presentation/pages/vehicle_sales_vehicle_days_list_page.dart';
+import 'package:amethyst/features/catalog/presentation/pages/vehicle_sales_hub_page.dart';
 import 'package:amethyst/features/admin/presentation/widgets/add_station_sale_sheet.dart';
 import 'package:amethyst/features/catalog/presentation/pages/station_sales_list_page.dart';
-import 'package:amethyst/features/catalog/presentation/pages/vehicle_loads_list_page.dart';
+import 'package:amethyst/features/admin/presentation/station_debt/station_debt_list_page.dart';
+import 'package:amethyst/features/admin/presentation/station_debt/station_debt_registration_page.dart';
+import 'package:amethyst/features/admin/presentation/station_debt/cubit/station_debt_registration_cubit.dart';
 import 'package:amethyst/features/dashboard/presentation/pages/admin_dashboard_page.dart';
 import 'package:amethyst/features/dashboard/presentation/pages/admin_station_balance_page.dart';
 import 'package:amethyst/features/dashboard/presentation/pages/reports_page.dart';
@@ -167,14 +175,44 @@ GoRouter createAppRouter(AuthCubit authCubit) {
               ),
               GoRoute(
                 path: 'vehicle-loads',
-                builder: (BuildContext context, _) => BlocProvider(
-                  create: (_) =>
-                      JsonListCubit(() => sl<AmethystApi>().listVehicleLoads())
-                        ..load(),
-                  child: VehicleLoadsListPage(
-                    title: context.l10n.titleVehicleLoads,
+                builder: (BuildContext context, _) =>
+                    const VehicleLoadsHubPage(shellBase: '/super-admin'),
+                routes: <RouteBase>[
+                  GoRoute(
+                    path: ':vehicleId',
+                    builder: (BuildContext context, GoRouterState state) {
+                      final String id = state.pathParameters['vehicleId'] ?? '';
+                      final Object? extra = state.extra;
+                      final Map<String, dynamic>? row =
+                          extra is Map<String, dynamic> ? extra : null;
+                      return VehicleLoadsVehicleDaysListPage(
+                        vehicleId: id,
+                        shellBase: '/super-admin',
+                        vehicleRow: row,
+                      );
+                    },
+                    routes: <RouteBase>[
+                      GoRoute(
+                        path: 'day/:dayKey',
+                        builder: (BuildContext context, GoRouterState state) {
+                          final String vehicleId =
+                              state.pathParameters['vehicleId'] ?? '';
+                          final String dayKey =
+                              state.pathParameters['dayKey'] ?? '';
+                          final Object? extra = state.extra;
+                          final Map<String, dynamic>? row =
+                              extra is Map<String, dynamic> ? extra : null;
+                          return VehicleLoadsVehicleDayPage(
+                            vehicleId: vehicleId,
+                            dayKey: dayKey,
+                            shellBase: '/super-admin',
+                            vehicleRow: row,
+                          );
+                        },
+                      ),
+                    ],
                   ),
-                ),
+                ],
               ),
               GoRoute(
                 path: 'station-sales',
@@ -190,13 +228,44 @@ GoRouter createAppRouter(AuthCubit authCubit) {
               ),
               GoRoute(
                 path: 'vehicle-sales',
-                builder: (BuildContext context, _) => BlocProvider(
-                  create: (_) =>
-                      JsonListCubit(
-                        () => sl<AmethystApi>().listVehicleSales(),
-                      )..load(),
-                  child: JsonListPage(title: context.l10n.titleVehicleSales),
-                ),
+                builder: (BuildContext context, _) =>
+                    const VehicleSalesHubPage(shellBase: '/super-admin'),
+                routes: <RouteBase>[
+                  GoRoute(
+                    path: ':vehicleId',
+                    builder: (BuildContext context, GoRouterState state) {
+                      final String id = state.pathParameters['vehicleId'] ?? '';
+                      final Object? extra = state.extra;
+                      final Map<String, dynamic>? row =
+                          extra is Map<String, dynamic> ? extra : null;
+                      return VehicleSalesVehicleDaysListPage(
+                        vehicleId: id,
+                        shellBase: '/super-admin',
+                        vehicleRow: row,
+                      );
+                    },
+                    routes: <RouteBase>[
+                      GoRoute(
+                        path: 'day/:dayKey',
+                        builder: (BuildContext context, GoRouterState state) {
+                          final String vehicleId =
+                              state.pathParameters['vehicleId'] ?? '';
+                          final String dayKey =
+                              state.pathParameters['dayKey'] ?? '';
+                          final Object? extra = state.extra;
+                          final Map<String, dynamic>? row =
+                              extra is Map<String, dynamic> ? extra : null;
+                          return VehicleSalesDayPage(
+                            vehicleId: vehicleId,
+                            dayKey: dayKey,
+                            shellBase: '/super-admin',
+                            vehicleRow: row,
+                          );
+                        },
+                      ),
+                    ],
+                  ),
+                ],
               ),
               GoRoute(
                 path: 'expenses/report/:category',
@@ -242,25 +311,66 @@ GoRouter createAppRouter(AuthCubit authCubit) {
                 builder: (_, __) => const AdminDashboardPage(),
               ),
               GoRoute(
+                path: 'station-debt-registration',
+                builder: (_, __) => BlocProvider<StationDebtRegistrationCubit>(
+                  create: (_) => sl<StationDebtRegistrationCubit>(),
+                  child: const StationDebtRegistrationPage(),
+                ),
+              ),
+              GoRoute(
+                path: 'station-debt-list',
+                builder: (_, __) => const StationDebtListPage(),
+              ),
+              GoRoute(
                 path: 'vehicle-loads',
-                builder: (BuildContext context, _) => BlocProvider(
-                  create: (_) =>
-                      JsonListCubit(
-                        () => sl<AmethystApi>().listVehicleLoads(),
-                      )..load(),
-                  child: VehicleLoadsListPage(
-                    title: context.l10n.titleVehicleLoads,
-                    fab: Builder(
-                      builder: (BuildContext context) {
-                        return FloatingActionButton.extended(
-                          onPressed: () => showAddVehicleLoadSheet(context),
-                          icon: const Icon(Icons.add),
-                          label: Text(context.l10n.addLoad),
-                        );
-                      },
-                    ),
+                builder: (BuildContext context, _) => VehicleLoadsHubPage(
+                  shellBase: '/admin',
+                  fab: Builder(
+                    builder: (BuildContext context) {
+                      return FloatingActionButton.extended(
+                        onPressed: () => showAddVehicleLoadSheet(context),
+                        icon: const Icon(Icons.add),
+                        label: Text(context.l10n.addLoad),
+                      );
+                    },
                   ),
                 ),
+                routes: <RouteBase>[
+                  GoRoute(
+                    path: ':vehicleId',
+                    builder: (BuildContext context, GoRouterState state) {
+                      final String id = state.pathParameters['vehicleId'] ?? '';
+                      final Object? extra = state.extra;
+                      final Map<String, dynamic>? row =
+                          extra is Map<String, dynamic> ? extra : null;
+                      return VehicleLoadsVehicleDaysListPage(
+                        vehicleId: id,
+                        shellBase: '/admin',
+                        vehicleRow: row,
+                      );
+                    },
+                    routes: <RouteBase>[
+                      GoRoute(
+                        path: 'day/:dayKey',
+                        builder: (BuildContext context, GoRouterState state) {
+                          final String vehicleId =
+                              state.pathParameters['vehicleId'] ?? '';
+                          final String dayKey =
+                              state.pathParameters['dayKey'] ?? '';
+                          final Object? extra = state.extra;
+                          final Map<String, dynamic>? row =
+                              extra is Map<String, dynamic> ? extra : null;
+                          return VehicleLoadsVehicleDayPage(
+                            vehicleId: vehicleId,
+                            dayKey: dayKey,
+                            shellBase: '/admin',
+                            vehicleRow: row,
+                          );
+                        },
+                      ),
+                    ],
+                  ),
+                ],
               ),
               GoRoute(
                 path: 'station-sales',
@@ -285,13 +395,44 @@ GoRouter createAppRouter(AuthCubit authCubit) {
               ),
               GoRoute(
                 path: 'vehicle-sales',
-                builder: (BuildContext context, _) => BlocProvider(
-                  create: (_) =>
-                      JsonListCubit(
-                        () => sl<AmethystApi>().listVehicleSales(),
-                      )..load(),
-                  child: JsonListPage(title: context.l10n.titleVehicleSales),
-                ),
+                builder: (BuildContext context, _) =>
+                    const VehicleSalesHubPage(shellBase: '/admin'),
+                routes: <RouteBase>[
+                  GoRoute(
+                    path: ':vehicleId',
+                    builder: (BuildContext context, GoRouterState state) {
+                      final String id = state.pathParameters['vehicleId'] ?? '';
+                      final Object? extra = state.extra;
+                      final Map<String, dynamic>? row =
+                          extra is Map<String, dynamic> ? extra : null;
+                      return VehicleSalesVehicleDaysListPage(
+                        vehicleId: id,
+                        shellBase: '/admin',
+                        vehicleRow: row,
+                      );
+                    },
+                    routes: <RouteBase>[
+                      GoRoute(
+                        path: 'day/:dayKey',
+                        builder: (BuildContext context, GoRouterState state) {
+                          final String vehicleId =
+                              state.pathParameters['vehicleId'] ?? '';
+                          final String dayKey =
+                              state.pathParameters['dayKey'] ?? '';
+                          final Object? extra = state.extra;
+                          final Map<String, dynamic>? row =
+                              extra is Map<String, dynamic> ? extra : null;
+                          return VehicleSalesDayPage(
+                            vehicleId: vehicleId,
+                            dayKey: dayKey,
+                            shellBase: '/admin',
+                            vehicleRow: row,
+                          );
+                        },
+                      ),
+                    ],
+                  ),
+                ],
               ),
               GoRoute(
                 path: 'station-balance',

@@ -2,6 +2,7 @@ import 'package:amethyst/core/l10n/context_l10n.dart';
 import 'package:amethyst/core/presentation/list_load_state.dart';
 import 'package:amethyst/core/theme/app_colors.dart';
 import 'package:amethyst/features/catalog/presentation/cubit/json_list_cubit.dart';
+import 'package:amethyst/features/catalog/presentation/widgets/product_sales_day_summary.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
@@ -216,7 +217,16 @@ class _StationSalesDayCard extends StatelessWidget {
                 ),
             ],
           ),
-          children: _interleavedSaleLines(context, group.sales),
+          children: <Widget>[
+            if (group.sales.isNotEmpty) ...<Widget>[
+              ProductSalesDaySummary(sales: group.sales),
+              const Padding(
+                padding: EdgeInsets.symmetric(vertical: 12),
+                child: Divider(height: 1),
+              ),
+            ],
+            ..._interleavedSaleLines(context, group.sales),
+          ],
         ),
       ),
     );
@@ -242,6 +252,26 @@ class _StationSaleLine extends StatelessWidget {
 
   final Map<String, dynamic> item;
 
+  static TextSpan _labelSpan(ThemeData theme, String text) {
+    return TextSpan(
+      text: text,
+      style: theme.textTheme.bodySmall?.copyWith(
+        color: AppColors.onSurfaceVariant,
+        fontWeight: FontWeight.w600,
+      ),
+    );
+  }
+
+  static TextSpan _valueSpan(ThemeData theme, String text) {
+    return TextSpan(
+      text: text,
+      style: theme.textTheme.titleSmall?.copyWith(
+        fontWeight: FontWeight.w800,
+        color: AppColors.primaryText,
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = context.l10n;
@@ -255,7 +285,7 @@ class _StationSaleLine extends StatelessWidget {
     if (note.isEmpty) {
       final double? up = _parseMoneyAmount(item['unitPrice']);
       if (up != null && up == 0) {
-        note = context.l10n.couponButton;
+        note = l10n.couponButton;
       }
     }
 
@@ -268,6 +298,7 @@ class _StationSaleLine extends StatelessWidget {
             Expanded(
               child: Text(
                 productTitle.isNotEmpty ? productTitle : l10n.product,
+                textAlign: TextAlign.start,
                 style: theme.textTheme.titleMedium?.copyWith(
                   fontWeight: FontWeight.w800,
                   color: AppColors.primaryText,
@@ -287,11 +318,13 @@ class _StationSaleLine extends StatelessWidget {
           ],
         ),
         if (seller.isNotEmpty) ...<Widget>[
-          const SizedBox(height: 6),
-          Text(
-            '${l10n.sellerLabel}: $seller',
-            style: theme.textTheme.bodySmall?.copyWith(
-              color: AppColors.onSurfaceVariant,
+          const SizedBox(height: 8),
+          Text.rich(
+            TextSpan(
+              children: <TextSpan>[
+                _labelSpan(theme, '${l10n.sellerLabel}: '),
+                _valueSpan(theme, seller),
+              ],
             ),
           ),
         ],
@@ -300,29 +333,36 @@ class _StationSaleLine extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: <Widget>[
             Expanded(
-              child: Text(
-                '${l10n.quantity}: $qty',
-                style: theme.textTheme.titleSmall?.copyWith(
-                  fontWeight: FontWeight.w700,
+              child: Text.rich(
+                TextSpan(
+                  children: <TextSpan>[
+                    _labelSpan(theme, '${l10n.quantity}: '),
+                    _valueSpan(theme, '$qty'),
+                  ],
                 ),
+                textAlign: TextAlign.start,
               ),
             ),
             Expanded(
-              child: Text(
-                '${l10n.unitPrice}: $unitStr',
+              child: Text.rich(
+                TextSpan(
+                  children: <TextSpan>[
+                    _labelSpan(theme, '${l10n.unitPrice}: '),
+                    _valueSpan(theme, unitStr),
+                  ],
+                ),
                 textAlign: TextAlign.center,
-                style: theme.textTheme.bodySmall?.copyWith(
-                  fontWeight: FontWeight.w600,
-                ),
               ),
             ),
             Expanded(
-              child: Text(
-                '${l10n.totalAmountLabel}: $totalStr',
-                textAlign: TextAlign.end,
-                style: theme.textTheme.titleSmall?.copyWith(
-                  fontWeight: FontWeight.w700,
+              child: Text.rich(
+                TextSpan(
+                  children: <TextSpan>[
+                    _labelSpan(theme, '${l10n.totalAmountLabel}: '),
+                    _valueSpan(theme, totalStr),
+                  ],
                 ),
+                textAlign: TextAlign.end,
               ),
             ),
           ],

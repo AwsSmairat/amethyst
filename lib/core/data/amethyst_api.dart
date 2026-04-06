@@ -225,18 +225,28 @@ final class AmethystApi {
     }
   }
 
+  /// [dateFrom] / [dateTo] بصيغة `yyyy-MM-dd` (يوم واحد: نفس القيمتين) — يُفلتر حقل `load_date`.
   Future<Map<String, dynamic>> listVehicleLoads({
     int page = 1,
     int limit = 100,
     String? status,
+    String? vehicleId,
+    String? driverId,
+    String? dateFrom,
+    String? dateTo,
   }) async {
     try {
+      final int safeLimit = limit.clamp(1, 100);
       final res = await _dio.get<Map<String, dynamic>>(
         '/vehicle-loads',
         queryParameters: <String, dynamic>{
           'page': page,
-          'limit': limit,
-          if (status != null) 'status': status,
+          'limit': safeLimit,
+          if (status != null && status.isNotEmpty) 'status': status,
+          if (vehicleId != null && vehicleId.isNotEmpty) 'vehicleId': vehicleId,
+          if (driverId != null && driverId.isNotEmpty) 'driverId': driverId,
+          if (dateFrom != null && dateFrom.isNotEmpty) 'dateFrom': dateFrom,
+          if (dateTo != null && dateTo.isNotEmpty) 'dateTo': dateTo,
         },
       );
       return DioClient.unwrapPaginated(res);
@@ -326,8 +336,57 @@ final class AmethystApi {
     }
   }
 
-  Future<Map<String, dynamic>> listVehicleSales({int page = 1, int limit = 100}) =>
-      _getPaginated('/vehicle-sales', page: page, limit: limit);
+  /// تسجيل دين (لا مخزون، لا StationSale).
+  Future<void> createStationDebtEntries({
+    required String debtorName,
+    required List<Map<String, dynamic>> lines,
+  }) async {
+    try {
+      await _dio.post<Map<String, dynamic>>(
+        '/station-debt-entries',
+        data: <String, dynamic>{
+          'debtorName': debtorName,
+          'lines': lines,
+        },
+      );
+    } on DioException catch (e) {
+      _client.throwFromDio(e);
+    }
+  }
+
+  Future<Map<String, dynamic>> listStationDebtEntries({
+    int page = 1,
+    int limit = 100,
+  }) =>
+      _getPaginated('/station-debt-entries', page: page, limit: limit);
+
+  /// [dateFrom] / [dateTo] بصيغة `yyyy-MM-dd` (يوم واحد: نفس القيمتين).
+  Future<Map<String, dynamic>> listVehicleSales({
+    int page = 1,
+    int limit = 100,
+    String? vehicleId,
+    String? driverId,
+    String? dateFrom,
+    String? dateTo,
+  }) async {
+    try {
+      final int safeLimit = limit.clamp(1, 100);
+      final res = await _dio.get<Map<String, dynamic>>(
+        '/vehicle-sales',
+        queryParameters: <String, dynamic>{
+          'page': page,
+          'limit': safeLimit,
+          if (vehicleId != null && vehicleId.isNotEmpty) 'vehicleId': vehicleId,
+          if (driverId != null && driverId.isNotEmpty) 'driverId': driverId,
+          if (dateFrom != null && dateFrom.isNotEmpty) 'dateFrom': dateFrom,
+          if (dateTo != null && dateTo.isNotEmpty) 'dateTo': dateTo,
+        },
+      );
+      return DioClient.unwrapPaginated(res);
+    } on DioException catch (e) {
+      _client.throwFromDio(e);
+    }
+  }
 
   Future<Map<String, dynamic>> createVehicleSale({
     required String vehicleId,

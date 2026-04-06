@@ -185,6 +185,48 @@
   "titleVehicleLoads": "تحميلات المركبات",
   "titleStationSales": "مبيعات المحطة",
   "titleVehicleSales": "مبيعات المركبات",
+  "vehicleSalesChooseVehicleHint": "اختر مركبة لعرض مبيعاتها بحسب اليوم.",
+  "vehicleSalesDaysListTitle": "أيام المبيعات · {vehicle}",
+  "@vehicleSalesDaysListTitle": {
+    "placeholders": {
+      "vehicle": {"type": "String"}
+    }
+  },
+  "vehicleSalesLinesSectionTitle": "تفاصيل المبيعات",
+  "vehicleSaleDestinationHome": "المنزل",
+  "vehicleSaleDestinationStore": "المتجر",
+  "vehicleSalesVehicleDayTitle": "{vehicle} — {date}",
+  "@vehicleSalesVehicleDayTitle": {
+    "placeholders": {
+      "vehicle": {"type": "String"},
+      "date": {"type": "String"}
+    }
+  },
+  "vehicleSalesPickDay": "اختر اليوم",
+  "vehicleLoadsChooseVehicleHint": "اختر مركبة لعرض تحميلاتها بحسب اليوم.",
+  "vehicleLoadsDaysListTitle": "أيام التحميل · {vehicle}",
+  "@vehicleLoadsDaysListTitle": {
+    "placeholders": {
+      "vehicle": {"type": "String"}
+    }
+  },
+  "vehicleLoadsSalesSummaryTitle": "ملخص مبيعات اليوم",
+  "vehicleLoadsLoadsSectionTitle": "التحميل على المركبة",
+  "vehicleLoadsGrandTotalSales": "إجمالي المبيعات: {amount}",
+  "@vehicleLoadsGrandTotalSales": {
+    "placeholders": {
+      "amount": {"type": "String"}
+    }
+  },
+  "stationSalesSummaryHeaderAmount": "المبلغ",
+  "stationSalesSummaryHeaderQuantity": "الكمية",
+  "stationSalesSummaryHeaderCoupon": "كوبون",
+  "stationSalesGrandTotalCoupon": "إجمالي الكوبون: {count}",
+  "@stationSalesGrandTotalCoupon": {
+    "placeholders": {
+      "count": {"type": "String"}
+    }
+  },
   "titleExpenses": "المصاريف",
   "titleInventoryProducts": "المخزون · المنتجات",
   "titleReturns": "المرتجعات",
@@ -423,6 +465,20 @@
   "stationSaleBack": "رجوع",
   "addStationSale": "إضافة بيع",
   "openStationSalesList": "عرض قائمة مبيعات المحطة",
+  "openStationDebtList": "عرض قائمة الدين",
+  "titleStationDebtList": "قائمة الدين",
+  "dashboardDebtRepaymentTitle": "دين وسداد",
+  "dashboardDebtRepaymentAction": "تسجيل دين",
+  "stationDebtRegistrationTitle": "دين وسداد",
+  "stationDebtDebtorNameLabel": "اسم صاحب الدين",
+  "stationDebtDebtorNameHint": "اكتب الاسم كاملاً",
+  "stationDebtProductsSection": "المنتجات والكميات (تسجيل دين)",
+  "stationDebtSubmit": "تسجيل الدين",
+  "stationDebtRecorded": "تم تسجيل الدين",
+  "stationDebtValidationNeedName": "اكتب اسم صاحب الدين.",
+  "stationDebtValidationNeedLine": "حدّد كمية واحدة على الأقل لمنتج.",
+  "stationDebtValidationMissingProduct": "تعذّر ربط أحد الأعمدة بمنتج في النظام.",
+  "stationDebtErrorApiRouteMissing": "خادم الـ API لا يوفّر مسار «تسجيل الدين» (إصدار قديم). انشر آخر نسخة من الخادم وشغّل ترحيل Prisma، أو اتصل بخادم محلي محدّث يتضمن /api/station-debt-entries.",
   "stationSaleRecorded": "تم تسجيل بيع المحطة",
   "stationSalesRecorded": "تم تسجيل مبيعات المحطة",
   "stationSaleValidationNeedLine": "حدّد كمية واحدة على الأقل لمنتج واحد (لا يلزم تعبئة كل الأعمدة).",

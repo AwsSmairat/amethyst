@@ -32,6 +32,21 @@ final class CreateStationSaleUseCase {
       );
 }
 
+final class CreateStationDebtEntriesUseCase {
+  CreateStationDebtEntriesUseCase(this._repository);
+
+  final RecordOperationsRepository _repository;
+
+  Future<void> call({
+    required String debtorName,
+    required List<Map<String, dynamic>> lines,
+  }) =>
+      _repository.createStationDebtEntries(
+        debtorName: debtorName,
+        lines: lines,
+      );
+}
+
 final class CreateVehicleSaleUseCase {
   CreateVehicleSaleUseCase(this._repository);
 

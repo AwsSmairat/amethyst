@@ -19,6 +19,12 @@ abstract class RecordOperationsRepository {
     String? note,
   });
 
+  /// دين محطة — منفصل عن مبيعات المحطة.
+  Future<void> createStationDebtEntries({
+    required String debtorName,
+    required List<Map<String, dynamic>> lines,
+  });
+
   Future<void> createVehicleSale({
     required String vehicleId,
     required String productId,

@@ -3,11 +3,18 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 typedef JsonListFetcher = Future<Map<String, dynamic>> Function();
 
+/// يُحوّل أي خطأ من [load] إلى نص يُعرض في الواجهة (مثلاً تعريب أخطاء الـ API).
+typedef JsonListErrorMapper = String Function(Object error);
+
 /// Loads `items` from a paginated API response `{ items, pagination }`.
 final class JsonListCubit extends Cubit<ListLoadState> {
-  JsonListCubit(this._fetch) : super(const ListLoadInitial());
+  JsonListCubit(
+    this._fetch, {
+    this.mapLoadError,
+  }) : super(const ListLoadInitial());
 
   final JsonListFetcher _fetch;
+  final JsonListErrorMapper? mapLoadError;
 
   Future<void> load() async {
     emit(const ListLoadLoading());
@@ -24,7 +31,8 @@ final class JsonListCubit extends Cubit<ListLoadState> {
       }
       emit(ListLoadLoaded(items));
     } on Object catch (e) {
-      emit(ListLoadFailure(e.toString()));
+      final String msg = mapLoadError?.call(e) ?? e.toString();
+      emit(ListLoadFailure(msg));
     }
   }
 }

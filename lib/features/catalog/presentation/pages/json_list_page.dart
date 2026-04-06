@@ -13,6 +13,7 @@ class JsonListPage extends StatelessWidget {
     this.trailingBuilder,
     this.where,
     this.topSection,
+    this.failureMessageBuilder,
   });
 
   final String title;
@@ -21,6 +22,8 @@ class JsonListPage extends StatelessWidget {
   final Widget Function(Map<String, dynamic> item)? trailingBuilder;
   final bool Function(Map<String, dynamic> item)? where;
   final Widget? topSection;
+  /// عندما يكون [ListLoadFailure.message] رمزاً داخلياً (مثل مسار API مفقود).
+  final String Function(BuildContext context, String rawMessage)? failureMessageBuilder;
 
   @override
   Widget build(BuildContext context) {
@@ -45,13 +48,18 @@ class JsonListPage extends StatelessWidget {
                   return const Center(child: CircularProgressIndicator());
                 }
                 if (state is ListLoadFailure) {
+                  final String displayMessage = failureMessageBuilder?.call(
+                        context,
+                        state.message,
+                      ) ??
+                      state.message;
                   return Center(
                     child: Padding(
                       padding: const EdgeInsets.all(24),
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
                         children: <Widget>[
-                          Text(state.message, textAlign: TextAlign.center),
+                          Text(displayMessage, textAlign: TextAlign.center),
                           const SizedBox(height: 16),
                           FilledButton(
                             onPressed: () => context.read<JsonListCubit>().load(),

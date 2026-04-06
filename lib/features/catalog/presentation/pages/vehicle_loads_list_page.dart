@@ -3,6 +3,7 @@ import 'package:amethyst/core/presentation/list_load_state.dart';
 import 'package:amethyst/core/theme/app_colors.dart';
 import 'package:amethyst/core/utils/vehicle_loads_export.dart';
 import 'package:amethyst/features/catalog/presentation/cubit/json_list_cubit.dart';
+import 'package:amethyst/features/catalog/presentation/widgets/vehicle_load_line_tile.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
@@ -234,100 +235,12 @@ List<Widget> _interleavedLines(
 ) {
   final List<Widget> w = <Widget>[];
   for (var i = 0; i < loads.length; i++) {
-    w.add(_VehicleLoadLine(item: loads[i]));
+    w.add(VehicleLoadLineTile(item: loads[i]));
     if (i < loads.length - 1) {
       w.add(const Divider(height: 24));
     }
   }
   return w;
-}
-
-/// صف منتج واحد داخل مجموعة اليوم (بدون تكرار التاريخ).
-class _VehicleLoadLine extends StatelessWidget {
-  const _VehicleLoadLine({required this.item});
-
-  final Map<String, dynamic> item;
-
-  @override
-  Widget build(BuildContext context) {
-    final l10n = context.l10n;
-    final theme = Theme.of(context);
-    final String productTitle = _nestedString(item['product'], 'name');
-    final String vehicleNo = _nestedString(item['vehicle'], 'vehicleNumber');
-    final String driverName = _nestedString(item['driver'], 'fullName');
-    final String statusRaw = item['status']?.toString() ?? '';
-    final String statusAr = _statusLabel(context, statusRaw);
-    final dynamic qty = item['quantityLoaded'];
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: <Widget>[
-        Text(
-          productTitle.isNotEmpty ? productTitle : l10n.product,
-          style: theme.textTheme.titleMedium?.copyWith(
-            fontWeight: FontWeight.w800,
-            color: AppColors.primaryText,
-          ),
-        ),
-        if (vehicleNo.isNotEmpty || driverName.isNotEmpty) ...<Widget>[
-          const SizedBox(height: 6),
-          Text(
-            <String>[
-              if (vehicleNo.isNotEmpty) l10n.vehicleWithNumber(vehicleNo),
-              if (driverName.isNotEmpty) driverName,
-            ].join(' · '),
-            style: theme.textTheme.bodySmall?.copyWith(
-              color: AppColors.onSurfaceVariant,
-            ),
-          ),
-        ],
-        const SizedBox(height: 10),
-        Row(
-          children: <Widget>[
-            _StatusChip(label: statusAr),
-            const Spacer(),
-            Text(
-              '${l10n.quantity}: $qty',
-              style: theme.textTheme.titleSmall?.copyWith(
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-          ],
-        ),
-      ],
-    );
-  }
-}
-
-class _StatusChip extends StatelessWidget {
-  const _StatusChip({required this.label});
-
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-      decoration: BoxDecoration(
-        color: AppColors.surfaceContainerHigh,
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Text(
-        label,
-        style: Theme.of(context).textTheme.labelMedium,
-      ),
-    );
-  }
-}
-
-String _nestedString(dynamic obj, String key) {
-  if (obj is Map<String, dynamic>) {
-    return obj[key]?.toString() ?? '';
-  }
-  if (obj is Map) {
-    return obj[key]?.toString() ?? '';
-  }
-  return '';
 }
 
 DateTime? _parseDate(dynamic v) {
@@ -338,15 +251,3 @@ DateTime? _parseDate(dynamic v) {
 
 bool _isSameDay(DateTime a, DateTime b) =>
     a.year == b.year && a.month == b.month && a.day == b.day;
-
-String _statusLabel(BuildContext context, String status) {
-  final l10n = context.l10n;
-  switch (status.toLowerCase()) {
-    case 'open':
-      return l10n.loadStatusOpen;
-    case 'closed':
-      return l10n.loadStatusClosed;
-    default:
-      return status;
-  }
-}

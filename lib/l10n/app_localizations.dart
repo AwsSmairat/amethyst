@@ -964,6 +964,102 @@ abstract class AppLocalizations {
   /// **'مبيعات المركبات'**
   String get titleVehicleSales;
 
+  /// No description provided for @vehicleSalesChooseVehicleHint.
+  ///
+  /// In ar, this message translates to:
+  /// **'اختر مركبة لعرض مبيعاتها بحسب اليوم.'**
+  String get vehicleSalesChooseVehicleHint;
+
+  /// No description provided for @vehicleSalesDaysListTitle.
+  ///
+  /// In ar, this message translates to:
+  /// **'أيام المبيعات · {vehicle}'**
+  String vehicleSalesDaysListTitle(String vehicle);
+
+  /// No description provided for @vehicleSalesLinesSectionTitle.
+  ///
+  /// In ar, this message translates to:
+  /// **'تفاصيل المبيعات'**
+  String get vehicleSalesLinesSectionTitle;
+
+  /// No description provided for @vehicleSaleDestinationHome.
+  ///
+  /// In ar, this message translates to:
+  /// **'المنزل'**
+  String get vehicleSaleDestinationHome;
+
+  /// No description provided for @vehicleSaleDestinationStore.
+  ///
+  /// In ar, this message translates to:
+  /// **'المتجر'**
+  String get vehicleSaleDestinationStore;
+
+  /// No description provided for @vehicleSalesVehicleDayTitle.
+  ///
+  /// In ar, this message translates to:
+  /// **'{vehicle} — {date}'**
+  String vehicleSalesVehicleDayTitle(String vehicle, String date);
+
+  /// No description provided for @vehicleSalesPickDay.
+  ///
+  /// In ar, this message translates to:
+  /// **'اختر اليوم'**
+  String get vehicleSalesPickDay;
+
+  /// No description provided for @vehicleLoadsChooseVehicleHint.
+  ///
+  /// In ar, this message translates to:
+  /// **'اختر مركبة لعرض تحميلاتها بحسب اليوم.'**
+  String get vehicleLoadsChooseVehicleHint;
+
+  /// No description provided for @vehicleLoadsDaysListTitle.
+  ///
+  /// In ar, this message translates to:
+  /// **'أيام التحميل · {vehicle}'**
+  String vehicleLoadsDaysListTitle(String vehicle);
+
+  /// No description provided for @vehicleLoadsSalesSummaryTitle.
+  ///
+  /// In ar, this message translates to:
+  /// **'ملخص مبيعات اليوم'**
+  String get vehicleLoadsSalesSummaryTitle;
+
+  /// No description provided for @vehicleLoadsLoadsSectionTitle.
+  ///
+  /// In ar, this message translates to:
+  /// **'التحميل على المركبة'**
+  String get vehicleLoadsLoadsSectionTitle;
+
+  /// No description provided for @vehicleLoadsGrandTotalSales.
+  ///
+  /// In ar, this message translates to:
+  /// **'إجمالي المبيعات: {amount}'**
+  String vehicleLoadsGrandTotalSales(String amount);
+
+  /// No description provided for @stationSalesSummaryHeaderAmount.
+  ///
+  /// In ar, this message translates to:
+  /// **'المبلغ'**
+  String get stationSalesSummaryHeaderAmount;
+
+  /// No description provided for @stationSalesSummaryHeaderQuantity.
+  ///
+  /// In ar, this message translates to:
+  /// **'الكمية'**
+  String get stationSalesSummaryHeaderQuantity;
+
+  /// No description provided for @stationSalesSummaryHeaderCoupon.
+  ///
+  /// In ar, this message translates to:
+  /// **'كوبون'**
+  String get stationSalesSummaryHeaderCoupon;
+
+  /// No description provided for @stationSalesGrandTotalCoupon.
+  ///
+  /// In ar, this message translates to:
+  /// **'إجمالي الكوبون: {count}'**
+  String stationSalesGrandTotalCoupon(String count);
+
   /// No description provided for @titleExpenses.
   ///
   /// In ar, this message translates to:
@@ -2030,6 +2126,90 @@ abstract class AppLocalizations {
   /// In ar, this message translates to:
   /// **'عرض قائمة مبيعات المحطة'**
   String get openStationSalesList;
+
+  /// No description provided for @openStationDebtList.
+  ///
+  /// In ar, this message translates to:
+  /// **'عرض قائمة الدين'**
+  String get openStationDebtList;
+
+  /// No description provided for @titleStationDebtList.
+  ///
+  /// In ar, this message translates to:
+  /// **'قائمة الدين'**
+  String get titleStationDebtList;
+
+  /// No description provided for @dashboardDebtRepaymentTitle.
+  ///
+  /// In ar, this message translates to:
+  /// **'دين وسداد'**
+  String get dashboardDebtRepaymentTitle;
+
+  /// No description provided for @dashboardDebtRepaymentAction.
+  ///
+  /// In ar, this message translates to:
+  /// **'تسجيل دين'**
+  String get dashboardDebtRepaymentAction;
+
+  /// No description provided for @stationDebtRegistrationTitle.
+  ///
+  /// In ar, this message translates to:
+  /// **'دين وسداد'**
+  String get stationDebtRegistrationTitle;
+
+  /// No description provided for @stationDebtDebtorNameLabel.
+  ///
+  /// In ar, this message translates to:
+  /// **'اسم صاحب الدين'**
+  String get stationDebtDebtorNameLabel;
+
+  /// No description provided for @stationDebtDebtorNameHint.
+  ///
+  /// In ar, this message translates to:
+  /// **'اكتب الاسم كاملاً'**
+  String get stationDebtDebtorNameHint;
+
+  /// No description provided for @stationDebtProductsSection.
+  ///
+  /// In ar, this message translates to:
+  /// **'المنتجات والكميات (تسجيل دين)'**
+  String get stationDebtProductsSection;
+
+  /// No description provided for @stationDebtSubmit.
+  ///
+  /// In ar, this message translates to:
+  /// **'تسجيل الدين'**
+  String get stationDebtSubmit;
+
+  /// No description provided for @stationDebtRecorded.
+  ///
+  /// In ar, this message translates to:
+  /// **'تم تسجيل الدين'**
+  String get stationDebtRecorded;
+
+  /// No description provided for @stationDebtValidationNeedName.
+  ///
+  /// In ar, this message translates to:
+  /// **'اكتب اسم صاحب الدين.'**
+  String get stationDebtValidationNeedName;
+
+  /// No description provided for @stationDebtValidationNeedLine.
+  ///
+  /// In ar, this message translates to:
+  /// **'حدّد كمية واحدة على الأقل لمنتج.'**
+  String get stationDebtValidationNeedLine;
+
+  /// No description provided for @stationDebtValidationMissingProduct.
+  ///
+  /// In ar, this message translates to:
+  /// **'تعذّر ربط أحد الأعمدة بمنتج في النظام.'**
+  String get stationDebtValidationMissingProduct;
+
+  /// No description provided for @stationDebtErrorApiRouteMissing.
+  ///
+  /// In ar, this message translates to:
+  /// **'خادم الـ API لا يوفّر مسار «تسجيل الدين» (إصدار قديم). انشر آخر نسخة من الخادم وشغّل ترحيل Prisma، أو اتصل بخادم محلي محدّث يتضمن /api/station-debt-entries.'**
+  String get stationDebtErrorApiRouteMissing;
 
   /// No description provided for @stationSaleRecorded.
   ///

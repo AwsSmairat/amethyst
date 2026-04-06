@@ -4,21 +4,7 @@ import { auditLog } from './audit.service.js';
 import { parsePagination, parseSort } from '../utils/pagination.js';
 import { parseDateRange, startOfDay, endOfDay } from '../utils/dateRange.js';
 import { mapStationSale } from '../utils/serialize.js';
-
-/**
- * أسماء المنتجات الافتراضية لعمودي الجالون والقارورة في وضع التعبئة (مرادفة
- * `StationSaleApiProductNames.filling` في التطبيق). تُستخدم كاحتياط إذا كان
- * `unit_type` في قاعدة البيانات غير مطابق لـ gallon/bottle.
- */
-const FILLING_SKIP_STATION_STOCK_BY_NAME = new Set([
-  'Water Gallon',
-  'Water Bottle',
-]);
-
-/** مطابقة بدون حساسية لحالة الأحرف + أسماء شائعة بالعربي إن وُجدت في قاعدة البيانات. */
-const FILLING_SKIP_STATION_STOCK_BY_NAME_LOWER = new Set(
-  [...FILLING_SKIP_STATION_STOCK_BY_NAME].map((n) => n.toLowerCase())
-);
+import { productNameSuggestsFillingSkipStock } from '../utils/stationStockSkip.js';
 
 function isFillingSaleRequest(v) {
   if (v === true || v === 1) {
@@ -42,28 +28,6 @@ function fillingLineSlotAsInt(body) {
     return null;
   }
   return n;
-}
-
-function productNameSuggestsFillingSkipStock(name) {
-  if (!name || typeof name !== 'string') {
-    return false;
-  }
-  const t = name.trim();
-  if (FILLING_SKIP_STATION_STOCK_BY_NAME.has(t)) {
-    return true;
-  }
-  const lower = t.toLowerCase();
-  if (FILLING_SKIP_STATION_STOCK_BY_NAME_LOWER.has(lower)) {
-    return true;
-  }
-  // أسماء عربية شائعة لعمودي الجالون/القارورة عندما لا يطابق الاسم الإنجليزي.
-  if (t.includes('جالون')) {
-    return true;
-  }
-  if (t.includes('قارورة') || t.includes('قاروره')) {
-    return true;
-  }
-  return false;
 }
 
 export async function listStationSales(query, actor) {
