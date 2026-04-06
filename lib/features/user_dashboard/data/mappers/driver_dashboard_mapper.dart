@@ -28,22 +28,11 @@ DriverDashboard mapDriverDashboardApi(
     );
   }
 
-  final notesSummary = json['notesSummary'] as List<dynamic>? ?? <dynamic>[];
-  var expenseNote = 'لا ملاحظات بعد';
-  if (notesSummary.isNotEmpty) {
-    final first = notesSummary.first as Map<String, dynamic>;
-    expenseNote = first['note']?.toString() ?? expenseNote;
-  }
-
-  final expensesTotal = (json['totalExpensesToday'] as num?)?.toDouble() ?? 0.0;
-
   return DriverDashboard(
     title: driverDisplayName,
     vehicleLabel: vehicleLabel,
     shiftRemaining: 'اليوم',
     isActive: vehicle?['isActive'] as bool? ?? false,
     inventory: inventory,
-    expensesTotal: expensesTotal,
-    expenseNote: expenseNote,
   );
 }

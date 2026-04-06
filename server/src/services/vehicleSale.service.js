@@ -9,6 +9,115 @@ function remainingOnLoad(load) {
   return load.quantityLoaded - load.quantitySold - load.quantityReturned;
 }
 
+/**
+ * أصناف «متجر» (أسعار منفصلة) تستهلك حمل المركبة لمُنتَجات الأساس.
+ * لكل بند قائمة أسماء مرشّحة (أي اسم موجود فعلياً في `products` يُستخدم).
+ * الكرتون غالباً يُحمَّل باسم مختلف عن `Water Carton` (مثل Carton Mahdi أو عربي).
+ */
+const STORE_CANONICAL_NAME_LISTS = {
+  'جالون متجر': ['Water Gallon'],
+  'قاروره متجر': ['Water Bottle'],
+  'مهدي متجر': [
+    'Water Carton',
+    'Carton Mahdi',
+    'ك مهدي',
+    'مهدي (كرتون)',
+  ],
+};
+
+function normalizeProductNameKey(name) {
+  return (name || '').trim().normalize('NFC');
+}
+
+function resolveStoreSaleKey(productName) {
+  const key = normalizeProductNameKey(productName);
+  if (STORE_CANONICAL_NAME_LISTS[key]) {
+    return key;
+  }
+  for (const k of Object.keys(STORE_CANONICAL_NAME_LISTS)) {
+    if (normalizeProductNameKey(k) === key) {
+      return k;
+    }
+  }
+  return null;
+}
+
+/**
+ * @returns {Promise<import('@prisma/client').Product[]|null>}
+ */
+async function resolveStoreSaleCanonicalProducts(tx, product) {
+  const mapKey = resolveStoreSaleKey(product.name);
+  const nameList = mapKey ? STORE_CANONICAL_NAME_LISTS[mapKey] : null;
+  if (!nameList) {
+    return null;
+  }
+  const rows = [];
+  for (const name of nameList) {
+    const p = await tx.product.findFirst({
+      where: { name, isActive: true },
+    });
+    if (p) {
+      rows.push(p);
+    }
+  }
+  if (rows.length === 0) {
+    throw new AppError(
+      'No matching base product for store sale (create Water Gallon/Bottle/Carton in products)',
+      400,
+      'MISSING_CANONICAL_PRODUCT'
+    );
+  }
+  return rows;
+}
+
+/**
+ * يخصم من أي تحميل مفتوح لأحد المنتجات (FIFO حسب تاريخ التحميل).
+ * @returns {Promise<Map<string, number>>} productId → كمية مباعة من حمول ذلك المنتج
+ */
+async function allocateSaleFromAnyProduct(tx, vehicleId, productIds, quantity) {
+  if (productIds.length === 0) {
+    throw new AppError('No products for allocation', 400, 'BAD_REQUEST');
+  }
+  const loads = await tx.vehicleLoad.findMany({
+    where: {
+      vehicleId,
+      productId: { in: productIds },
+      status: 'open',
+    },
+    orderBy: { createdAt: 'asc' },
+  });
+
+  let remaining = quantity;
+  /** @type {Map<string, number>} */
+  const consumed = new Map();
+  for (const load of loads) {
+    const avail = remainingOnLoad(load);
+    if (avail <= 0) {
+      continue;
+    }
+    const take = Math.min(avail, remaining);
+    await tx.vehicleLoad.update({
+      where: { id: load.id },
+      data: { quantitySold: { increment: take } },
+    });
+    const prev = consumed.get(load.productId) ?? 0;
+    consumed.set(load.productId, prev + take);
+    remaining -= take;
+    if (remaining === 0) {
+      break;
+    }
+  }
+
+  if (remaining > 0) {
+    throw new AppError(
+      'Insufficient loaded stock on vehicle for this product',
+      400,
+      'INSUFFICIENT_STOCK'
+    );
+  }
+  return consumed;
+}
+
 async function allocateSale(tx, vehicleId, productId, quantity) {
   const loads = await tx.vehicleLoad.findMany({
     where: {
@@ -39,6 +148,15 @@ async function allocateSale(tx, vehicleId, productId, quantity) {
       'INSUFFICIENT_STOCK'
     );
   }
+}
+
+/**
+ * كراتين (وأيضاً دفاتر كوبون): يُخصَم من `station_stock` عند بيع السيارة فقط، لا عند التحميل.
+ * يعتمد على `unit_type` في جدول المنتجات — تأكد أن أصناف الكراتين مسجّلة كـ `carton`.
+ */
+function deductsStationStockOnVehicleSale(product) {
+  const t = product.unitType;
+  return t === 'carton' || t === 'coupon';
 }
 
 export async function listVehicleSales(query, actor) {
@@ -120,24 +238,63 @@ export async function createVehicleSale(body, actor) {
       throw new AppError('Product not found or inactive', 404, 'NOT_FOUND');
     }
 
-    await allocateSale(tx, body.vehicleId, body.productId, body.quantity);
+    const storeCanonicalRows = await resolveStoreSaleCanonicalProducts(
+      tx,
+      product
+    );
 
-    // كراتين/كوبونات: مخزون المحطة يُخصَم عند البيع من السيارة فقط، لا عند التحميل.
-    if (product.unitType === 'carton' || product.unitType === 'coupon') {
-      const fresh = await tx.product.findUnique({
-        where: { id: body.productId },
-      });
-      if (!fresh || fresh.stationStock < body.quantity) {
-        throw new AppError(
-          'Cannot sell more than available station stock',
-          400,
-          'INSUFFICIENT_STOCK'
-        );
+    if (storeCanonicalRows && storeCanonicalRows.length > 0) {
+      const allocationIds = storeCanonicalRows.map((r) => r.id);
+      const consumed = await allocateSaleFromAnyProduct(
+        tx,
+        body.vehicleId,
+        allocationIds,
+        body.quantity
+      );
+
+      if (deductsStationStockOnVehicleSale(product)) {
+        for (const [loadProductId, qty] of consumed) {
+          const row = await tx.product.findUnique({
+            where: { id: loadProductId },
+          });
+          if (!row || !deductsStationStockOnVehicleSale(row)) {
+            continue;
+          }
+          const updated = await tx.product.updateMany({
+            where: {
+              id: loadProductId,
+              stationStock: { gte: qty },
+            },
+            data: { stationStock: { decrement: qty } },
+          });
+          if (updated.count !== 1) {
+            throw new AppError(
+              'Cannot sell more than available station stock',
+              400,
+              'INSUFFICIENT_STOCK'
+            );
+          }
+        }
       }
-      await tx.product.update({
-        where: { id: body.productId },
-        data: { stationStock: { decrement: body.quantity } },
-      });
+    } else {
+      await allocateSale(tx, body.vehicleId, product.id, body.quantity);
+
+      if (deductsStationStockOnVehicleSale(product)) {
+        const updated = await tx.product.updateMany({
+          where: {
+            id: product.id,
+            stationStock: { gte: body.quantity },
+          },
+          data: { stationStock: { decrement: body.quantity } },
+        });
+        if (updated.count !== 1) {
+          throw new AppError(
+            'Cannot sell more than available station stock',
+            400,
+            'INSUFFICIENT_STOCK'
+          );
+        }
+      }
     }
 
     const totalAmount = body.quantity * body.unitPrice;

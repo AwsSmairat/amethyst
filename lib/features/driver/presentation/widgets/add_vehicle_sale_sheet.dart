@@ -35,19 +35,28 @@ class _AddVehicleSaleBody extends StatefulWidget {
 }
 
 class _AddVehicleSaleBodyState extends State<_AddVehicleSaleBody> {
-  static const int _colCount = 4;
-
-  static const List<String> _kFixedProductNames = <String>[
+  static const List<String> _kHomeProductNames = <String>[
     'Water Gallon',
     'Water Bottle',
     'Water Carton',
     'Coupon',
   ];
 
-  final List<int> _quantities = List<int>.filled(_colCount, 0);
-  final List<String?> _productIds = List<String?>.filled(_colCount, null);
-  final List<String> _productLabels = List<String>.filled(_colCount, '');
-  final List<double?> _unitPrices = List<double?>.filled(_colCount, null);
+  /// أسماء المنتجات في الـ API — مطابقة لقوالب السوبر أدمن وصف التحميل.
+  static const List<String> _kStoreProductNames = <String>[
+    'جالون متجر',
+    'قاروره متجر',
+    'مهدي متجر',
+  ];
+
+  int _columnCount = 4;
+  List<int> _quantities = List<int>.filled(4, 0);
+  List<String?> _productIds = List<String?>.filled(4, null);
+  List<String> _productLabels = List<String>.filled(4, '');
+  List<double?> _unitPrices = List<double?>.filled(4, null);
+
+  /// قائمة المنتجات من الـ API (بحث بالاسم مع تطبيع بسيط).
+  List<Map<String, dynamic>> _productItems = <Map<String, dynamic>>[];
 
   String? _vehicleId;
   bool _loadingCtx = true;
@@ -81,27 +90,18 @@ class _AddVehicleSaleBodyState extends State<_AddVehicleSaleBody> {
       final api = sl<AmethystApi>();
       final dash = await api.getDashboardDriver();
       final vehicle = dash['assignedVehicle'] as Map<String, dynamic>?;
-      final products = await api.listProducts();
+      final products = await api.listProducts(page: 1, limit: 100);
       final items = (products['items'] as List<dynamic>? ?? <dynamic>[])
           .whereType<Map<String, dynamic>>()
           .toList(growable: false);
-      final byName = <String, Map<String, dynamic>>{};
-      for (final pr in items) {
-        final n = pr['name']?.toString();
-        if (n != null) byName[n] = pr;
-      }
       if (!mounted) return;
       setState(() {
         _vehicleId = vehicle?['id'] as String?;
-        for (var i = 0; i < _colCount; i++) {
-          final name =
-              i < _kFixedProductNames.length ? _kFixedProductNames[i] : '';
-          final match = name.isNotEmpty ? byName[name] : null;
-          _productIds[i] = match?['id'] as String?;
-          _productLabels[i] = match?['name']?.toString() ?? name;
-          _unitPrices[i] = parseDynamicDouble(match?['price']);
-        }
+        _productItems = items;
         _loadingCtx = false;
+        if (_selectedPlace != null) {
+          _applyPlaceBindings(_selectedPlace!);
+        }
       });
     } on Object catch (e) {
       if (!mounted) return;
@@ -112,6 +112,53 @@ class _AddVehicleSaleBodyState extends State<_AddVehicleSaleBody> {
     }
   }
 
+  void _applyPlaceBindings(VehicleSalePlace place) {
+    final names = place == VehicleSalePlace.store
+        ? _kStoreProductNames
+        : _kHomeProductNames;
+    _columnCount = names.length;
+    _quantities = List<int>.filled(_columnCount, 0);
+    _productIds = List<String?>.filled(_columnCount, null);
+    _productLabels = List<String>.filled(_columnCount, '');
+    _unitPrices = List<double?>.filled(_columnCount, null);
+    for (var i = 0; i < _columnCount; i++) {
+      final String name = names[i];
+      final match = _findProductByCatalogName(name);
+      _productIds[i] = match?['id']?.toString();
+      _productLabels[i] = match?['name']?.toString().trim() ?? name;
+      _unitPrices[i] = parseDynamicDouble(match?['price']);
+    }
+  }
+
+  /// يطابق اسم القالب مع `products.name` بعد `trim` (وتطابق حالة الأحرف للأسماء اللاتينية).
+  /// يُفضَّل منتج نشط فقط؛ البيع من السيرفر يُرفض إن كان المنتج غير نشط.
+  Map<String, dynamic>? _findProductByCatalogName(String requestedName) {
+    final String want = requestedName.trim();
+    if (want.isEmpty) {
+      return null;
+    }
+    for (final Map<String, dynamic> pr in _productItems) {
+      if (pr['isActive'] == false) {
+        continue;
+      }
+      final String? n = pr['name']?.toString().trim();
+      if (n != null && n == want) {
+        return pr;
+      }
+    }
+    final String wantLower = want.toLowerCase();
+    for (final Map<String, dynamic> pr in _productItems) {
+      if (pr['isActive'] == false) {
+        continue;
+      }
+      final String? n = pr['name']?.toString().trim();
+      if (n != null && n.toLowerCase() == wantLower) {
+        return pr;
+      }
+    }
+    return null;
+  }
+
   void _adjustQuantity(int index, int delta) {
     setState(() {
       final next = _quantities[index] + delta;
@@ -120,7 +167,8 @@ class _AddVehicleSaleBodyState extends State<_AddVehicleSaleBody> {
   }
 
   String _columnTitle(BuildContext context, int index) {
-    if (index == _colCount - 1) {
+    if (_selectedPlace == VehicleSalePlace.home &&
+        index == _columnCount - 1) {
       return context.l10n.couponProduct;
     }
     final label = _productLabels[index];
@@ -130,14 +178,14 @@ class _AddVehicleSaleBodyState extends State<_AddVehicleSaleBody> {
   List<({String productId, int quantity, double unitPrice})>? _collectLines() {
     final l10n = context.l10n;
     final lines = <({String productId, int quantity, double unitPrice})>[];
-    for (var i = 0; i < _colCount; i++) {
+    for (var i = 0; i < _columnCount; i++) {
       final pid = _productIds[i];
       final q = _quantities[i];
       final unit = _unitPrices[i];
       if (q <= 0) continue;
       if (pid == null) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(l10n.vehicleLoadInvalidRow)),
+          SnackBar(content: Text(l10n.stationProductNotInCatalog)),
         );
         return null;
       }
@@ -243,6 +291,7 @@ class _AddVehicleSaleBodyState extends State<_AddVehicleSaleBody> {
                               _homeCouponLine1On = false;
                               _homeCouponLine2On = false;
                             }
+                            _applyPlaceBindings(v);
                           });
                         },
                 ),
@@ -269,12 +318,12 @@ class _AddVehicleSaleBodyState extends State<_AddVehicleSaleBody> {
                   Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: <Widget>[
-                      for (var i = 0; i < _colCount; i++)
+                      for (var i = 0; i < _columnCount; i++)
                         Expanded(
                           child: Padding(
                             padding: EdgeInsetsDirectional.only(
                               start: i == 0 ? 0 : 4,
-                              end: i == _colCount - 1 ? 0 : 4,
+                              end: i == _columnCount - 1 ? 0 : 4,
                             ),
                             child: _VehicleSaleColumn(
                               index: i,

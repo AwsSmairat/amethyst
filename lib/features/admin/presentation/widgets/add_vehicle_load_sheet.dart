@@ -35,6 +35,7 @@ class _AddVehicleLoadBodyState extends State<_AddVehicleLoadBody> {
 
   /// ترتيب ثابت لأسماء المنتجات (كما في الخادم) — بدون قوائم اختيار.
   /// ثلاثة أصناف كوبون (١٢ / ٢٤ / ٥٠): أنشئ منتجات `Coupon` و `Coupon 2` و `Coupon 3`.
+  /// بيع «متجر» من السيارة يستهلك نفس الحمل (جالون/قارورة/كرتون) بأسعار منفصلة في الخادم.
   static const List<String> _kFixedProductNames = <String>[
     'Water Gallon',
     'Water Bottle',

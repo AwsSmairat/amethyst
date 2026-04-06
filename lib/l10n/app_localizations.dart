@@ -514,6 +514,24 @@ abstract class AppLocalizations {
   /// **'مهدي (كرتون)'**
   String get productTemplateCartonMahdi;
 
+  /// No description provided for @productTemplateStoreGallon.
+  ///
+  /// In ar, this message translates to:
+  /// **'جالون متجر'**
+  String get productTemplateStoreGallon;
+
+  /// No description provided for @productTemplateStoreBottle.
+  ///
+  /// In ar, this message translates to:
+  /// **'قاروره متجر'**
+  String get productTemplateStoreBottle;
+
+  /// No description provided for @productTemplateStoreCarton.
+  ///
+  /// In ar, this message translates to:
+  /// **'مهدي متجر'**
+  String get productTemplateStoreCarton;
+
   /// No description provided for @productTemplateCoupon1.
   ///
   /// In ar, this message translates to:

@@ -80,7 +80,37 @@ async function main() {
     phone: '+10000090003',
   });
 
+  await ensureStoreVehicleProducts();
+
   console.log('[seed] done (password for all test users: 123456)');
+}
+
+/** أصناف بيع «متجر» من المركبة — أسماء مطابقة للتطبيق (أسعار من السوبر أدمن). */
+async function ensureStoreVehicleProducts() {
+  const specs = [
+    { name: 'جالون متجر', unitType: 'gallon' },
+    { name: 'قاروره متجر', unitType: 'bottle' },
+    { name: 'مهدي متجر', unitType: 'carton' },
+  ];
+  for (const s of specs) {
+    const existing = await prisma.product.findFirst({
+      where: { name: s.name },
+    });
+    if (existing) {
+      console.log(`[seed] skip product (exists): ${s.name}`);
+      continue;
+    }
+    await prisma.product.create({
+      data: {
+        name: s.name,
+        unitType: s.unitType,
+        price: 0,
+        stationStock: 0,
+        isActive: true,
+      },
+    });
+    console.log(`[seed] created product: ${s.name}`);
+  }
 }
 
 main()

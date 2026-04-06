@@ -225,6 +225,15 @@ class AppLocalizationsAr extends AppLocalizations {
   String get productTemplateCartonMahdi => 'مهدي (كرتون)';
 
   @override
+  String get productTemplateStoreGallon => 'جالون متجر';
+
+  @override
+  String get productTemplateStoreBottle => 'قاروره متجر';
+
+  @override
+  String get productTemplateStoreCarton => 'مهدي متجر';
+
+  @override
   String get productTemplateCoupon1 => 'كوبون ١٢';
 
   @override

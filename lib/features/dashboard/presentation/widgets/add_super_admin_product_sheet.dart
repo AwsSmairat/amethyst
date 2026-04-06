@@ -57,6 +57,21 @@ class _AddProductBodyState extends State<_AddProductBody> {
       labelBuilder: (AppLocalizations l) => l.productTemplateCartonMahdi,
     ),
     _AppProductTemplate(
+      apiName: 'جالون متجر',
+      unitType: 'gallon',
+      labelBuilder: (AppLocalizations l) => l.productTemplateStoreGallon,
+    ),
+    _AppProductTemplate(
+      apiName: 'قاروره متجر',
+      unitType: 'bottle',
+      labelBuilder: (AppLocalizations l) => l.productTemplateStoreBottle,
+    ),
+    _AppProductTemplate(
+      apiName: 'مهدي متجر',
+      unitType: 'carton',
+      labelBuilder: (AppLocalizations l) => l.productTemplateStoreCarton,
+    ),
+    _AppProductTemplate(
       apiName: 'Saudi Bottle',
       unitType: 'bottle',
       labelBuilder: (AppLocalizations l) => l.stationBalanceField6,
