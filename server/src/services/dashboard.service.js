@@ -164,13 +164,19 @@ export async function superAdminDashboard() {
  * تفاصيل الكراتين للسوبر أدمن: مخزون المحطة، مجموع مبالغ الشهر، كميات الشهر.
  * - monthlyCartonSalesHomeQty: محطة + كل مبيعات الكراتين من السيارة.
  * - monthlyCartonSalesStoreQty: كراتين بيعت من السيارة للمتاجر فقط (saleDestination = store).
+ * - monthlyCartonExpensesTotalAmount: مصاريف المحطة لبند «كراتين مي» فقط (شهر بشهر).
  */
-export async function superAdminCartonSummary() {
+export async function superAdminCartonSummary({ year, month } = {}) {
   const now = new Date();
-  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+  const y = Number.isInteger(year) ? year : now.getFullYear();
+  const m0 =
+    Number.isInteger(month) && month >= 1 && month <= 12
+      ? month - 1
+      : now.getMonth();
+  const monthStart = new Date(y, m0, 1);
   const monthEnd = new Date(
-    now.getFullYear(),
-    now.getMonth() + 1,
+    y,
+    m0 + 1,
     0,
     23,
     59,
@@ -185,6 +191,7 @@ export async function superAdminCartonSummary() {
     vehicleCartonStoreQty,
     stationCartonAmount,
     vehicleCartonAmount,
+    cartonExpensesAgg,
   ] = await Promise.all([
     prisma.product.aggregate({
       where: { isActive: true, unitType: 'carton' },
@@ -226,18 +233,40 @@ export async function superAdminCartonSummary() {
       },
       _sum: { totalAmount: true },
     }),
+    prisma.expense.aggregate({
+      where: {
+        AND: [
+          { driverId: null },
+          { vehicleId: null },
+          { createdAt: { gte: monthStart, lte: monthEnd } },
+          {
+            OR: [
+              // Flutter يضيف هذا البادئة لمصاريف المحطة — «كراتين مي» فقط.
+              { note: { startsWith: 'STATION_CARTON_WATER:' } },
+              // سجلات قديمة أو بدون بادئة (نفس نص التطبيق).
+              { note: { contains: 'كراتين مي' } },
+            ],
+          },
+        ],
+      },
+      _sum: { amount: true },
+    }),
   ]);
 
   const cartonStock = stockAgg._sum.stationStock ?? 0;
   const monthlyCartonSalesTotalAmount =
     Number(stationCartonAmount._sum.totalAmount ?? 0) +
     Number(vehicleCartonAmount._sum.totalAmount ?? 0);
+  const monthlyCartonExpensesTotalAmount = Number(
+    cartonExpensesAgg._sum.amount ?? 0
+  );
 
   const stationQ = stationCartonQty._sum.quantity ?? 0;
   const vehicleQ = vehicleCartonQty._sum.quantity ?? 0;
 
   return {
     cartonStock,
+    monthlyCartonExpensesTotalAmount,
     monthlyCartonSalesTotalAmount,
     monthlyCartonSalesHomeQty: stationQ + vehicleQ,
     monthlyCartonSalesStoreQty: vehicleCartonStoreQty._sum.quantity ?? 0,

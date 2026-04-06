@@ -622,10 +622,16 @@ abstract class AppLocalizations {
   /// **'مخزون كراتين'**
   String get cartonStockLabel;
 
+  /// No description provided for @cartonMonthlyExpensesLabel.
+  ///
+  /// In ar, this message translates to:
+  /// **'مصاريف الكراتين الشهرية'**
+  String get cartonMonthlyExpensesLabel;
+
   /// No description provided for @cartonPriceLabel.
   ///
   /// In ar, this message translates to:
-  /// **'مجموع بيع الكراتين (الشهر الحالي)'**
+  /// **'مجموع بيع الكراتين'**
   String get cartonPriceLabel;
 
   /// No description provided for @cartonSalesHomeLabel.
@@ -1826,6 +1832,12 @@ abstract class AppLocalizations {
   /// In ar, this message translates to:
   /// **'المركبة'**
   String get vehicleField;
+
+  /// No description provided for @vehicleHasNoDriverHint.
+  ///
+  /// In ar, this message translates to:
+  /// **'لا يوجد سائق معيّن لهذه المركبة. عيّن سائقاً من شاشة المركبات ثم أعد المحاولة.'**
+  String get vehicleHasNoDriverHint;
 
   /// No description provided for @driverField.
   ///

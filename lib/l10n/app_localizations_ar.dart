@@ -282,7 +282,10 @@ class AppLocalizationsAr extends AppLocalizations {
   String get cartonStockLabel => 'مخزون كراتين';
 
   @override
-  String get cartonPriceLabel => 'مجموع بيع الكراتين (الشهر الحالي)';
+  String get cartonMonthlyExpensesLabel => 'مصاريف الكراتين الشهرية';
+
+  @override
+  String get cartonPriceLabel => 'مجموع بيع الكراتين';
 
   @override
   String get cartonSalesHomeLabel => 'بيع الكراتين منزل (المحطة + السيارة)';
@@ -922,6 +925,10 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get vehicleField => 'المركبة';
+
+  @override
+  String get vehicleHasNoDriverHint =>
+      'لا يوجد سائق معيّن لهذه المركبة. عيّن سائقاً من شاشة المركبات ثم أعد المحاولة.';
 
   @override
   String get driverField => 'السائق';

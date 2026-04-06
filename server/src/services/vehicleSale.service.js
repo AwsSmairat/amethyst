@@ -122,6 +122,24 @@ export async function createVehicleSale(body, actor) {
 
     await allocateSale(tx, body.vehicleId, body.productId, body.quantity);
 
+    // كراتين/كوبونات: مخزون المحطة يُخصَم عند البيع من السيارة فقط، لا عند التحميل.
+    if (product.unitType === 'carton' || product.unitType === 'coupon') {
+      const fresh = await tx.product.findUnique({
+        where: { id: body.productId },
+      });
+      if (!fresh || fresh.stationStock < body.quantity) {
+        throw new AppError(
+          'Cannot sell more than available station stock',
+          400,
+          'INSUFFICIENT_STOCK'
+        );
+      }
+      await tx.product.update({
+        where: { id: body.productId },
+        data: { stationStock: { decrement: body.quantity } },
+      });
+    }
+
     const totalAmount = body.quantity * body.unitPrice;
 
     const saleDestination =

@@ -9,7 +9,9 @@ export const superAdmin = asyncHandler(async (req, res) => {
 });
 
 export const superAdminCartonSummary = asyncHandler(async (req, res) => {
-  const data = await service.superAdminCartonSummary();
+  const year = req.query.year ? Number(req.query.year) : undefined;
+  const month = req.query.month ? Number(req.query.month) : undefined;
+  const data = await service.superAdminCartonSummary({ year, month });
   return success(res, data);
 });
 

@@ -53,10 +53,8 @@ class _AddVehicleLoadBodyState extends State<_AddVehicleLoadBody> {
   final List<String> _productLabels = List<String>.filled(_rowCount, '');
 
   String? _vehicleId;
-  String? _driverId;
   DateTime _date = DateTime.now();
   List<Map<String, dynamic>> _vehicles = <Map<String, dynamic>>[];
-  List<Map<String, dynamic>> _drivers = <Map<String, dynamic>>[];
   bool _loading = true;
   String? _error;
 
@@ -70,16 +68,10 @@ class _AddVehicleLoadBodyState extends State<_AddVehicleLoadBody> {
     try {
       final api = sl<AmethystApi>();
       final v = await api.listVehicles();
-      final u = await api.listUsers();
       final p = await api.listProducts();
       final vehicles = (v['items'] as List<dynamic>? ?? <dynamic>[])
           .whereType<Map<String, dynamic>>()
           .toList(growable: false);
-      final users = (u['items'] as List<dynamic>? ?? <dynamic>[])
-          .whereType<Map<String, dynamic>>()
-          .toList(growable: false);
-      final drivers =
-          users.where((e) => e['role'] == 'driver').toList(growable: false);
       final products = (p['items'] as List<dynamic>? ?? <dynamic>[])
           .whereType<Map<String, dynamic>>()
           .toList(growable: false);
@@ -92,9 +84,7 @@ class _AddVehicleLoadBodyState extends State<_AddVehicleLoadBody> {
       }
       setState(() {
         _vehicles = vehicles;
-        _drivers = drivers;
-        _vehicleId = vehicles.isNotEmpty ? vehicles.first['id'] as String? : null;
-        _driverId = drivers.isNotEmpty ? drivers.first['id'] as String? : null;
+        _vehicleId = _pickInitialVehicleId(vehicles);
         for (var i = 0; i < _rowCount; i++) {
           final String fixedName =
               i < _kFixedProductNames.length ? _kFixedProductNames[i] : '';
@@ -114,6 +104,28 @@ class _AddVehicleLoadBodyState extends State<_AddVehicleLoadBody> {
       });
     }
   }
+
+  /// أول مركبة فيها سائق معيّن؛ وإلا أول مركبة (لتجنب تعارض مع التحقق في السيرفر).
+  static String? _pickInitialVehicleId(List<Map<String, dynamic>> vehicles) {
+    if (vehicles.isEmpty) return null;
+    for (final Map<String, dynamic> x in vehicles) {
+      if (x['driverId'] != null) {
+        return x['id'] as String?;
+      }
+    }
+    return vehicles.first['id'] as String?;
+  }
+
+  Map<String, dynamic>? _vehicleById(String? id) {
+    if (id == null) return null;
+    for (final Map<String, dynamic> x in _vehicles) {
+      if (x['id'] == id) return x;
+    }
+    return null;
+  }
+
+  String? get _resolvedDriverId =>
+      _vehicleById(_vehicleId)?['driverId'] as String?;
 
   @override
   void dispose() {
@@ -233,20 +245,36 @@ class _AddVehicleLoadBodyState extends State<_AddVehicleLoadBody> {
                       : (v) => setState(() => _vehicleId = v),
                 ),
                 const SizedBox(height: 12),
-                DropdownButtonFormField<String>(
-                  value: _driverId,
-                  decoration: InputDecoration(labelText: l10n.driverField),
-                  items: _drivers
-                      .map(
-                        (x) => DropdownMenuItem<String>(
-                          value: x['id'] as String,
-                          child: Text(x['fullName']?.toString() ?? ''),
-                        ),
-                      )
-                      .toList(growable: false),
-                  onChanged: busy
-                      ? null
-                      : (v) => setState(() => _driverId = v),
+                InputDecorator(
+                  decoration: InputDecoration(
+                    labelText: l10n.driverField,
+                    alignLabelWithHint: true,
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.only(top: 4, bottom: 2),
+                    child: Builder(
+                      builder: (BuildContext context) {
+                        final Map<String, dynamic>? veh =
+                            _vehicleById(_vehicleId);
+                        final Map<String, dynamic>? driver =
+                            veh?['driver'] as Map<String, dynamic>?;
+                        final String name =
+                            driver?['fullName']?.toString() ?? l10n.noDriver;
+                        final bool hasDriver =
+                            veh?['driverId'] != null;
+                        return Text(
+                          name,
+                          textAlign: TextAlign.right,
+                          style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                                fontWeight: FontWeight.w600,
+                                color: hasDriver
+                                    ? AppColors.primaryText
+                                    : Theme.of(context).colorScheme.error,
+                              ),
+                        );
+                      },
+                    ),
+                  ),
                 ),
                 const SizedBox(height: 20),
                 Text(
@@ -313,10 +341,18 @@ class _AddVehicleLoadBodyState extends State<_AddVehicleLoadBody> {
                   onPressed: busy
                       ? null
                       : () {
-                          if (_vehicleId == null ||
-                              _driverId == null) {
+                          if (_vehicleId == null) {
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(content: Text(l10n.fillAllFields)),
+                            );
+                            return;
+                          }
+                          final String? driverId = _resolvedDriverId;
+                          if (driverId == null) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(l10n.vehicleHasNoDriverHint),
+                              ),
                             );
                             return;
                           }
@@ -324,7 +360,7 @@ class _AddVehicleLoadBodyState extends State<_AddVehicleLoadBody> {
                           if (lines == null) return;
                           context.read<VehicleLoadSubmitCubit>().submitLines(
                                 vehicleId: _vehicleId!,
-                                driverId: _driverId!,
+                                driverId: driverId,
                                 loadDate: dateStr,
                                 lines: lines,
                               );

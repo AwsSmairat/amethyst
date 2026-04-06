@@ -53,10 +53,18 @@ final class AmethystApi {
   }
 
   /// مخزون الكراتين، مجموع مبالغ الشهر؛ منزل = محطة+سيارة؛ متجر = سيارة→متجر فقط.
-  Future<Map<String, dynamic>> getSuperAdminCartonSummary() async {
+  Future<Map<String, dynamic>> getSuperAdminCartonSummary({
+    int? year,
+    int? month,
+  }) async {
     try {
+      final DateTime n = DateTime.now();
       final res = await _dio.get<Map<String, dynamic>>(
         '/dashboard/super-admin/carton-summary',
+        queryParameters: <String, dynamic>{
+          'year': year ?? n.year,
+          'month': month ?? n.month,
+        },
       );
       return DioClient.unwrapMap(res);
     } on DioException catch (e) {

@@ -44,8 +44,17 @@ bool expenseNoteMatchesCategory(
       return prefix(l10n.otherExpenses);
     case 'tankWater':
       return prefix(l10n.expenseTankWater);
-    case 'cartons':
-      return prefix(l10n.expenseCartons) || prefix(l10n.expenseCartonsWater);
+    case 'cartons': {
+      const sentinel = 'STATION_CARTON_WATER:';
+      String rest = n;
+      if (rest.startsWith(sentinel)) {
+        rest = rest.substring(sentinel.length);
+      }
+      bool prefixCarton(String p) =>
+          rest == p || rest.startsWith('$p —') || rest.startsWith('$p:');
+      return prefixCarton(l10n.expenseCartons) ||
+          prefixCarton(l10n.expenseCartonsWater);
+    }
     case 'workersWages':
       // Keep matching legacy labels too (pre-rename).
       return prefix(l10n.expenseWorkersWages) ||

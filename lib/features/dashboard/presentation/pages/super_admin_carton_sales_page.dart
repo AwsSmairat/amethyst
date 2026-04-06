@@ -25,6 +25,44 @@ class SuperAdminCartonSalesPage extends StatelessWidget {
 class _SuperAdminCartonSalesBody extends StatelessWidget {
   const _SuperAdminCartonSalesBody();
 
+  static bool _isViewingCurrentMonth(DateTime selectedMonth) {
+    final DateTime n = DateTime.now();
+    return selectedMonth.year == n.year && selectedMonth.month == n.month;
+  }
+
+  static bool _isViewingPreviousCalendarMonth(DateTime selectedMonth) {
+    final DateTime n = DateTime.now();
+    final DateTime prev = DateTime(n.year, n.month - 1);
+    return selectedMonth.year == prev.year && selectedMonth.month == prev.month;
+  }
+
+  static Future<void> _pickCalendarMonth(BuildContext context) async {
+    final SuperAdminCartonSalesCubit cubit =
+        context.read<SuperAdminCartonSalesCubit>();
+    final DateTime initial = cubit.selectedMonth;
+    final DateTime? picked = await showDatePicker(
+      context: context,
+      initialDate: DateTime(initial.year, initial.month),
+      firstDate: DateTime(2020, 1),
+      lastDate: DateTime(DateTime.now().year + 1, 12, 31),
+      locale: const Locale('ar'),
+    );
+    if (picked == null || !context.mounted) return;
+    await cubit.selectCalendarMonth(DateTime(picked.year, picked.month));
+  }
+
+  static DateTime _selectedMonthFrom(Map<String, dynamic> d) {
+    final Object? y = d['_selectedYear'];
+    final Object? m = d['_selectedMonth'];
+    final int? year = y is int ? y : int.tryParse(y?.toString() ?? '');
+    final int? month = m is int ? m : int.tryParse(m?.toString() ?? '');
+    if (year != null && month != null && month >= 1 && month <= 12) {
+      return DateTime(year, month);
+    }
+    final DateTime n = DateTime.now();
+    return DateTime(n.year, n.month);
+  }
+
   static String _formatInt(dynamic v) {
     final double n = _toDouble(v);
     return NumberFormat.decimalPattern('ar').format(n.round());
@@ -76,12 +114,72 @@ class _SuperAdminCartonSalesBody extends StatelessWidget {
           }
           final Map<String, dynamic> d =
               (state as DashboardLoadSuccess).data;
+          final DateTime selectedMonth = _selectedMonthFrom(d);
+          final String monthLabel =
+              DateFormat.yMMMM('ar').format(selectedMonth);
           return RefreshIndicator(
             onRefresh: () =>
                 context.read<SuperAdminCartonSalesCubit>().load(),
             child: ListView(
               padding: const EdgeInsets.all(20),
               children: <Widget>[
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: <Widget>[
+                    InkWell(
+                      onTap: () => _pickCalendarMonth(context),
+                      borderRadius: BorderRadius.circular(8),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 4),
+                        child: Row(
+                          children: <Widget>[
+                            Expanded(
+                              child: Text(
+                                '${l10n.monthYearPeriodLabel}: $monthLabel',
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .titleSmall
+                                    ?.copyWith(
+                                      fontWeight: FontWeight.w800,
+                                    ),
+                              ),
+                            ),
+                            Icon(
+                              Icons.calendar_month_outlined,
+                              color: AppColors.brandPrimary,
+                              size: 22,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    Wrap(
+                      alignment: WrapAlignment.end,
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: <Widget>[
+                        FilterChip(
+                          label: Text(l10n.currentCalendarMonthChip),
+                          selected: _isViewingCurrentMonth(selectedMonth),
+                          onSelected: (_) => context
+                              .read<SuperAdminCartonSalesCubit>()
+                              .selectCurrentMonth(),
+                        ),
+                        FilterChip(
+                          label: Text(l10n.previousCalendarMonthChip),
+                          selected: _isViewingPreviousCalendarMonth(
+                            selectedMonth,
+                          ),
+                          onSelected: (_) => context
+                              .read<SuperAdminCartonSalesCubit>()
+                              .selectPreviousMonth(),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
                 _InfoCard(
                   rows: <_InfoRow>[
                     _InfoRow(
@@ -90,7 +188,12 @@ class _SuperAdminCartonSalesBody extends StatelessWidget {
                       icon: Icons.warehouse_outlined,
                     ),
                     _InfoRow(
-                      label: l10n.cartonPriceLabel,
+                      label: '${l10n.cartonMonthlyExpensesLabel} ($monthLabel)',
+                      value: _formatPrice(d['monthlyCartonExpensesTotalAmount']),
+                      icon: Icons.receipt_long_outlined,
+                    ),
+                    _InfoRow(
+                      label: '${l10n.cartonPriceLabel} ($monthLabel)',
                       value: _formatPrice(d['monthlyCartonSalesTotalAmount']),
                       icon: Icons.payments_outlined,
                     ),

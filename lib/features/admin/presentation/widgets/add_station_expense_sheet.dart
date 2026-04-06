@@ -23,12 +23,18 @@ class _StationFieldSpec {
     required this.icon,
     required this.label,
     required this.note,
+    this.stationCartonWater = false,
   });
 
   final IconData icon;
   final String Function(AppLocalizations l10n) label;
   final String Function(AppLocalizations l10n) note;
+  /// يطابق تجميعة السيرفر لـ «مصاريف الكراتين الشهرية» (بادئة ثابتة).
+  final bool stationCartonWater;
 }
+
+/// يجب أن يطابق `dashboard.service.js` — `superAdminCartonSummary` (مصاريف كراتين المحطة).
+const String kStationCartonWaterExpenseNotePrefix = 'STATION_CARTON_WATER:';
 
 /// ترتيب الحقول ١–١٥ كما في واجهة المحطة.
 List<_StationFieldSpec> _stationFieldSpecs() => <_StationFieldSpec>[
@@ -41,6 +47,7 @@ List<_StationFieldSpec> _stationFieldSpecs() => <_StationFieldSpec>[
         icon: Icons.inventory_2_outlined,
         label: (AppLocalizations l) => l.expenseCartonsWater,
         note: (AppLocalizations l) => l.expenseCartonsWater,
+        stationCartonWater: true,
       ),
       _StationFieldSpec(
         icon: Icons.badge_outlined,
@@ -155,7 +162,11 @@ class _StationExpenseBodyState extends State<_StationExpenseBody> {
     for (var i = 0; i < _specs.length; i++) {
       final amt = parsePositive(_controllers[i].text);
       if (amt != null) {
-        entries.add((note: _specs[i].note(l10n), amount: amt));
+        String note = _specs[i].note(l10n);
+        if (_specs[i].stationCartonWater) {
+          note = '$kStationCartonWaterExpenseNotePrefix$note';
+        }
+        entries.add((note: note, amount: amt));
       }
     }
 

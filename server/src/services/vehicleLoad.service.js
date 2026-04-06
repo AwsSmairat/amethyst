@@ -10,6 +10,12 @@ function remainingOnLoad(load) {
   );
 }
 
+/**
+ * لا نُنقص `stationStock` عند التحميل على المركبة — تجنّباً لأخطاء التحقق والمطابقة
+ * بين نوع المنتج والمخزون. خصم الكراتين/الكوبونات من مخزون المحطة يتم عند البيع من السيارة
+ * (انظر `vehicleSale.service.js`).
+ */
+
 export async function listVehicleLoads(query, actor) {
   const { page, limit, skip } = parsePagination(query);
   const { sortBy, order } = parseSort(
@@ -98,25 +104,6 @@ export async function createVehicleLoad(body, actor) {
     if (!product || !product.isActive) {
       throw new AppError('Product not found or inactive', 404, 'NOT_FOUND');
     }
-    if (product.stationStock < body.quantityLoaded) {
-      throw new AppError(
-        'Cannot load more than available station stock',
-        400,
-        'INSUFFICIENT_STOCK'
-      );
-    }
-
-    const updatedProduct = await tx.product.update({
-      where: { id: body.productId },
-      data: { stationStock: { decrement: body.quantityLoaded } },
-    });
-    if (updatedProduct.stationStock < 0) {
-      throw new AppError(
-        'Cannot load more than available station stock',
-        400,
-        'INSUFFICIENT_STOCK'
-      );
-    }
 
     const load = await tx.vehicleLoad.create({
       data: {
@@ -160,17 +147,6 @@ export async function updateVehicleLoad(id, body, actor) {
 
   return prisma.$transaction(async (tx) => {
     if (body.quantityLoaded !== undefined && body.quantityLoaded !== existing.quantityLoaded) {
-      const delta = body.quantityLoaded - existing.quantityLoaded;
-      const product = await tx.product.findUnique({
-        where: { id: existing.productId },
-      });
-      if (delta > 0 && product.stationStock < delta) {
-        throw new AppError(
-          'Cannot load more than available station stock',
-          400,
-          'INSUFFICIENT_STOCK'
-        );
-      }
       const newLoaded = body.quantityLoaded;
       const committed =
         existing.quantitySold + existing.quantityReturned;
@@ -181,10 +157,6 @@ export async function updateVehicleLoad(id, body, actor) {
           'VALIDATION_ERROR'
         );
       }
-      await tx.product.update({
-        where: { id: existing.productId },
-        data: { stationStock: { increment: -delta } },
-      });
     }
 
     const loadDate =
