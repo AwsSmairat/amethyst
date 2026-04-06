@@ -27,7 +27,7 @@ r.post(
 );
 r.post(
   '/',
-  authorize('super_admin', 'admin'),
+  authorize('super_admin', 'admin', 'driver'),
   validate(stationDebtCreateBatchSchema),
   ctrl.create
 );

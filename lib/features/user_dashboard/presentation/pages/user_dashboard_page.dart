@@ -136,6 +136,56 @@ class _QuickActionsRow extends StatelessWidget {
 class _DriverDebtActionsRow extends StatelessWidget {
   const _DriverDebtActionsRow();
 
+  static void _showVehicleDebtPlacePicker(BuildContext context) {
+    final l10n = context.l10n;
+    showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      builder: (BuildContext sheetCtx) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsetsDirectional.fromSTEB(8, 0, 8, 24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: <Widget>[
+              Padding(
+                padding: const EdgeInsetsDirectional.fromSTEB(16, 8, 16, 12),
+                child: Text(
+                  l10n.driverVehicleDebtSheetTitle,
+                  style: Theme.of(sheetCtx).textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.w800,
+                      ),
+                ),
+              ),
+              ListTile(
+                leading: const Icon(Icons.home_outlined),
+                title: Text(l10n.vehicleSalePlaceHome),
+                onTap: () {
+                  Navigator.of(sheetCtx).pop();
+                  context.push(
+                    '/driver/dashboard/station-debt-registration',
+                    extra: <String, dynamic>{'vehiclePlace': 'home'},
+                  );
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.storefront_outlined),
+                title: Text(l10n.vehicleSalePlaceStore),
+                onTap: () {
+                  Navigator.of(sheetCtx).pop();
+                  context.push(
+                    '/driver/dashboard/station-debt-registration',
+                    extra: <String, dynamic>{'vehiclePlace': 'store'},
+                  );
+                },
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   static void _showRepaymentInfo(BuildContext context) {
     final l10n = context.l10n;
     showDialog<void>(
@@ -162,25 +212,44 @@ class _DriverDebtActionsRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
+    final l10n = context.l10n;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: <Widget>[
-        Expanded(
-          child: QuickActionButton(
-            icon: Icons.receipt_long_outlined,
-            label: context.l10n.driverQuickDebt,
-            tint: AppColors.brandPrimary,
-            onTap: () =>
-                context.push('/driver/dashboard/station-debt-list'),
-          ),
+        Row(
+          children: <Widget>[
+            Expanded(
+              child: QuickActionButton(
+                icon: Icons.receipt_long_outlined,
+                label: l10n.driverQuickDebt,
+                tint: AppColors.brandPrimary,
+                onTap: () =>
+                    context.push('/driver/dashboard/station-debt-list'),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: QuickActionButton(
+                icon: Icons.paid_outlined,
+                label: l10n.driverQuickRepayment,
+                tint: AppColors.brandPrimary,
+                onTap: () => _showRepaymentInfo(context),
+              ),
+            ),
+          ],
         ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: QuickActionButton(
-            icon: Icons.paid_outlined,
-            label: context.l10n.driverQuickRepayment,
-            tint: AppColors.brandPrimary,
-            onTap: () => _showRepaymentInfo(context),
-          ),
+        const SizedBox(height: 10),
+        Row(
+          children: <Widget>[
+            Expanded(
+              child: QuickActionButton(
+                icon: Icons.drive_eta_outlined,
+                label: l10n.driverRegisterVehicleDebt,
+                tint: AppColors.brandPrimary,
+                onTap: () => _showVehicleDebtPlacePicker(context),
+              ),
+            ),
+          ],
         ),
       ],
     );

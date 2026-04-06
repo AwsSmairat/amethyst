@@ -6,6 +6,7 @@ import 'package:amethyst/features/admin/presentation/station_sale/station_sale_a
 import 'package:amethyst/features/admin/presentation/station_sale/station_sale_entry_kind.dart';
 import 'package:amethyst/features/admin/presentation/station_sale/station_sale_stock_rules.dart';
 import 'package:amethyst/features/admin/presentation/station_debt/cubit/station_debt_registration_state.dart';
+import 'package:amethyst/features/admin/presentation/station_debt/station_debt_vehicle_place.dart';
 import 'package:amethyst/features/record_operations/domain/usecases/record_operation_usecases.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
@@ -13,49 +14,127 @@ const String kStationDebtNeedName = 'STATION_DEBT_NEED_NAME';
 const String kStationDebtNeedLine = 'STATION_DEBT_NEED_LINE';
 const String kStationDebtMissingProduct = 'STATION_DEBT_MISSING_PRODUCT';
 
+/// مطابقة [add_vehicle_sale_sheet.dart] — أسماء أعمدة الدين من المركبة.
+const List<String> _kVehicleDebtHomeCatalogNames = <String>[
+  'Water Gallon',
+  'Water Bottle',
+  'Water Carton',
+  'Coupon',
+];
+
+const List<String> _kVehicleDebtStoreCatalogNames = <String>[
+  'جالون متجر',
+  'قاروره متجر',
+  'مهدي متجر',
+];
+
 final class StationDebtRegistrationCubit extends Cubit<StationDebtRegistrationState> {
   StationDebtRegistrationCubit({
     required ListProductItemsUseCase listProductItems,
     required CreateStationDebtEntriesUseCase createStationDebtEntries,
+    this.vehiclePlace,
   })  : _listProductItems = listProductItems,
         _createStationDebtEntries = createStationDebtEntries,
-        super(StationDebtRegistrationState.initial()) {
+        super(
+          StationDebtRegistrationState.initial(
+            columnCount: vehiclePlace == null
+                ? StationDebtRegistrationState.adminColumnCount
+                : vehiclePlace == StationDebtVehiclePlace.home
+                    ? _kVehicleDebtHomeCatalogNames.length
+                    : _kVehicleDebtStoreCatalogNames.length,
+            useVehicleProductLabels: vehiclePlace != null,
+          ),
+        ) {
     _loadProducts();
   }
 
   final ListProductItemsUseCase _listProductItems;
   final CreateStationDebtEntriesUseCase _createStationDebtEntries;
+  final StationDebtVehiclePlace? vehiclePlace;
 
   Future<void> _loadProducts() async {
     emit(state.copyWith(loadingProducts: true, clearLoadError: true));
     try {
       final List<Map<String, dynamic>> items = await _listProductItems();
+      final int n = state.columnCount;
+      if (vehiclePlace != null) {
+        final List<String> catalogNames = vehiclePlace == StationDebtVehiclePlace.home
+            ? _kVehicleDebtHomeCatalogNames
+            : _kVehicleDebtStoreCatalogNames;
+        final List<String?> ids = List<String?>.filled(n, null, growable: false);
+        final List<double?> prices =
+            List<double?>.filled(n, null, growable: false);
+        final List<String> namesOut =
+            List<String>.filled(n, '', growable: false);
+        for (var i = 0; i < n; i++) {
+          final String name = catalogNames[i];
+          final Map<String, dynamic>? match =
+              _matchCatalogProduct(name, items);
+          ids[i] = match?['id'] as String?;
+          prices[i] = parseDynamicDouble(match?['price']);
+          final String? dn = match?['name']?.toString().trim();
+          namesOut[i] =
+              (dn != null && dn.isNotEmpty) ? dn : name;
+        }
+        final List<bool> skipStock =
+            List<bool>.filled(n, false, growable: false);
+        final List<int> stocks = List<int>.filled(n, 0, growable: false);
+        for (var i = 0; i < n; i++) {
+          Map<String, dynamic>? row;
+          final String? id = ids[i];
+          if (id != null) {
+            for (final Map<String, dynamic> pr in items) {
+              if (pr['id']?.toString() == id) {
+                row = pr;
+                break;
+              }
+            }
+          }
+          stocks[i] = stationStockFromProductJson(row ?? <String, dynamic>{});
+          skipStock[i] = stationSaleColumnSkipsStationStock(
+            entryKind: StationSaleEntryKind.filling,
+            columnIndex: i,
+            product: row,
+          );
+        }
+        emit(
+          state.copyWith(
+            loadingProducts: false,
+            productIds: ids,
+            unitPrices: prices,
+            columnSkipsStationStock: skipStock,
+            columnStationStock: stocks,
+            columnProductNames: namesOut,
+          ),
+        );
+        return;
+      }
+
       final Map<String, Map<String, dynamic>> byName =
           <String, Map<String, dynamic>>{};
       for (final Map<String, dynamic> pr in items) {
         if (pr['isActive'] == false) {
           continue;
         }
-        final String? n = pr['name']?.toString();
-        if (n != null) {
-          byName[n] = pr;
+        final String? n0 = pr['name']?.toString();
+        if (n0 != null) {
+          byName[n0] = pr;
         }
       }
       const StationSaleEntryKind kind = StationSaleEntryKind.filling;
-      const int colCount = StationDebtRegistrationState.colCount;
       final List<String> apiNames = StationSaleApiProductNames.filling;
       final List<String?> ids =
-          List<String?>.filled(colCount, null, growable: false);
+          List<String?>.filled(n, null, growable: false);
       final List<double?> prices =
-          List<double?>.filled(colCount, null, growable: false);
-      for (var i = 0; i < colCount; i++) {
+          List<double?>.filled(n, null, growable: false);
+      for (var i = 0; i < n; i++) {
         Map<String, dynamic>? match;
         final String name = i < apiNames.length ? apiNames[i] : '';
         match = name.isNotEmpty ? byName[name] : null;
         ids[i] = match?['id'] as String?;
         prices[i] = parseDynamicDouble(match?['price']);
       }
-      for (var i = 0; i < colCount; i++) {
+      for (var i = 0; i < n; i++) {
         if (ids[i] != null) {
           continue;
         }
@@ -75,10 +154,11 @@ final class StationDebtRegistrationCubit extends Cubit<StationDebtRegistrationSt
         }
       }
       final List<bool> skipStock =
-          List<bool>.filled(colCount, false, growable: false);
-      final List<int> stocks =
-          List<int>.filled(colCount, 0, growable: false);
-      for (var i = 0; i < colCount; i++) {
+          List<bool>.filled(n, false, growable: false);
+      final List<int> stocks = List<int>.filled(n, 0, growable: false);
+      final List<String> namesOut =
+          List<String>.filled(n, '', growable: false);
+      for (var i = 0; i < n; i++) {
         Map<String, dynamic>? row;
         final String? id = ids[i];
         if (id != null) {
@@ -95,6 +175,7 @@ final class StationDebtRegistrationCubit extends Cubit<StationDebtRegistrationSt
           columnIndex: i,
           product: row,
         );
+        namesOut[i] = row?['name']?.toString().trim() ?? '';
       }
       emit(
         state.copyWith(
@@ -103,6 +184,7 @@ final class StationDebtRegistrationCubit extends Cubit<StationDebtRegistrationSt
           unitPrices: prices,
           columnSkipsStationStock: skipStock,
           columnStationStock: stocks,
+          columnProductNames: namesOut,
         ),
       );
     } on Object catch (e) {
@@ -116,7 +198,7 @@ final class StationDebtRegistrationCubit extends Cubit<StationDebtRegistrationSt
   }
 
   void adjustQuantity(int index, int delta) {
-    if (index < 0 || index >= StationDebtRegistrationState.colCount) {
+    if (index < 0 || index >= state.columnCount) {
       return;
     }
     if (delta > 0 &&
@@ -138,7 +220,7 @@ final class StationDebtRegistrationCubit extends Cubit<StationDebtRegistrationSt
       return kStationDebtNeedName;
     }
     var any = false;
-    for (var i = 0; i < StationDebtRegistrationState.colCount; i++) {
+    for (var i = 0; i < state.columnCount; i++) {
       if (state.quantities[i] > 0) {
         any = true;
         break;
@@ -147,7 +229,7 @@ final class StationDebtRegistrationCubit extends Cubit<StationDebtRegistrationSt
     if (!any) {
       return kStationDebtNeedLine;
     }
-    for (var i = 0; i < StationDebtRegistrationState.colCount; i++) {
+    for (var i = 0; i < state.columnCount; i++) {
       final int q = state.quantities[i];
       if (q <= 0) {
         continue;
@@ -167,7 +249,7 @@ final class StationDebtRegistrationCubit extends Cubit<StationDebtRegistrationSt
     }
     final String debtor = debtorNameRaw.trim();
     final List<Map<String, dynamic>> lines = <Map<String, dynamic>>[];
-    for (var i = 0; i < StationDebtRegistrationState.colCount; i++) {
+    for (var i = 0; i < state.columnCount; i++) {
       final int q = state.quantities[i];
       if (q <= 0) {
         continue;
@@ -193,7 +275,7 @@ final class StationDebtRegistrationCubit extends Cubit<StationDebtRegistrationSt
         state.copyWith(
           submitting: false,
           submitSucceeded: true,
-          quantities: List<int>.filled(StationDebtRegistrationState.colCount, 0),
+          quantities: List<int>.filled(state.columnCount, 0),
         ),
       );
     } on ApiException catch (e) {
@@ -216,6 +298,36 @@ final class StationDebtRegistrationCubit extends Cubit<StationDebtRegistrationSt
   void clearSubmitSucceeded() {
     emit(state.copyWith(submitSucceeded: false));
   }
+}
+
+Map<String, dynamic>? _matchCatalogProduct(
+  String requestedName,
+  List<Map<String, dynamic>> items,
+) {
+  final String want = requestedName.trim();
+  if (want.isEmpty) {
+    return null;
+  }
+  for (final Map<String, dynamic> pr in items) {
+    if (pr['isActive'] == false) {
+      continue;
+    }
+    final String? n = pr['name']?.toString().trim();
+    if (n != null && n == want) {
+      return pr;
+    }
+  }
+  final String wantLower = want.toLowerCase();
+  for (final Map<String, dynamic> pr in items) {
+    if (pr['isActive'] == false) {
+      continue;
+    }
+    final String? n = pr['name']?.toString().trim();
+    if (n != null && n.toLowerCase() == wantLower) {
+      return pr;
+    }
+  }
+  return null;
 }
 
 String? _unitTypeFromProductJson(Map<String, dynamic> pr) {

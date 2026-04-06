@@ -54,6 +54,7 @@ export function mapStationDebtEntry(s) {
     unitPrice: serializeDecimal(s.unitPrice),
     totalAmount: serializeDecimal(s.totalAmount),
     product: s.product ? mapProduct(s.product) : s.product,
+    recordingSource: s.recordingSource ?? 'station',
   };
 }
 

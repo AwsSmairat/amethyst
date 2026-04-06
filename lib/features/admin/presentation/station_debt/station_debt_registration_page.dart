@@ -1,8 +1,11 @@
+import 'dart:math' as math;
+
 import 'package:amethyst/core/l10n/context_l10n.dart';
 import 'package:amethyst/l10n/app_localizations.dart';
 import 'package:amethyst/features/admin/presentation/station_debt/station_debt_api_error.dart';
 import 'package:amethyst/features/admin/presentation/station_debt/cubit/station_debt_registration_cubit.dart';
 import 'package:amethyst/features/admin/presentation/station_debt/cubit/station_debt_registration_state.dart';
+import 'package:amethyst/features/admin/presentation/station_debt/station_debt_vehicle_place.dart';
 import 'package:amethyst/features/admin/presentation/station_sale/station_sale_entry_kind.dart';
 import 'package:amethyst/features/admin/presentation/station_sale/station_sale_product_labels.dart';
 import 'package:amethyst/features/admin/presentation/station_sale/widgets/station_sale_product_column.dart';
@@ -54,9 +57,15 @@ class _StationDebtRegistrationPageState
   Widget build(BuildContext context) {
     final l10n = context.l10n;
     final ColorScheme scheme = Theme.of(context).colorScheme;
+    final String routePath = GoRouterState.of(context).uri.path;
+    final bool fromDriverShell = routePath.startsWith('/driver');
     return Scaffold(
       appBar: AppBar(
-        title: Text(l10n.stationDebtRegistrationTitle),
+        title: Text(
+          fromDriverShell
+              ? l10n.stationDebtVehicleRegistrationTitle
+              : l10n.stationDebtRegistrationTitle,
+        ),
       ),
       body: SafeArea(
         child: BlocConsumer<StationDebtRegistrationCubit,
@@ -75,7 +84,9 @@ class _StationDebtRegistrationPageState
               final String path = GoRouterState.of(context).uri.path;
               final String home = path.startsWith('/super-admin')
                   ? '/super-admin/dashboard'
-                  : '/admin/dashboard';
+                  : path.startsWith('/driver')
+                      ? '/driver/dashboard'
+                      : '/admin/dashboard';
               Future<void>.delayed(const Duration(milliseconds: 500), () {
                 if (!context.mounted) {
                   return;
@@ -101,6 +112,8 @@ class _StationDebtRegistrationPageState
                 child: Text(state.loadError!),
               );
             }
+            final StationDebtVehiclePlace? vehiclePlace =
+                context.read<StationDebtRegistrationCubit>().vehiclePlace;
             return SingleChildScrollView(
               padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
               child: Column(
@@ -123,6 +136,18 @@ class _StationDebtRegistrationPageState
                       border: const OutlineInputBorder(),
                     ),
                   ),
+                  if (fromDriverShell && vehiclePlace != null) ...<Widget>[
+                    const SizedBox(height: 12),
+                    Text(
+                      vehiclePlace == StationDebtVehiclePlace.store
+                          ? l10n.vehicleSaleFromStore
+                          : l10n.vehicleSaleFromHome,
+                      style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                            fontWeight: FontWeight.w700,
+                            color: scheme.primary,
+                          ),
+                    ),
+                  ],
                   const SizedBox(height: 20),
                   Text(
                     l10n.stationDebtProductsSection,
@@ -132,11 +157,16 @@ class _StationDebtRegistrationPageState
                         ),
                   ),
                   const SizedBox(height: 12),
-                  _productRow(context, state: state, busy: busy, start: 0, end: 2),
-                  const SizedBox(height: 12),
-                  _productRow(context, state: state, busy: busy, start: 2, end: 4),
-                  const SizedBox(height: 12),
-                  _productRow(context, state: state, busy: busy, start: 4, end: 6),
+                  for (var start = 0; start < state.columnCount; start += 2) ...<Widget>[
+                    if (start > 0) const SizedBox(height: 12),
+                    _productRow(
+                      context,
+                      state: state,
+                      busy: busy,
+                      start: start,
+                      end: math.min(start + 2, state.columnCount),
+                    ),
+                  ],
                   const SizedBox(height: 24),
                   FilledButton(
                     onPressed: busy
@@ -171,6 +201,7 @@ class _StationDebtRegistrationPageState
     required int end,
   }) {
     final cubit = context.read<StationDebtRegistrationCubit>();
+    final l10n = context.l10n;
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
@@ -183,11 +214,15 @@ class _StationDebtRegistrationPageState
               ),
               child: StationSaleProductColumn(
                 index: i,
-                productLabel: stationSaleProductLabel(
-                  StationSaleEntryKind.filling,
-                  i,
-                  context.l10n,
-                ),
+                productLabel: state.useVehicleProductLabels &&
+                        i < state.columnProductNames.length &&
+                        state.columnProductNames[i].isNotEmpty
+                    ? state.columnProductNames[i]
+                    : stationSaleProductLabel(
+                        StationSaleEntryKind.filling,
+                        i,
+                        l10n,
+                      ),
                 quantity: state.quantities[i],
                 onDecrement: () => cubit.adjustQuantity(i, -1),
                 onIncrement: () => cubit.adjustQuantity(i, 1),

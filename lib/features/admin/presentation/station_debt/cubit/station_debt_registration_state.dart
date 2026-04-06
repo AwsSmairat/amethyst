@@ -12,21 +12,29 @@ final class StationDebtRegistrationState extends Equatable {
     required this.unitPrices,
     required this.columnSkipsStationStock,
     required this.columnStationStock,
+    required this.columnProductNames,
+    required this.useVehicleProductLabels,
   });
 
-  factory StationDebtRegistrationState.initial() =>
+  factory StationDebtRegistrationState.initial({
+    int columnCount = 6,
+    bool useVehicleProductLabels = false,
+  }) =>
       StationDebtRegistrationState(
         loadingProducts: true,
         submitting: false,
         submitSucceeded: false,
-        quantities: List<int>.filled(colCount, 0),
-        productIds: List<String?>.filled(colCount, null),
-        unitPrices: List<double?>.filled(colCount, null),
-        columnSkipsStationStock: List<bool>.filled(colCount, false),
-        columnStationStock: List<int>.filled(colCount, 0),
+        quantities: List<int>.filled(columnCount, 0),
+        productIds: List<String?>.filled(columnCount, null),
+        unitPrices: List<double?>.filled(columnCount, null),
+        columnSkipsStationStock: List<bool>.filled(columnCount, false),
+        columnStationStock: List<int>.filled(columnCount, 0),
+        columnProductNames: List<String>.filled(columnCount, ''),
+        useVehicleProductLabels: useVehicleProductLabels,
       );
 
-  static const int colCount = 6;
+  /// أقصى عدد أعمدة (وضع المحطة).
+  static const int adminColumnCount = 6;
 
   final bool loadingProducts;
   final String? loadError;
@@ -38,6 +46,11 @@ final class StationDebtRegistrationState extends Equatable {
   final List<double?> unitPrices;
   final List<bool> columnSkipsStationStock;
   final List<int> columnStationStock;
+  /// اسم العرض لكل عمود (من كتالوج الـ API) عند وضع المركبة؛ أو فارغ لاستخدام تسميات التعبئة.
+  final List<String> columnProductNames;
+  final bool useVehicleProductLabels;
+
+  int get columnCount => quantities.length;
 
   StationDebtRegistrationState copyWith({
     bool? loadingProducts,
@@ -52,6 +65,8 @@ final class StationDebtRegistrationState extends Equatable {
     List<double?>? unitPrices,
     List<bool>? columnSkipsStationStock,
     List<int>? columnStationStock,
+    List<String>? columnProductNames,
+    bool? useVehicleProductLabels,
   }) {
     return StationDebtRegistrationState(
       loadingProducts: loadingProducts ?? this.loadingProducts,
@@ -65,6 +80,9 @@ final class StationDebtRegistrationState extends Equatable {
       columnSkipsStationStock:
           columnSkipsStationStock ?? this.columnSkipsStationStock,
       columnStationStock: columnStationStock ?? this.columnStationStock,
+      columnProductNames: columnProductNames ?? this.columnProductNames,
+      useVehicleProductLabels:
+          useVehicleProductLabels ?? this.useVehicleProductLabels,
     );
   }
 
@@ -80,5 +98,7 @@ final class StationDebtRegistrationState extends Equatable {
         unitPrices,
         columnSkipsStationStock,
         columnStationStock,
+        columnProductNames,
+        useVehicleProductLabels,
       ];
 }

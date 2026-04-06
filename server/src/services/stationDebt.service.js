@@ -18,6 +18,18 @@ export async function createStationDebtEntries(body, actor) {
     throw new AppError('At least one line is required', 400, 'VALIDATION');
   }
 
+  const recordingSource =
+    actor.role === 'driver' ? 'vehicle' : 'station';
+  if (actor.role === 'driver') {
+    const assigned = await prisma.vehicle.findFirst({
+      where: { driverId: actor.id, isActive: true },
+      select: { id: true },
+    });
+    if (!assigned) {
+      throw new AppError('No vehicle assigned to you', 403, 'FORBIDDEN');
+    }
+  }
+
   return prisma.$transaction(async (tx) => {
     const created = [];
     for (const line of lines) {
@@ -66,6 +78,7 @@ export async function createStationDebtEntries(body, actor) {
           unitPrice: unitPriceNum,
           totalAmount,
           recordedById: actor.id,
+          recordingSource,
         },
         include: {
           product: true,
@@ -83,6 +96,7 @@ export async function createStationDebtEntries(body, actor) {
       details: {
         debtorName,
         lineCount: created.length,
+        recordingSource,
       },
     });
 
@@ -158,6 +172,10 @@ export async function listStationDebtEntries(query, actor) {
   const skip = (page - 1) * limit;
 
   const where = { repaidAt: null };
+  if (actor.role === 'driver') {
+    where.recordingSource = 'vehicle';
+    where.recordedById = actor.id;
+  }
 
   const [total, items] = await prisma.$transaction([
     prisma.stationDebtEntry.count({ where }),

@@ -10,7 +10,6 @@ import 'package:amethyst/features/auth/presentation/cubit/auth_cubit.dart';
 import 'package:amethyst/features/record_operations/data/repositories/record_operations_repository_impl.dart';
 import 'package:amethyst/features/record_operations/domain/repositories/record_operations_repository.dart';
 import 'package:amethyst/features/admin/domain/usecases/save_station_balance_usecase.dart';
-import 'package:amethyst/features/admin/presentation/station_debt/cubit/station_debt_registration_cubit.dart';
 import 'package:amethyst/features/record_operations/domain/usecases/record_operation_usecases.dart';
 import 'package:amethyst/features/user_dashboard/data/repositories/user_dashboard_repository_impl.dart';
 import 'package:amethyst/features/user_dashboard/domain/repositories/user_dashboard_repository.dart';
@@ -79,12 +78,6 @@ void setupDependencies() {
   );
   sl.registerLazySingleton<RepayStationDebtUseCase>(
     () => RepayStationDebtUseCase(sl<RecordOperationsRepository>()),
-  );
-  sl.registerFactory<StationDebtRegistrationCubit>(
-    () => StationDebtRegistrationCubit(
-      listProductItems: sl<ListProductItemsUseCase>(),
-      createStationDebtEntries: sl<CreateStationDebtEntriesUseCase>(),
-    ),
   );
   sl.registerLazySingleton<CreateVehicleSaleUseCase>(
     () => CreateVehicleSaleUseCase(sl<RecordOperationsRepository>()),
