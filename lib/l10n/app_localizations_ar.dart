@@ -291,6 +291,9 @@ class AppLocalizationsAr extends AppLocalizations {
   String get cartonSalesMonthly => 'مبيع الكراتين';
 
   @override
+  String get superAdminDebtListKpiCaption => 'غير مسدد — الاسم والمنتجات';
+
+  @override
   String get cartonStockLabel => 'مخزون كراتين';
 
   @override
@@ -304,6 +307,9 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get cartonSalesStoreLabel => 'بيع الكراتين متجر (من السيارة للمتاجر)';
+
+  @override
+  String get cartonDebtUnpaidLabel => 'كراتين دين (غير مسدد — الإجمالي الحالي)';
 
   @override
   String get chipSalesToday => 'مبيعات اليوم';

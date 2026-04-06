@@ -8,6 +8,7 @@ import 'package:amethyst/features/admin/presentation/station_sale/station_sale_p
 import 'package:amethyst/features/admin/presentation/station_sale/widgets/station_sale_product_column.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
 
 class StationDebtRegistrationPage extends StatefulWidget {
   const StationDebtRegistrationPage({super.key});
@@ -69,6 +70,16 @@ class _StationDebtRegistrationPageState
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(content: Text(l10n.stationDebtRecorded)),
               );
+              final String path = GoRouterState.of(context).uri.path;
+              final String home = path.startsWith('/super-admin')
+                  ? '/super-admin/dashboard'
+                  : '/admin/dashboard';
+              Future<void>.delayed(const Duration(milliseconds: 500), () {
+                if (!context.mounted) {
+                  return;
+                }
+                context.go(home);
+              });
             } else if (state.submitError != null) {
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(

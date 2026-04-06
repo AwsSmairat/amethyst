@@ -10,7 +10,10 @@ import 'package:go_router/go_router.dart';
 
 /// قائمة أسماء المدينين؛ الضغط يفتح تفاصيل المنتجات لكل اسم.
 class StationDebtListPage extends StatelessWidget {
-  const StationDebtListPage({super.key});
+  const StationDebtListPage({super.key, this.shellBase = '/admin'});
+
+  /// بادئة المسار (`/admin` أو `/super-admin`) لشاشة تفاصيل المدين.
+  final String shellBase;
 
   static const String _extraDebtorName = 'debtorName';
   static const String _extraEntries = 'entries';
@@ -82,7 +85,7 @@ class StationDebtListPage extends StatelessWidget {
                   trailing: const Icon(Icons.chevron_left),
                   onTap: () async {
                     final bool? done = await context.push<bool>(
-                      '/admin/station-debt-list/debtor',
+                      '$shellBase/station-debt-list/debtor',
                       extra: <String, dynamic>{
                         _extraDebtorName: g.name,
                         _extraEntries: g.entries,

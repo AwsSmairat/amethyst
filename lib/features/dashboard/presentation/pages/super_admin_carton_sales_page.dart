@@ -193,6 +193,11 @@ class _SuperAdminCartonSalesBody extends StatelessWidget {
                       icon: Icons.receipt_long_outlined,
                     ),
                     _InfoRow(
+                      label: l10n.cartonDebtUnpaidLabel,
+                      value: _formatInt(d['cartonDebtUnpaidQuantity']),
+                      icon: Icons.pending_actions_outlined,
+                    ),
+                    _InfoRow(
                       label: '${l10n.cartonPriceLabel} ($monthLabel)',
                       value: _formatPrice(d['monthlyCartonSalesTotalAmount']),
                       icon: Icons.payments_outlined,

@@ -22,6 +22,7 @@ export function normalizeDashboard(role, raw) {
         remainingStationStock: raw.remainingStationStock ?? 0,
         remainingOnVehicles: raw.remainingOnVehicles ?? 0,
         remainingOnVehicle: null,
+        stationDebtOpenPreview: raw.stationDebtOpenPreview ?? [],
       },
       details: {
         counts: {

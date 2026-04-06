@@ -21,7 +21,7 @@ r.get(
 );
 r.post(
   '/repay',
-  authorize('super_admin', 'admin'),
+  authorize('admin'),
   validate(stationDebtRepaySchema),
   ctrl.repay
 );

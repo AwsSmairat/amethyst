@@ -4,8 +4,11 @@ import 'package:amethyst/di/injection.dart';
 import 'package:amethyst/features/admin/presentation/station_debt/station_debt_api_error.dart';
 import 'package:amethyst/features/admin/presentation/station_debt/station_debt_formatting.dart';
 import 'package:amethyst/l10n/app_localizations.dart';
+import 'package:amethyst/features/auth/presentation/cubit/auth_cubit.dart';
+import 'package:amethyst/features/auth/presentation/cubit/auth_state.dart';
 import 'package:amethyst/features/record_operations/domain/usecases/record_operation_usecases.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 
 /// تفاصيل سجلات الدين لشخص واحد (يُمرَّر من [StationDebtListPage]).
 class StationDebtorDetailPage extends StatefulWidget {
@@ -100,6 +103,9 @@ class _StationDebtorDetailPageState extends State<StationDebtorDetailPage> {
     });
 
     final bool showRepay = sorted.isNotEmpty;
+    final AuthState authState = context.watch<AuthCubit>().state;
+    final bool repayAllowed = authState is AuthAuthenticated &&
+        authState.user.role != 'super_admin';
 
     return Scaffold(
       appBar: AppBar(
@@ -153,7 +159,7 @@ class _StationDebtorDetailPageState extends State<StationDebtorDetailPage> {
                     },
                   ),
           ),
-          if (showRepay)
+          if (showRepay && repayAllowed)
             SafeArea(
               minimum: const EdgeInsets.fromLTRB(16, 8, 16, 16),
               child: FilledButton(

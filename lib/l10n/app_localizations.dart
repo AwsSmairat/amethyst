@@ -640,6 +640,12 @@ abstract class AppLocalizations {
   /// **'مبيع الكراتين'**
   String get cartonSalesMonthly;
 
+  /// No description provided for @superAdminDebtListKpiCaption.
+  ///
+  /// In ar, this message translates to:
+  /// **'غير مسدد — الاسم والمنتجات'**
+  String get superAdminDebtListKpiCaption;
+
   /// No description provided for @cartonStockLabel.
   ///
   /// In ar, this message translates to:
@@ -669,6 +675,12 @@ abstract class AppLocalizations {
   /// In ar, this message translates to:
   /// **'بيع الكراتين متجر (من السيارة للمتاجر)'**
   String get cartonSalesStoreLabel;
+
+  /// No description provided for @cartonDebtUnpaidLabel.
+  ///
+  /// In ar, this message translates to:
+  /// **'كراتين دين (غير مسدد — الإجمالي الحالي)'**
+  String get cartonDebtUnpaidLabel;
 
   /// No description provided for @chipSalesToday.
   ///

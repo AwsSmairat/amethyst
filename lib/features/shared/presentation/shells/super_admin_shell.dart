@@ -111,6 +111,13 @@ class SuperAdminShell extends StatelessWidget {
               _tile(
                 context,
                 path,
+                '/super-admin/station-debt-list',
+                Icons.list_alt,
+                context.l10n.titleStationDebtList,
+              ),
+              _tile(
+                context,
+                path,
                 '/super-admin/vehicles',
                 Icons.local_shipping,
                 context.l10n.vehicles,

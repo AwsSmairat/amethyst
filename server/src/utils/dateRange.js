@@ -32,6 +32,17 @@ export function businessMonthUtcRange(now = new Date(), timeZone) {
   return { start: start.toJSDate(), end: end.toJSDate() };
 }
 
+/** UTC instants for a given calendar month (month = 1–12) in `timeZone`. */
+export function businessMonthUtcRangeFor(year, month, timeZone) {
+  const z = DateTime.fromObject(
+    { year, month, day: 1 },
+    { zone: timeZone }
+  );
+  const start = z.startOf('month');
+  const end = z.endOf('month');
+  return { start: start.toJSDate(), end: end.toJSDate() };
+}
+
 export function parseDateRange(query) {
   const dateFrom = query.dateFrom ? new Date(query.dateFrom) : null;
   const dateTo = query.dateTo ? new Date(query.dateTo) : null;

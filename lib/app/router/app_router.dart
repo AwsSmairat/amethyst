@@ -171,6 +171,39 @@ GoRouter createAppRouter(AuthCubit authCubit) {
                 builder: (_, __) => const AdminStationBalancePage(),
               ),
               GoRoute(
+                path: 'station-debt-list',
+                builder: (_, __) =>
+                    const StationDebtListPage(shellBase: '/super-admin'),
+                routes: <RouteBase>[
+                  GoRoute(
+                    path: 'debtor',
+                    builder: (BuildContext context, GoRouterState state) {
+                      final Object? extra = state.extra;
+                      if (extra is! Map<String, dynamic>) {
+                        return Scaffold(
+                          appBar: AppBar(
+                            title: Text(context.l10n.titleStationDebtList),
+                          ),
+                          body: Center(child: Text(context.l10n.nothingHereYet)),
+                        );
+                      }
+                      final String debtorName =
+                          extra['debtorName'] as String? ?? '';
+                      final List<dynamic>? raw =
+                          extra['entries'] as List<dynamic>?;
+                      final List<Map<String, dynamic>> entries = raw
+                              ?.whereType<Map<String, dynamic>>()
+                              .toList(growable: false) ??
+                          <Map<String, dynamic>>[];
+                      return StationDebtorDetailPage(
+                        debtorName: debtorName,
+                        entries: entries,
+                      );
+                    },
+                  ),
+                ],
+              ),
+              GoRoute(
                 path: 'vehicles',
                 builder: (_, __) => const SuperAdminVehiclesPage(),
               ),

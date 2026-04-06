@@ -33,6 +33,7 @@ class _SuperAdminDashboardBody extends StatefulWidget {
 class _SuperAdminDashboardBodyState extends State<_SuperAdminDashboardBody>
     with WidgetsBindingObserver {
   Timer? _nextMidnightTimer;
+  Timer? _nextMonthTimer;
 
   @override
   void initState() {
@@ -40,25 +41,41 @@ class _SuperAdminDashboardBodyState extends State<_SuperAdminDashboardBody>
     WidgetsBinding.instance.addObserver(this);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _scheduleNextMidnightRefresh();
+      _scheduleNextMonthRefresh();
     });
   }
 
   @override
   void dispose() {
     _nextMidnightTimer?.cancel();
+    _nextMonthTimer?.cancel();
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }
 
   void _scheduleNextMidnightRefresh() {
     _nextMidnightTimer?.cancel();
-    final now = DateTime.now();
-    final nextMidnight = DateTime(now.year, now.month, now.day)
-        .add(const Duration(days: 1));
+    final DateTime now = DateTime.now();
+    final DateTime nextMidnight =
+        DateTime(now.year, now.month, now.day).add(const Duration(days: 1));
     _nextMidnightTimer = Timer(nextMidnight.difference(now), () {
       if (!mounted) return;
       context.read<SuperAdminDashboardCubit>().load();
       _scheduleNextMidnightRefresh();
+    });
+  }
+
+  /// Refetch when the device calendar month changes (monthly KPIs reset on server).
+  void _scheduleNextMonthRefresh() {
+    _nextMonthTimer?.cancel();
+    final DateTime now = DateTime.now();
+    final DateTime nextMonthStart = now.month == 12
+        ? DateTime(now.year + 1, 1, 1)
+        : DateTime(now.year, now.month + 1, 1);
+    _nextMonthTimer = Timer(nextMonthStart.difference(now), () {
+      if (!mounted) return;
+      context.read<SuperAdminDashboardCubit>().load();
+      _scheduleNextMonthRefresh();
     });
   }
 
@@ -99,6 +116,8 @@ class _SuperAdminDashboardBodyState extends State<_SuperAdminDashboardBody>
         final monthlyExpenses = _dashboardKpiNum(d['totalMonthlyExpenses']);
         final monthly = _dashboardKpiNum(d['totalMonthlySales']);
         final monthlyCartons = _dashboardKpiNum(d['totalMonthlyCartonSales']);
+        final List<_DebtGroup> debtPreview =
+            _parseStationDebtOpenPreview(d['stationDebtOpenPreview']);
         final l10n = context.l10n;
         return RefreshIndicator(
           onRefresh: () => context.read<SuperAdminDashboardCubit>().load(),
@@ -187,22 +206,12 @@ class _SuperAdminDashboardBodyState extends State<_SuperAdminDashboardBody>
                   ),
                 ],
               ),
-              const SizedBox(height: 24),
-              Text(
-                l10n.stockSnapshot,
-                style: Theme.of(
-                  context,
-                ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                l10n.stockLine(
-                  _dashboardKpiNum(d['remainingStationStock'])
-                      .toStringAsFixed(0),
-                  _dashboardKpiNum(d['remainingOnVehicles'])
-                      .toStringAsFixed(0),
-                ),
-                style: Theme.of(context).textTheme.bodyLarge,
+              const SizedBox(height: 12),
+              _StationDebtListPreviewCard(
+                title: l10n.titleStationDebtList,
+                caption: l10n.superAdminDebtListKpiCaption,
+                groups: debtPreview,
+                onTap: () => context.push('/super-admin/station-debt-list'),
               ),
             ],
           ),
@@ -216,6 +225,166 @@ double _dashboardKpiNum(dynamic v) {
   if (v == null) return 0;
   if (v is num) return v.toDouble();
   return double.tryParse(v.toString()) ?? 0;
+}
+
+final class _DebtLine {
+  const _DebtLine({required this.productName, required this.quantity});
+
+  final String productName;
+  final int quantity;
+}
+
+final class _DebtGroup {
+  const _DebtGroup({required this.debtorName, required this.lines});
+
+  final String debtorName;
+  final List<_DebtLine> lines;
+}
+
+List<_DebtGroup> _parseStationDebtOpenPreview(dynamic v) {
+  if (v is! List) {
+    return const <_DebtGroup>[];
+  }
+  final List<_DebtGroup> out = <_DebtGroup>[];
+  for (final Object? item in v) {
+    if (item is! Map) {
+      continue;
+    }
+    final Map<String, dynamic> m = Map<String, dynamic>.from(item);
+    final String name = m['debtorName']?.toString().trim() ?? '';
+    final Object? rawLines = m['lines'];
+    final List<_DebtLine> lines = <_DebtLine>[];
+    if (rawLines is List) {
+      for (final Object? ln in rawLines) {
+        if (ln is! Map) {
+          continue;
+        }
+        final Map<String, dynamic> lm = Map<String, dynamic>.from(ln);
+        final String pn = lm['productName']?.toString() ?? '';
+        final Object? q = lm['quantity'];
+        final int iq = q is int
+            ? q
+            : int.tryParse(q?.toString() ?? '') ?? 0;
+        if (pn.isNotEmpty && iq > 0) {
+          lines.add(_DebtLine(productName: pn, quantity: iq));
+        }
+      }
+    }
+    if (name.isNotEmpty) {
+      out.add(_DebtGroup(debtorName: name, lines: lines));
+    }
+  }
+  return out;
+}
+
+class _StationDebtListPreviewCard extends StatelessWidget {
+  const _StationDebtListPreviewCard({
+    required this.title,
+    required this.caption,
+    required this.groups,
+    required this.onTap,
+  });
+
+  final String title;
+  final String caption;
+  final List<_DebtGroup> groups;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final TextTheme textTheme = Theme.of(context).textTheme;
+    final Widget body = groups.isEmpty
+        ? const SizedBox.shrink()
+        : ConstrainedBox(
+            constraints: const BoxConstraints(maxHeight: 280),
+            child: SingleChildScrollView(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: groups
+                    .map(
+                      (_DebtGroup g) => Padding(
+                        padding: const EdgeInsets.only(bottom: 12),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: <Widget>[
+                            Text(
+                              g.debtorName,
+                              style: textTheme.titleSmall?.copyWith(
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
+                            if (g.lines.isNotEmpty) ...<Widget>[
+                              const SizedBox(height: 4),
+                              Text(
+                                g.lines
+                                    .map(
+                                      (_DebtLine l) =>
+                                          '${l.productName} ×${l.quantity}',
+                                    )
+                                    .join(' · '),
+                                style: textTheme.bodyMedium?.copyWith(
+                                  height: 1.35,
+                                  color: AppColors.primaryText,
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
+                    )
+                    .toList(growable: false),
+              ),
+            ),
+          );
+
+    final Widget content = Padding(
+      padding: const EdgeInsets.all(16),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          Icon(Icons.list_alt, color: AppColors.brandPrimary),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                Text(
+                  title.toUpperCase(),
+                  style: textTheme.labelSmall?.copyWith(
+                    letterSpacing: 0.8,
+                    color: AppColors.onSurfaceVariant,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  caption,
+                  style: textTheme.bodySmall?.copyWith(
+                    color: AppColors.onSurfaceVariant.withValues(alpha: 0.85),
+                    height: 1.25,
+                  ),
+                ),
+                if (groups.isNotEmpty) ...<Widget>[
+                  const SizedBox(height: 10),
+                  body,
+                ],
+              ],
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.only(top: 2),
+            child: Icon(
+              Icons.chevron_right,
+              color: AppColors.onSurfaceVariant.withValues(alpha: 0.6),
+            ),
+          ),
+        ],
+      ),
+    );
+    return Card(
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(onTap: onTap, child: content),
+    );
+  }
 }
 
 class _KpiGrid extends StatelessWidget {

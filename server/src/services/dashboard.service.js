@@ -4,6 +4,7 @@ import { AppError } from '../utils/AppError.js';
 import {
   businessDayUtcRange,
   businessMonthUtcRange,
+  businessMonthUtcRangeFor,
 } from '../utils/dateRange.js';
 import { mapProduct } from '../utils/serialize.js';
 
@@ -49,6 +50,40 @@ async function sumExpenses(from, to) {
     where: { createdAt: { gte: from, lte: to } },
   });
   return rows.reduce((a, r) => a + Number(r.amount), 0);
+}
+
+const STATION_DEBT_DASHBOARD_PREVIEW_CAP = 400;
+
+/**
+ * معاينة لوحة السوبر أدمن: مدينون غير مسددين مجمّعون بالاسم مع أسماء المنتجات والكميات.
+ */
+async function buildStationDebtOpenPreview() {
+  const entries = await prisma.stationDebtEntry.findMany({
+    where: { repaidAt: null },
+    include: { product: { select: { name: true } } },
+    orderBy: [{ debtorName: 'asc' }, { createdAt: 'asc' }],
+    take: STATION_DEBT_DASHBOARD_PREVIEW_CAP,
+  });
+  /** @type {Map<string, Map<string, { productName: string, quantity: number }>>} */
+  const byDebtor = new Map();
+  for (const e of entries) {
+    const dname = e.debtorName;
+    if (!byDebtor.has(dname)) {
+      byDebtor.set(dname, new Map());
+    }
+    const prodById = byDebtor.get(dname);
+    const pid = e.productId;
+    const prev = prodById.get(pid);
+    const qty = e.quantity;
+    prodById.set(pid, {
+      productName: e.product?.name ?? '',
+      quantity: (prev?.quantity ?? 0) + qty,
+    });
+  }
+  return [...byDebtor.entries()].map(([debtorName, prodMap]) => ({
+    debtorName,
+    lines: [...prodMap.values()],
+  }));
 }
 
 /** Units still at the station + units still on vehicles (open loads). */
@@ -103,6 +138,7 @@ export async function superAdminDashboard() {
     totalProducts,
     pricedProductsCount,
     monthlyCartonQty,
+    stationDebtOpenPreview,
   ] = await Promise.all([
     prisma.user.count(),
     prisma.user.count({ where: { role: 'admin' } }),
@@ -132,6 +168,7 @@ export async function superAdminDashboard() {
       where: { isActive: true, price: { gt: 0 } },
     }),
     sumCartonSalesQuantity(monthStart, monthEnd),
+    buildStationDebtOpenPreview(),
   ]);
 
   const totalMonthlySales = monthlyStation + monthlyVehicle;
@@ -157,6 +194,7 @@ export async function superAdminDashboard() {
     remainingOnVehicles: stockSnapshot.remainingOnVehicles,
     lowStockProducts: lowStock.map(mapProduct),
     recentActivities: recentAudit,
+    stationDebtOpenPreview,
   };
 }
 
@@ -165,24 +203,20 @@ export async function superAdminDashboard() {
  * - monthlyCartonSalesHomeQty: محطة + كل مبيعات الكراتين من السيارة.
  * - monthlyCartonSalesStoreQty: كراتين بيعت من السيارة للمتاجر فقط (saleDestination = store).
  * - monthlyCartonExpensesTotalAmount: مصاريف المحطة لبند «كراتين مي» فقط (شهر بشهر).
+ * - cartonDebtUnpaidQuantity / cartonDebtUnpaidTotalAmount: كراتين مسجّلة كدين غير مسدد
+ *   (لا تُحتسب في monthlyCartonSales* حتى يُنشأ StationSale عند السداد).
  */
 export async function superAdminCartonSummary({ year, month } = {}) {
   const now = new Date();
-  const y = Number.isInteger(year) ? year : now.getFullYear();
-  const m0 =
-    Number.isInteger(month) && month >= 1 && month <= 12
-      ? month - 1
-      : now.getMonth();
-  const monthStart = new Date(y, m0, 1);
-  const monthEnd = new Date(
-    y,
-    m0 + 1,
-    0,
-    23,
-    59,
-    59,
-    999
-  );
+  const tz = env.businessTimeZone;
+  const hasYm =
+    Number.isInteger(year) &&
+    Number.isInteger(month) &&
+    month >= 1 &&
+    month <= 12;
+  const { start: monthStart, end: monthEnd } = hasYm
+    ? businessMonthUtcRangeFor(year, month, tz)
+    : businessMonthUtcRange(now, tz);
 
   const [
     stockAgg,
@@ -192,6 +226,7 @@ export async function superAdminCartonSummary({ year, month } = {}) {
     stationCartonAmount,
     vehicleCartonAmount,
     cartonExpensesAgg,
+    cartonDebtUnpaidAgg,
   ] = await Promise.all([
     prisma.product.aggregate({
       where: { isActive: true, unitType: 'carton' },
@@ -251,6 +286,13 @@ export async function superAdminCartonSummary({ year, month } = {}) {
       },
       _sum: { amount: true },
     }),
+    prisma.stationDebtEntry.aggregate({
+      where: {
+        repaidAt: null,
+        product: { unitType: 'carton' },
+      },
+      _sum: { quantity: true, totalAmount: true },
+    }),
   ]);
 
   const cartonStock = stockAgg._sum.stationStock ?? 0;
@@ -263,6 +305,10 @@ export async function superAdminCartonSummary({ year, month } = {}) {
 
   const stationQ = stationCartonQty._sum.quantity ?? 0;
   const vehicleQ = vehicleCartonQty._sum.quantity ?? 0;
+  const cartonDebtUnpaidQuantity = cartonDebtUnpaidAgg._sum.quantity ?? 0;
+  const cartonDebtUnpaidTotalAmount = Number(
+    cartonDebtUnpaidAgg._sum.totalAmount ?? 0
+  );
 
   return {
     cartonStock,
@@ -270,6 +316,8 @@ export async function superAdminCartonSummary({ year, month } = {}) {
     monthlyCartonSalesTotalAmount,
     monthlyCartonSalesHomeQty: stationQ + vehicleQ,
     monthlyCartonSalesStoreQty: vehicleCartonStoreQty._sum.quantity ?? 0,
+    cartonDebtUnpaidQuantity,
+    cartonDebtUnpaidTotalAmount,
   };
 }
 
