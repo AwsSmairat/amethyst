@@ -14,7 +14,8 @@
     "db:seed": "node prisma/seed.js",
     "db:studio": "prisma studio",
     "verify:routes": "node scripts/verify-routes.mjs",
-    "verify:protected": "node scripts/verify-protected.mjs"
+    "verify:protected": "node scripts/verify-protected.mjs",
+    "db:wipe-ops": "node scripts/wipe-operational-data.mjs"
   },
   "engines": {
     "node": ">=18"
