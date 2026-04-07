@@ -9,7 +9,6 @@ import {
   startOfDay,
   endOfDay,
 } from '../utils/dateRange.js';
-import { stationStockReservedOnVehicleLoad } from '../utils/vehicleStockPolicy.js';
 
 function remainingOnLoad(load) {
   return (
@@ -18,8 +17,9 @@ function remainingOnLoad(load) {
 }
 
 /**
- * الكراتين ودفاتر الكوبون: عند التحميل يُحجَز من `station_stock` (يُنقص) لصالح السيارة.
- * عند البيع من السيارة لا يُعاد خصم المحطة — يُستهلك من سطر التحميل فقط (`vehicleSale.service.js`).
+ * لا نُنقص `stationStock` عند التحميل على المركبة — تجنّباً لأخطاء التحقق والمطابقة
+ * بين نوع المنتج والمخزون. خصم الكراتين/الكوبونات من مخزون المحطة يتم عند البيع من السيارة
+ * (انظر `vehicleSale.service.js`).
  */
 
 export async function listVehicleLoads(query, actor) {
@@ -129,23 +129,6 @@ export async function createVehicleLoad(body, actor) {
       },
     });
 
-    if (stationStockReservedOnVehicleLoad(product)) {
-      const reserved = await tx.product.updateMany({
-        where: {
-          id: product.id,
-          stationStock: { gte: body.quantityLoaded },
-        },
-        data: { stationStock: { decrement: body.quantityLoaded } },
-      });
-      if (reserved.count !== 1) {
-        throw new AppError(
-          'Insufficient station stock to load this quantity',
-          400,
-          'INSUFFICIENT_STOCK'
-        );
-      }
-    }
-
     await auditLog({
       userId: actor.id,
       action: 'VEHICLE_LOAD_CREATE',
@@ -162,10 +145,7 @@ export async function createVehicleLoad(body, actor) {
 }
 
 export async function updateVehicleLoad(id, body, actor) {
-  const existing = await prisma.vehicleLoad.findUnique({
-    where: { id },
-    include: { product: true },
-  });
+  const existing = await prisma.vehicleLoad.findUnique({ where: { id } });
   if (!existing) throw new AppError('Vehicle load not found', 404, 'NOT_FOUND');
   if (existing.status === 'closed') {
     throw new AppError('Cannot update a closed load', 400, 'VALIDATION_ERROR');
@@ -189,36 +169,6 @@ export async function updateVehicleLoad(id, body, actor) {
       body.loadDate !== undefined
         ? new Date(body.loadDate + 'T00:00:00.000Z')
         : undefined;
-
-    if (
-      existing.product &&
-      stationStockReservedOnVehicleLoad(existing.product) &&
-      body.quantityLoaded !== undefined &&
-      body.quantityLoaded !== existing.quantityLoaded
-    ) {
-      const delta = body.quantityLoaded - existing.quantityLoaded;
-      if (delta > 0) {
-        const ok = await tx.product.updateMany({
-          where: {
-            id: existing.productId,
-            stationStock: { gte: delta },
-          },
-          data: { stationStock: { decrement: delta } },
-        });
-        if (ok.count !== 1) {
-          throw new AppError(
-            'Insufficient station stock to increase loaded quantity',
-            400,
-            'INSUFFICIENT_STOCK'
-          );
-        }
-      } else if (delta < 0) {
-        await tx.product.update({
-          where: { id: existing.productId },
-          data: { stationStock: { increment: -delta } },
-        });
-      }
-    }
 
     const load = await tx.vehicleLoad.update({
       where: { id },
