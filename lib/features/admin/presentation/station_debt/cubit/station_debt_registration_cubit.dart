@@ -20,6 +20,8 @@ const List<String> _kVehicleDebtHomeCatalogNames = <String>[
   'Water Bottle',
   'Water Carton',
   'Coupon',
+  'Coupon 2',
+  'Coupon 3',
 ];
 
 const List<String> _kVehicleDebtStoreCatalogNames = <String>[

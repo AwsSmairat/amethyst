@@ -229,6 +229,14 @@ class _AddVehicleLoadBodyState extends State<_AddVehicleLoadBody> {
                         fontWeight: FontWeight.w800,
                       ),
                 ),
+                const SizedBox(height: 10),
+                Text(
+                  l10n.vehicleLoadStationStockHint,
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: AppColors.onSurfaceVariant,
+                        height: 1.35,
+                      ),
+                ),
                 const SizedBox(height: 16),
                 DropdownButtonFormField<String>(
                   value: _vehicleId,

@@ -18,8 +18,6 @@ class ProfilePage extends StatelessWidget {
             return Center(child: Text(context.l10n.notSignedIn));
           }
           final u = state.user;
-          final bool adminArea =
-              u.role == 'admin' || u.role == 'super_admin';
           final l10n = context.l10n;
           return ListView(
             padding: const EdgeInsets.all(20),
@@ -35,14 +33,6 @@ class ProfilePage extends StatelessWidget {
               const SizedBox(height: 20),
               _row(l10n.name, u.fullName),
               _row(l10n.emailLabel, u.email),
-              if (!adminArea) ...<Widget>[
-                _row(l10n.role, u.role),
-                if (u.phone != null) _row(l10n.phone, u.phone!),
-                _row(
-                  l10n.statusLabel,
-                  u.isActive ? l10n.active : l10n.inactive,
-                ),
-              ],
             ],
           );
         },

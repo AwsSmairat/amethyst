@@ -1989,6 +1989,12 @@ abstract class AppLocalizations {
   /// **'تحميل مركبة جديد'**
   String get newVehicleLoad;
 
+  /// No description provided for @vehicleLoadStationStockHint.
+  ///
+  /// In ar, this message translates to:
+  /// **'الكميات تُسجَّل على رصيد السيارة. لا يُخصَم من مخزون المحطة عند التحميل — يُخصَم عند تسجيل البيع من السيارة (كراتين ودفاتر كوبون).'**
+  String get vehicleLoadStationStockHint;
+
   /// No description provided for @vehicleField.
   ///
   /// In ar, this message translates to:

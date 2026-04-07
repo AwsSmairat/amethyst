@@ -40,6 +40,8 @@ class _AddVehicleSaleBodyState extends State<_AddVehicleSaleBody> {
     'Water Bottle',
     'Water Carton',
     'Coupon',
+    'Coupon 2',
+    'Coupon 3',
   ];
 
   /// أسماء المنتجات في الـ API — مطابقة لقوالب السوبر أدمن وصف التحميل.
@@ -49,11 +51,11 @@ class _AddVehicleSaleBodyState extends State<_AddVehicleSaleBody> {
     'مهدي متجر',
   ];
 
-  int _columnCount = 4;
-  List<int> _quantities = List<int>.filled(4, 0);
-  List<String?> _productIds = List<String?>.filled(4, null);
-  List<String> _productLabels = List<String>.filled(4, '');
-  List<double?> _unitPrices = List<double?>.filled(4, null);
+  int _columnCount = 6;
+  List<int> _quantities = List<int>.filled(6, 0);
+  List<String?> _productIds = List<String?>.filled(6, null);
+  List<String> _productLabels = List<String>.filled(6, '');
+  List<double?> _unitPrices = List<double?>.filled(6, null);
 
   /// قائمة المنتجات من الـ API (بحث بالاسم مع تطبيع بسيط).
   List<Map<String, dynamic>> _productItems = <Map<String, dynamic>>[];
@@ -167,9 +169,11 @@ class _AddVehicleSaleBodyState extends State<_AddVehicleSaleBody> {
   }
 
   String _columnTitle(BuildContext context, int index) {
-    if (_selectedPlace == VehicleSalePlace.home &&
-        index == _columnCount - 1) {
-      return context.l10n.couponProduct;
+    if (_selectedPlace == VehicleSalePlace.home) {
+      // Use friendly localized labels for coupon books.
+      if (index == 3) return context.l10n.productTemplateCoupon1;
+      if (index == 4) return context.l10n.productTemplateCoupon2;
+      if (index == 5) return context.l10n.productTemplateCoupon3;
     }
     final label = _productLabels[index];
     return label.isNotEmpty ? label : '—';
@@ -315,40 +319,46 @@ class _AddVehicleSaleBodyState extends State<_AddVehicleSaleBody> {
                         ),
                   ),
                   const SizedBox(height: 12),
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: <Widget>[
-                      for (var i = 0; i < _columnCount; i++)
-                        Expanded(
-                          child: Padding(
-                            padding: EdgeInsetsDirectional.only(
-                              start: i == 0 ? 0 : 4,
-                              end: i == _columnCount - 1 ? 0 : 4,
-                            ),
-                            child: _VehicleSaleColumn(
-                              index: i,
-                              productLabel: _columnTitle(context, i),
-                              quantity: _quantities[i],
-                              onDecrement: () => _adjustQuantity(i, -1),
-                              onIncrement: () => _adjustQuantity(i, 1),
-                              busy: busy,
-                              showHomeCouponButton:
-                                  _selectedPlace == VehicleSalePlace.home &&
-                                      (i == 0 || i == 1),
-                              homeCouponActive: i == 0
-                                  ? _homeCouponLine1On
-                                  : i == 1
-                                      ? _homeCouponLine2On
-                                      : false,
-                              onHomeCouponToggle:
-                                  _selectedPlace == VehicleSalePlace.home &&
-                                          (i == 0 || i == 1)
-                                      ? () => _toggleHomeCouponLine(i)
-                                      : null,
-                            ),
-                          ),
+                  LayoutBuilder(
+                    builder: (BuildContext context, BoxConstraints c) {
+                      final int crossAxisCount = _columnCount <= 3 ? _columnCount : 3;
+                      return GridView.builder(
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: crossAxisCount,
+                          crossAxisSpacing: 8,
+                          mainAxisSpacing: 8,
+                          // Give each cell more vertical room to avoid overflow
+                          // (labels + quantity controls + optional coupon button).
+                          childAspectRatio: 0.72,
                         ),
-                    ],
+                        itemCount: _columnCount,
+                        itemBuilder: (BuildContext context, int i) {
+                          return _VehicleSaleColumn(
+                            index: i,
+                            productLabel: _columnTitle(context, i),
+                            quantity: _quantities[i],
+                            onDecrement: () => _adjustQuantity(i, -1),
+                            onIncrement: () => _adjustQuantity(i, 1),
+                            busy: busy,
+                            showHomeCouponButton:
+                                _selectedPlace == VehicleSalePlace.home &&
+                                    (i == 0 || i == 1),
+                            homeCouponActive: i == 0
+                                ? _homeCouponLine1On
+                                : i == 1
+                                    ? _homeCouponLine2On
+                                    : false,
+                            onHomeCouponToggle:
+                                _selectedPlace == VehicleSalePlace.home &&
+                                        (i == 0 || i == 1)
+                                    ? () => _toggleHomeCouponLine(i)
+                                    : null,
+                          );
+                        },
+                      );
+                    },
                   ),
                   const SizedBox(height: 20),
                   FilledButton(
