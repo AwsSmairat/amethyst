@@ -29,6 +29,25 @@ class StationDebtorDetailPage extends StatefulWidget {
 class _StationDebtorDetailPageState extends State<StationDebtorDetailPage> {
   bool _submitting = false;
 
+  bool _allEntriesRecordedByUserId(List<Map<String, dynamic>> entries, String userId) {
+    if (userId.isEmpty) {
+      return false;
+    }
+    if (entries.isEmpty) {
+      return false;
+    }
+    for (final Map<String, dynamic> e in entries) {
+      final Object? rec0 = e['recordedBy'];
+      final Map<String, dynamic>? rec =
+          rec0 is Map<String, dynamic> ? rec0 : null;
+      final String rid = rec?['id']?.toString() ?? '';
+      if (rid.isEmpty || rid != userId) {
+        return false;
+      }
+    }
+    return true;
+  }
+
   Future<void> _onRepayPressed() async {
     final l10n = context.l10n;
     final bool? ok = await showDialog<bool>(
@@ -105,7 +124,9 @@ class _StationDebtorDetailPageState extends State<StationDebtorDetailPage> {
     final bool showRepay = sorted.isNotEmpty;
     final AuthState authState = context.watch<AuthCubit>().state;
     final bool repayAllowed = authState is AuthAuthenticated &&
-        authState.user.role == 'admin';
+        (authState.user.role == 'admin' ||
+            (authState.user.role == 'driver' &&
+                _allEntriesRecordedByUserId(sorted, authState.user.id)));
 
     return Scaffold(
       appBar: AppBar(

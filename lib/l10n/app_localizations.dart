@@ -1195,7 +1195,7 @@ abstract class AppLocalizations {
   /// No description provided for @driverRepaymentInfoBody.
   ///
   /// In ar, this message translates to:
-  /// **'تأكيد السداد وتسجيله في النظام يتم من قبل مدير المحطة. «قائمة الدين» تعرض فقط الأسماء التي سجّلتها من السيارة (وليس ديون المحطة المسجّلة من المكتب).'**
+  /// **'يمكنك تسجيل السداد للديون التي قمتَ بتسجيلها أنت فقط. «قائمة الدين» تعرض الأسماء التي سجّلتها من السيارة (وليس ديون المحطة المسجّلة من المكتب).'**
   String get driverRepaymentInfoBody;
 
   /// No description provided for @driverRepaymentInfoOpenList.
@@ -2186,6 +2186,18 @@ abstract class AppLocalizations {
   /// In ar, this message translates to:
   /// **'قائمة الدين'**
   String get titleStationDebtList;
+
+  /// No description provided for @stationDebtSectionStation.
+  ///
+  /// In ar, this message translates to:
+  /// **'دين المحطة'**
+  String get stationDebtSectionStation;
+
+  /// No description provided for @stationDebtSectionVehicles.
+  ///
+  /// In ar, this message translates to:
+  /// **'دين المركبات'**
+  String get stationDebtSectionVehicles;
 
   /// No description provided for @stationDebtDebtorLineCount.
   ///

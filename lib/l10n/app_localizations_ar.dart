@@ -596,7 +596,7 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get driverRepaymentInfoBody =>
-      'تأكيد السداد وتسجيله في النظام يتم من قبل مدير المحطة. «قائمة الدين» تعرض فقط الأسماء التي سجّلتها من السيارة (وليس ديون المحطة المسجّلة من المكتب).';
+      'يمكنك تسجيل السداد للديون التي قمتَ بتسجيلها أنت فقط. «قائمة الدين» تعرض الأسماء التي سجّلتها من السيارة (وليس ديون المحطة المسجّلة من المكتب).';
 
   @override
   String get driverRepaymentInfoOpenList => 'قائمة الدين';
@@ -1119,6 +1119,12 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get titleStationDebtList => 'قائمة الدين';
+
+  @override
+  String get stationDebtSectionStation => 'دين المحطة';
+
+  @override
+  String get stationDebtSectionVehicles => 'دين المركبات';
 
   @override
   String stationDebtDebtorLineCount(int count) {

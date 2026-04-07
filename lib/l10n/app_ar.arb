@@ -255,7 +255,7 @@
   "driverQuickDebt": "الدين",
   "driverQuickRepayment": "السداد",
   "driverRepaymentInfoTitle": "السداد",
-  "driverRepaymentInfoBody": "تأكيد السداد وتسجيله في النظام يتم من قبل مدير المحطة. «قائمة الدين» تعرض فقط الأسماء التي سجّلتها من السيارة (وليس ديون المحطة المسجّلة من المكتب).",
+  "driverRepaymentInfoBody": "يمكنك تسجيل السداد للديون التي قمتَ بتسجيلها أنت فقط. «قائمة الدين» تعرض الأسماء التي سجّلتها من السيارة (وليس ديون المحطة المسجّلة من المكتب).",
   "driverRepaymentInfoOpenList": "قائمة الدين",
   "todaysInventory": "مخزون اليوم",
   "updatedAgo": "محدّث منذ دقيقتين",
@@ -475,6 +475,8 @@
   "openStationSalesList": "عرض قائمة مبيعات المحطة",
   "openStationDebtList": "عرض قائمة الدين",
   "titleStationDebtList": "قائمة الدين",
+  "stationDebtSectionStation": "دين المحطة",
+  "stationDebtSectionVehicles": "دين المركبات",
   "stationDebtDebtorLineCount": "{count} سجل",
   "@stationDebtDebtorLineCount": {
     "placeholders": {
