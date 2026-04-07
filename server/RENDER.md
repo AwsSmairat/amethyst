@@ -8,7 +8,11 @@
 Optional:
 
 - **`NODE_ENV`** — `production`
-- **`CORS_ORIGIN`** — your Flutter/web origins if not using `*`
+- **`CORS_ORIGIN`** — comma-separated allowed browser origins (no `*` in production if you want strict CORS). Example for this app’s Firebase Hosting:
+
+  `https://amethyst-6a511.web.app,https://amethyst-6a511.firebaseapp.com`
+
+  Set this in the Render dashboard **Environment** for the web service. Trimming around commas is supported.
 
 ## Build & start
 

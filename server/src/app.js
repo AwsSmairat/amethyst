@@ -24,9 +24,21 @@ app.use(
     },
   })
 );
+const corsWildcard = env.corsOrigin === '*';
+const corsOriginsList = corsWildcard
+  ? []
+  : env.corsOrigin
+      .split(',')
+      .map((s) => s.trim())
+      .filter(Boolean);
+
 app.use(
   cors({
-    origin: env.corsOrigin === '*' ? true : env.corsOrigin.split(','),
+    origin: corsWildcard
+      ? true
+      : corsOriginsList.length === 0
+        ? true
+        : corsOriginsList,
     credentials: true,
   })
 );

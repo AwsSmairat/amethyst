@@ -1,9 +1,15 @@
+import 'package:flutter/foundation.dart';
+
 /// Base URL for the Amethyst API (includes `/api` prefix).
 ///
 /// **Production default:** deployed backend on Render.
 ///
 /// **Override** (local / staging / tests):
 /// `--dart-define=API_BASE_URL=https://your-host.com/api`
+///
+/// **Web release:** `localhost` / `127.0.0.1` are rejected (browsers cannot reach
+/// your laptop from Firebase Hosting). Use debug/profile or `--dart-define` with
+/// a LAN/tunnel URL for local web testing.
 abstract final class ApiConfig {
   /// Production API on Render. Override with `--dart-define=API_BASE_URL=...` when needed.
   static const String _productionDefault =
@@ -45,7 +51,19 @@ abstract final class ApiConfig {
       return 'API_BASE_URL must be a valid http(s) URL with a host, e.g. '
           'https://example.onrender.com/api';
     }
+    if (kIsWeb && kReleaseMode && _hostIsLoopback(resolvedBaseUrl)) {
+      return 'Production web build cannot use localhost or 127.0.0.1 for '
+          'API_BASE_URL (the API must be reachable from the internet). '
+          'Use the Render default in lib/core/config/api_config.dart or pass '
+          '--dart-define=API_BASE_URL=https://<your-service>.onrender.com/api. '
+          'For local Chrome testing use flutter run (debug) or a LAN/tunnel URL.';
+    }
     return null;
+  }
+
+  static bool _hostIsLoopback(String url) {
+    final host = Uri.tryParse(url)?.host.toLowerCase() ?? '';
+    return host == 'localhost' || host == '127.0.0.1';
   }
 
   static bool _containsUnsubstitutedPlaceholder(String url) {

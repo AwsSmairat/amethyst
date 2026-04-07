@@ -10,14 +10,16 @@ The app uses **`API_BASE_URL`** for all HTTP calls (login, dashboards, products,
 
 #### Production (Render)
 
-The **default** base URL is the deployed backend on Render:
-
-`https://YOUR-RENDER-URL.onrender.com/api`
-
-Replace `YOUR-RENDER-URL` with your Render service hostname in `lib/core/config/api_config.dart` (`_productionDefault`), **or** pass a full URL at build/run time (recommended for CI):
+The **default** base URL is set in `lib/core/config/api_config.dart` as `_productionDefault` (currently the Render service `https://amethyst-shhh.onrender.com/api`). Change it if your Render hostname differs, **or** pass a full URL at build/run time (recommended for CI):
 
 ```bash
 flutter build apk --dart-define=API_BASE_URL=https://your-service.onrender.com/api
+```
+
+**Flutter Web (Firebase Hosting, etc.):** use the same public API URL (not `localhost`). Release builds reject `localhost` / `127.0.0.1` for `API_BASE_URL`.
+
+```bash
+flutter build web --release --dart-define=API_BASE_URL=https://amethyst-shhh.onrender.com/api
 ```
 
 No backend code changes are required; only the Flutter `API_BASE_URL` must point at your live API (must include the `/api` suffix if that is how your server is mounted).
