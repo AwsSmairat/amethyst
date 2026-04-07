@@ -202,7 +202,6 @@ class _StationDebtRegistrationPageState
   }) {
     final cubit = context.read<StationDebtRegistrationCubit>();
     final l10n = context.l10n;
-    final StationDebtVehiclePlace? vehiclePlace = cubit.vehiclePlace;
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
@@ -215,16 +214,10 @@ class _StationDebtRegistrationPageState
               ),
               child: StationSaleProductColumn(
                 index: i,
-                productLabel: state.useVehicleProductLabels && vehiclePlace != null
-                    ? _vehicleDebtProductLabel(vehiclePlace, i, l10n) ??
-                        (i < state.columnProductNames.length &&
-                                state.columnProductNames[i].isNotEmpty
-                            ? state.columnProductNames[i]
-                            : stationSaleProductLabel(
-                                StationSaleEntryKind.filling,
-                                i,
-                                l10n,
-                              ))
+                productLabel: state.useVehicleProductLabels &&
+                        i < state.columnProductNames.length &&
+                        state.columnProductNames[i].isNotEmpty
+                    ? state.columnProductNames[i]
                     : stationSaleProductLabel(
                         StationSaleEntryKind.filling,
                         i,
@@ -248,25 +241,4 @@ class _StationDebtRegistrationPageState
       ],
     );
   }
-}
-
-String? _vehicleDebtProductLabel(
-  StationDebtVehiclePlace place,
-  int index,
-  AppLocalizations l10n,
-) {
-  if (place == StationDebtVehiclePlace.store) {
-    // Store products are already Arabic in the API catalog (جالون متجر/قاروره متجر/مهدي متجر).
-    return null;
-  }
-  // Home: show Arabic labels regardless of API names.
-  return switch (index) {
-    0 => l10n.stationSaleProductGallon,
-    1 => l10n.stationSaleProductBottle,
-    2 => l10n.stationSaleProductMahdi,
-    3 => l10n.productTemplateCoupon1,
-    4 => l10n.productTemplateCoupon2,
-    5 => l10n.productTemplateCoupon3,
-    _ => null,
-  };
 }

@@ -53,18 +53,58 @@ class _SuperAdminProductPricesBody extends StatelessWidget {
     final double? current = rawPrice is num
         ? rawPrice.toDouble()
         : double.tryParse(rawPrice?.toString() ?? '');
-    final double? parsed = await showDialog<double?>(
+    final TextEditingController ctrl = TextEditingController(
+      text: current != null ? current.toString() : '',
+    );
+    final bool? ok = await showDialog<bool>(
       context: context,
-      builder: (BuildContext ctx) => _PriceInputDialog(
-        title: l10n.editProductPriceTitle,
-        nameLine: name,
-        initialValue: current,
+      builder: (BuildContext ctx) => AlertDialog(
+        title: Text(l10n.editProductPriceTitle),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: <Widget>[
+            Text(
+              name,
+              textAlign: TextAlign.right,
+              style: Theme.of(ctx).textTheme.titleSmall?.copyWith(
+                    fontWeight: FontWeight.w700,
+                  ),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: ctrl,
+              textAlign: TextAlign.right,
+              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              inputFormatters: <TextInputFormatter>[
+                FilteringTextInputFormatter.allow(RegExp(r'[0-9.,]')),
+              ],
+              decoration: InputDecoration(
+                labelText: l10n.productPriceFieldLabel,
+              ),
+            ),
+          ],
+        ),
+        actions: <Widget>[
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: Text(l10n.cancel),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: Text(l10n.save),
+          ),
+        ],
       ),
     );
-    if (parsed == null || !context.mounted) {
+    if (ok != true || !context.mounted) {
+      ctrl.dispose();
       return;
     }
-    if (parsed <= 0) {
+    final String normalized = ctrl.text.trim().replaceAll(',', '.');
+    final double? parsed = double.tryParse(normalized);
+    ctrl.dispose();
+    if (parsed == null || parsed <= 0) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(l10n.enterValidPrice)),
       );
@@ -139,21 +179,57 @@ class _SuperAdminProductPricesBody extends StatelessWidget {
     final AppLocalizations l10n = context.l10n;
     final ({String name, String unitType}) spec =
         stationBalanceSeedSpecForRow(rowIndex);
-    final double? parsed = await showDialog<double?>(
+    final TextEditingController ctrl = TextEditingController();
+    final bool? ok = await showDialog<bool>(
       context: context,
-      builder: (BuildContext ctx) => _PriceInputDialog(
-        title: stationBalanceRowLabel(l10n, rowIndex),
-        nameLine: l10n.apiProductNameHint(spec.name),
-        initialValue: null,
-        nameLineStyle: Theme.of(ctx).textTheme.bodySmall?.copyWith(
-              color: AppColors.onSurfaceVariant,
+      builder: (BuildContext ctx) => AlertDialog(
+        title: Text(stationBalanceRowLabel(l10n, rowIndex)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: <Widget>[
+            Text(
+              l10n.apiProductNameHint(spec.name),
+              textAlign: TextAlign.right,
+              style: Theme.of(ctx).textTheme.bodySmall?.copyWith(
+                    color: AppColors.onSurfaceVariant,
+                  ),
             ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: ctrl,
+              textAlign: TextAlign.right,
+              keyboardType:
+                  const TextInputType.numberWithOptions(decimal: true),
+              inputFormatters: <TextInputFormatter>[
+                FilteringTextInputFormatter.allow(RegExp(r'[0-9.,]')),
+              ],
+              decoration: InputDecoration(
+                labelText: l10n.productPriceFieldLabel,
+              ),
+            ),
+          ],
+        ),
+        actions: <Widget>[
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: Text(l10n.cancel),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: Text(l10n.save),
+          ),
+        ],
       ),
     );
-    if (parsed == null || !context.mounted) {
+    if (ok != true || !context.mounted) {
+      ctrl.dispose();
       return;
     }
-    if (parsed <= 0) {
+    final String normalized = ctrl.text.trim().replaceAll(',', '.');
+    final double? parsed = double.tryParse(normalized);
+    ctrl.dispose();
+    if (parsed == null || parsed <= 0) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(l10n.enterValidPrice)),
       );
@@ -419,86 +495,6 @@ class _SuperAdminProductPricesBody extends StatelessWidget {
           );
         },
       ),
-    );
-  }
-}
-
-final class _PriceInputDialog extends StatefulWidget {
-  const _PriceInputDialog({
-    required this.title,
-    required this.nameLine,
-    required this.initialValue,
-    this.nameLineStyle,
-  });
-
-  final String title;
-  final String nameLine;
-  final double? initialValue;
-  final TextStyle? nameLineStyle;
-
-  @override
-  State<_PriceInputDialog> createState() => _PriceInputDialogState();
-}
-
-class _PriceInputDialogState extends State<_PriceInputDialog> {
-  late final TextEditingController _ctrl = TextEditingController(
-    text: widget.initialValue != null ? widget.initialValue!.toString() : '',
-  );
-
-  @override
-  void dispose() {
-    _ctrl.dispose();
-    super.dispose();
-  }
-
-  void _submit() {
-    final String normalized = _ctrl.text.trim().replaceAll(',', '.');
-    final double? parsed = double.tryParse(normalized);
-    Navigator.of(context).pop(parsed);
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final l10n = context.l10n;
-    return AlertDialog(
-      title: Text(widget.title),
-      content: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: <Widget>[
-          Text(
-            widget.nameLine,
-            textAlign: TextAlign.right,
-            style: widget.nameLineStyle ??
-                Theme.of(context).textTheme.titleSmall?.copyWith(
-                      fontWeight: FontWeight.w700,
-                    ),
-          ),
-          const SizedBox(height: 12),
-          TextField(
-            controller: _ctrl,
-            textAlign: TextAlign.right,
-            keyboardType: const TextInputType.numberWithOptions(decimal: true),
-            inputFormatters: <TextInputFormatter>[
-              FilteringTextInputFormatter.allow(RegExp(r'[0-9.,]')),
-            ],
-            decoration: InputDecoration(
-              labelText: l10n.productPriceFieldLabel,
-            ),
-            onSubmitted: (_) => _submit(),
-          ),
-        ],
-      ),
-      actions: <Widget>[
-        TextButton(
-          onPressed: () => Navigator.of(context).pop(null),
-          child: Text(l10n.cancel),
-        ),
-        FilledButton(
-          onPressed: _submit,
-          child: Text(l10n.save),
-        ),
-      ],
     );
   }
 }

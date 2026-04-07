@@ -1018,10 +1018,6 @@ class AppLocalizationsAr extends AppLocalizations {
   String get newVehicleLoad => 'تحميل مركبة جديد';
 
   @override
-  String get vehicleLoadStationStockHint =>
-      'الكميات تُسجَّل على رصيد السيارة. لا يُخصَم من مخزون المحطة عند التحميل — يُخصَم عند تسجيل البيع من السيارة (كراتين ودفاتر كوبون).';
-
-  @override
   String get vehicleField => 'المركبة';
 
   @override

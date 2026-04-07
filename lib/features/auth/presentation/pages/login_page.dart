@@ -1,6 +1,5 @@
 import 'package:amethyst/core/l10n/context_l10n.dart';
 import 'package:amethyst/core/theme/app_colors.dart';
-import 'package:amethyst/core/widgets/app_footer_credit.dart';
 import 'package:amethyst/core/widgets/brand_mark.dart';
 import 'package:amethyst/features/auth/presentation/cubit/auth_cubit.dart';
 import 'package:amethyst/features/auth/presentation/cubit/auth_state.dart';
@@ -76,56 +75,48 @@ class _LoginPageState extends State<LoginPage> {
     final TextTheme textTheme = Theme.of(context).textTheme;
 
     return Scaffold(
-      body: Stack(
-        fit: StackFit.expand,
-        children: <Widget>[
-          Container(
-            width: double.infinity,
-            height: double.infinity,
-            decoration: const BoxDecoration(color: Colors.black),
-            child: SafeArea(
-              child: LayoutBuilder(
-                builder: (BuildContext context, BoxConstraints constraints) {
-                  return SingleChildScrollView(
-                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
-                    child: ConstrainedBox(
-                      constraints: BoxConstraints(minHeight: constraints.maxHeight - 40),
-                      child: Form(
-                        key: _formKey,
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: <Widget>[
-                            const _LoginStoreLogo(),
-                            const SizedBox(height: 28),
-                            Center(
-                              child: ConstrainedBox(
-                                constraints: const BoxConstraints(maxWidth: 420),
-                                child: _LoginFormPanel(
-                                  textTheme: textTheme,
-                                  emailController: _email,
-                                  passwordController: _password,
-                                  rememberMe: _rememberMe,
-                                  onRememberMeChanged: (bool value) {
-                                    setState(() => _rememberMe = value);
-                                  },
-                                  onSubmit: () => _submit(context),
-                                ),
-                              ),
+      body: Container(
+        width: double.infinity,
+        height: double.infinity,
+        decoration: const BoxDecoration(color: Colors.black),
+        child: SafeArea(
+          child: LayoutBuilder(
+            builder: (BuildContext context, BoxConstraints constraints) {
+              return SingleChildScrollView(
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(minHeight: constraints.maxHeight - 40),
+                  child: Form(
+                    key: _formKey,
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: <Widget>[
+                        const _LoginStoreLogo(),
+                        const SizedBox(height: 28),
+                        Center(
+                          child: ConstrainedBox(
+                            constraints: const BoxConstraints(maxWidth: 420),
+                            child: _LoginFormPanel(
+                              textTheme: textTheme,
+                              emailController: _email,
+                              passwordController: _password,
+                              rememberMe: _rememberMe,
+                              onRememberMeChanged: (bool value) {
+                                setState(() => _rememberMe = value);
+                              },
+                              onSubmit: () => _submit(context),
                             ),
-                          ],
+                          ),
                         ),
-                      ),
+                      ],
                     ),
-                  );
-                },
-              ),
-            ),
+                  ),
+                ),
+              );
+            },
           ),
-          AppFooterCredit(
-            textColor: Colors.white.withValues(alpha: 0.38),
-          ),
-        ],
+        ),
       ),
     );
   }

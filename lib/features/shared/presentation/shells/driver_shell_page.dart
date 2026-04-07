@@ -1,6 +1,5 @@
 import 'package:amethyst/core/l10n/context_l10n.dart';
 import 'package:amethyst/core/theme/app_colors.dart';
-import 'package:amethyst/core/widgets/app_footer_credit.dart';
 import 'package:amethyst/core/widgets/brand_mark.dart';
 import 'package:amethyst/features/auth/presentation/cubit/auth_cubit.dart';
 import 'package:flutter/material.dart';
@@ -35,13 +34,7 @@ class DriverShellPage extends StatelessWidget {
             ),
           ],
         ),
-        body: Stack(
-          fit: StackFit.expand,
-          children: <Widget>[
-            navigationShell,
-            const AppFooterCredit(),
-          ],
-        ),
+        body: navigationShell,
         bottomNavigationBar: NavigationBar(
           selectedIndex: navigationShell.currentIndex,
           onDestinationSelected: navigationShell.goBranch,
