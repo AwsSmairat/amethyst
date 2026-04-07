@@ -2187,18 +2187,6 @@ abstract class AppLocalizations {
   /// **'قائمة الدين'**
   String get titleStationDebtList;
 
-  /// No description provided for @stationDebtSectionStation.
-  ///
-  /// In ar, this message translates to:
-  /// **'دين المحطة'**
-  String get stationDebtSectionStation;
-
-  /// No description provided for @stationDebtSectionVehicles.
-  ///
-  /// In ar, this message translates to:
-  /// **'دين المركبات'**
-  String get stationDebtSectionVehicles;
-
   /// No description provided for @stationDebtDebtorLineCount.
   ///
   /// In ar, this message translates to:

@@ -186,30 +186,6 @@ class _DriverDebtActionsRow extends StatelessWidget {
     );
   }
 
-  static void _showRepaymentInfo(BuildContext context) {
-    final l10n = context.l10n;
-    showDialog<void>(
-      context: context,
-      builder: (BuildContext ctx) => AlertDialog(
-        title: Text(l10n.driverRepaymentInfoTitle),
-        content: Text(l10n.driverRepaymentInfoBody),
-        actions: <Widget>[
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(),
-            child: Text(l10n.cancel),
-          ),
-          FilledButton(
-            onPressed: () {
-              Navigator.of(ctx).pop();
-              context.push('/driver/dashboard/station-debt-list');
-            },
-            child: Text(l10n.driverRepaymentInfoOpenList),
-          ),
-        ],
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     final l10n = context.l10n;
@@ -233,7 +209,7 @@ class _DriverDebtActionsRow extends StatelessWidget {
                 icon: Icons.paid_outlined,
                 label: l10n.driverQuickRepayment,
                 tint: AppColors.brandPrimary,
-                onTap: () => _showRepaymentInfo(context),
+                onTap: () => context.push('/driver/dashboard/station-debt-list'),
               ),
             ),
           ],

@@ -1121,12 +1121,6 @@ class AppLocalizationsAr extends AppLocalizations {
   String get titleStationDebtList => 'قائمة الدين';
 
   @override
-  String get stationDebtSectionStation => 'دين المحطة';
-
-  @override
-  String get stationDebtSectionVehicles => 'دين المركبات';
-
-  @override
   String stationDebtDebtorLineCount(int count) {
     return '$count سجل';
   }

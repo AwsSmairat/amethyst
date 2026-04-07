@@ -475,8 +475,6 @@
   "openStationSalesList": "عرض قائمة مبيعات المحطة",
   "openStationDebtList": "عرض قائمة الدين",
   "titleStationDebtList": "قائمة الدين",
-  "stationDebtSectionStation": "دين المحطة",
-  "stationDebtSectionVehicles": "دين المركبات",
   "stationDebtDebtorLineCount": "{count} سجل",
   "@stationDebtDebtorLineCount": {
     "placeholders": {

@@ -21,7 +21,6 @@ class StationDebtListPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = context.l10n;
-    final bool sectionedForSuperAdmin = shellBase == '/super-admin';
     return BlocProvider<JsonListCubit>(
       create: (_) => JsonListCubit(
         () => sl<AmethystApi>().listStationDebtEntries(),
@@ -64,63 +63,16 @@ class StationDebtListPage extends StatelessWidget {
             }
             final List<Map<String, dynamic>> items =
                 (state as ListLoadLoaded).items;
-            if (!sectionedForSuperAdmin) {
-              final List<_DebtorGroup> groups = _groupByDebtorName(items);
-              if (groups.isEmpty) {
-                return Center(child: Text(l10n.nothingHereYet));
-              }
-              return ListView.separated(
-                padding: const EdgeInsets.symmetric(vertical: 8),
-                itemCount: groups.length,
-                separatorBuilder: (_, __) => const Divider(height: 1),
-                itemBuilder: (BuildContext context, int i) {
-                  final _DebtorGroup g = groups[i];
-                  return _DebtorTile(
-                    shellBase: shellBase,
-                    debtorName: g.name,
-                    entries: g.entries,
-                  );
-                },
-              );
-            }
-
-            final List<Map<String, dynamic>> stationItems = items
-                .where((Map<String, dynamic> e) => _recordedByRole(e) == 'admin')
-                .toList(growable: false);
-            final List<Map<String, dynamic>> vehicleItems = items
-                .where((Map<String, dynamic> e) => _recordedByRole(e) == 'driver')
-                .toList(growable: false);
-
-            final List<_DebtorGroup> stationGroups = _groupByDebtorName(stationItems);
-            final List<_DebtorGroup> vehicleGroups = _groupByDebtorName(vehicleItems);
-
-            if (stationGroups.isEmpty && vehicleGroups.isEmpty) {
+            final List<_DebtorGroup> groups = _groupByDebtorName(items);
+            if (groups.isEmpty) {
               return Center(child: Text(l10n.nothingHereYet));
             }
-
-            final List<_SectionRow> rows = <_SectionRow>[
-              if (stationGroups.isNotEmpty) _SectionRow.header(l10n.stationDebtSectionStation),
-              ...stationGroups.map<_SectionRow>((_DebtorGroup g) => _SectionRow.group(g)),
-              if (vehicleGroups.isNotEmpty) _SectionRow.header(l10n.stationDebtSectionVehicles),
-              ...vehicleGroups.map<_SectionRow>((_DebtorGroup g) => _SectionRow.group(g)),
-            ];
-
             return ListView.separated(
               padding: const EdgeInsets.symmetric(vertical: 8),
-              itemCount: rows.length,
+              itemCount: groups.length,
               separatorBuilder: (_, __) => const Divider(height: 1),
               itemBuilder: (BuildContext context, int i) {
-                final _SectionRow r = rows[i];
-                if (r.isHeader) {
-                  return Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
-                    child: Text(
-                      r.headerText ?? '',
-                      style: Theme.of(context).textTheme.titleMedium,
-                    ),
-                  );
-                }
-                final _DebtorGroup g = r.group!;
+                final _DebtorGroup g = groups[i];
                 return _DebtorTile(
                   shellBase: shellBase,
                   debtorName: g.name,
@@ -187,24 +139,6 @@ class _DebtorTile extends StatelessWidget {
       },
     );
   }
-}
-
-String _recordedByRole(Map<String, dynamic> entry) {
-  final Object? rec0 = entry['recordedBy'];
-  final Map<String, dynamic>? rec = rec0 is Map<String, dynamic> ? rec0 : null;
-  return rec?['role']?.toString() ?? '';
-}
-
-final class _SectionRow {
-  const _SectionRow._({this.headerText, this.group});
-
-  factory _SectionRow.header(String text) => _SectionRow._(headerText: text);
-  factory _SectionRow.group(_DebtorGroup g) => _SectionRow._(group: g);
-
-  final String? headerText;
-  final _DebtorGroup? group;
-
-  bool get isHeader => headerText != null;
 }
 
 final class _DebtorGroup {

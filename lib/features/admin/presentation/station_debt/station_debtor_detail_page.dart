@@ -167,7 +167,7 @@ class _StationDebtorDetailPageState extends State<StationDebtorDetailPage> {
                         '${l10n.quantity}: $qty',
                         '${l10n.totalAmountLabel}: $total',
                         if (when != null) when,
-                        if (rname.isNotEmpty) rname,
+                        if (rname.isNotEmpty) '${l10n.sellerLabel}: $rname',
                       ];
                       return ListTile(
                         title: Text(
