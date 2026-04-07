@@ -151,13 +151,9 @@ async function allocateSale(tx, vehicleId, productId, quantity) {
 }
 
 /**
- * كراتين (وأيضاً دفاتر كوبون): يُخصَم من `station_stock` عند بيع السيارة فقط، لا عند التحميل.
- * يعتمد على `unit_type` في جدول المنتجات — تأكد أن أصناف الكراتين مسجّلة كـ `carton`.
+ * كراتين ودفاتر كوبون: يُخصَم من `station_stock` عند **التحميل** (حجز للسيارة)،
+ * وليس عند البيع — البيع يحدّث `quantitySold` على التحميلات فقط.
  */
-function deductsStationStockOnVehicleSale(product) {
-  const t = product.unitType;
-  return t === 'carton' || t === 'coupon';
-}
 
 export async function listVehicleSales(query, actor) {
   const { page, limit, skip } = parsePagination(query);
@@ -245,56 +241,14 @@ export async function createVehicleSale(body, actor) {
 
     if (storeCanonicalRows && storeCanonicalRows.length > 0) {
       const allocationIds = storeCanonicalRows.map((r) => r.id);
-      const consumed = await allocateSaleFromAnyProduct(
+      await allocateSaleFromAnyProduct(
         tx,
         body.vehicleId,
         allocationIds,
         body.quantity
       );
-
-      if (deductsStationStockOnVehicleSale(product)) {
-        for (const [loadProductId, qty] of consumed) {
-          const row = await tx.product.findUnique({
-            where: { id: loadProductId },
-          });
-          if (!row || !deductsStationStockOnVehicleSale(row)) {
-            continue;
-          }
-          const updated = await tx.product.updateMany({
-            where: {
-              id: loadProductId,
-              stationStock: { gte: qty },
-            },
-            data: { stationStock: { decrement: qty } },
-          });
-          if (updated.count !== 1) {
-            throw new AppError(
-              'Cannot sell more than available station stock',
-              400,
-              'INSUFFICIENT_STOCK'
-            );
-          }
-        }
-      }
     } else {
       await allocateSale(tx, body.vehicleId, product.id, body.quantity);
-
-      if (deductsStationStockOnVehicleSale(product)) {
-        const updated = await tx.product.updateMany({
-          where: {
-            id: product.id,
-            stationStock: { gte: body.quantity },
-          },
-          data: { stationStock: { decrement: body.quantity } },
-        });
-        if (updated.count !== 1) {
-          throw new AppError(
-            'Cannot sell more than available station stock',
-            400,
-            'INSUFFICIENT_STOCK'
-          );
-        }
-      }
     }
 
     const totalAmount = body.quantity * body.unitPrice;

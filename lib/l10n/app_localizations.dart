@@ -1992,7 +1992,7 @@ abstract class AppLocalizations {
   /// No description provided for @vehicleLoadStationStockHint.
   ///
   /// In ar, this message translates to:
-  /// **'الكميات تُسجَّل على رصيد السيارة. لا يُخصَم من مخزون المحطة عند التحميل — يُخصَم عند تسجيل البيع من السيارة (كراتين ودفاتر كوبون).'**
+  /// **'الكراتين ودفاتر الكوبون: تُحجَز من مخزون المحطة عند التحميل ثم تظهر على السيارة. البيع من السيارة يستهلك من الحمول دون خصم إضافي من المحطة.'**
   String get vehicleLoadStationStockHint;
 
   /// No description provided for @vehicleField.
