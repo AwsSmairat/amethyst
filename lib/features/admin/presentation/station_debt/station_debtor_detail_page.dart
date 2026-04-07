@@ -3,6 +3,7 @@ import 'package:amethyst/core/network/api_exception.dart';
 import 'package:amethyst/di/injection.dart';
 import 'package:amethyst/features/admin/presentation/station_debt/station_debt_api_error.dart';
 import 'package:amethyst/features/admin/presentation/station_debt/station_debt_formatting.dart';
+import 'package:amethyst/core/config/api_config.dart';
 import 'package:amethyst/l10n/app_localizations.dart';
 import 'package:amethyst/features/auth/presentation/cubit/auth_cubit.dart';
 import 'package:amethyst/features/auth/presentation/cubit/auth_state.dart';
@@ -209,7 +210,9 @@ String _repayErrorUserMessage(AppLocalizations l10n, ApiException e) {
     return l10n.stationSaleSubmitInsufficientStock;
   }
   if (mapped == kStationDebtForbiddenMarker) {
-    return l10n.stationDebtErrorForbidden;
+    final String base = ApiConfig.resolvedBaseUrl;
+    final String suffix = base.isEmpty ? '' : '\n\nAPI: $base';
+    return '${l10n.stationDebtErrorForbidden}$suffix';
   }
   final String lower = e.message.toLowerCase();
   if (e.code == 'NOT_FOUND' &&
