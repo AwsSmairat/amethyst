@@ -3,6 +3,7 @@ import 'package:amethyst/core/theme/app_colors.dart';
 import 'package:amethyst/core/widgets/brand_mark.dart';
 import 'package:amethyst/features/auth/presentation/cubit/auth_cubit.dart';
 import 'package:amethyst/features/auth/presentation/cubit/auth_state.dart';
+import 'package:amethyst/features/dashboard/presentation/utils/super_admin_dashboard_share.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
@@ -15,6 +16,7 @@ class SuperAdminShell extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final path = GoRouterState.of(context).uri.path;
+    final l10n = context.l10n;
     return DecoratedBox(
       decoration: const BoxDecoration(gradient: AppColors.scaffoldSoftGradient),
       child: Scaffold(
@@ -22,6 +24,38 @@ class SuperAdminShell extends StatelessWidget {
         appBar: AppBar(
           title: const BrandMarkSmall(size: 36),
           actions: <Widget>[
+            if (path == '/super-admin/dashboard')
+              PopupMenuButton<String>(
+                tooltip: l10n.printOverviewTooltip,
+                child: const Icon(Icons.print_outlined),
+                onSelected: (String value) {
+                  switch (value) {
+                    case 'expenses':
+                      shareSuperAdminExpensesReport(context);
+                      break;
+                    case 'sales':
+                      shareSuperAdminStationSalesReport(context);
+                      break;
+                    case 'stock':
+                      shareSuperAdminStationStockReport(context);
+                      break;
+                  }
+                },
+                itemBuilder: (BuildContext _) => <PopupMenuEntry<String>>[
+                  PopupMenuItem<String>(
+                    value: 'expenses',
+                    child: Text(l10n.expenses),
+                  ),
+                  PopupMenuItem<String>(
+                    value: 'sales',
+                    child: Text(l10n.stationSales),
+                  ),
+                  PopupMenuItem<String>(
+                    value: 'stock',
+                    child: Text(l10n.menuStationStock),
+                  ),
+                ],
+              ),
             IconButton(
               tooltip: context.l10n.profileTooltip,
               onPressed: () => context.go('/super-admin/profile'),

@@ -138,6 +138,30 @@ class AppLocalizationsAr extends AppLocalizations {
   String get overview => 'نظرة عامة';
 
   @override
+  String get printOverviewTooltip => 'طباعة أو مشاركة تقارير';
+
+  @override
+  String get printOverviewShareFailed => 'تعذّر تحضير الملخص';
+
+  @override
+  String get printColumnProduct => 'المنتج';
+
+  @override
+  String get printColumnUnitType => 'نوع الوحدة';
+
+  @override
+  String get printColumnDateTime => 'التاريخ';
+
+  @override
+  String get printColumnAmount => 'المبلغ';
+
+  @override
+  String get printColumnNote => 'ملاحظة';
+
+  @override
+  String get printColumnVehicle => 'المركبة';
+
+  @override
   String get operations => 'العمليات';
 
   @override

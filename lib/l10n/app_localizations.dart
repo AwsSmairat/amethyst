@@ -352,6 +352,54 @@ abstract class AppLocalizations {
   /// **'نظرة عامة'**
   String get overview;
 
+  /// No description provided for @printOverviewTooltip.
+  ///
+  /// In ar, this message translates to:
+  /// **'طباعة أو مشاركة تقارير'**
+  String get printOverviewTooltip;
+
+  /// No description provided for @printOverviewShareFailed.
+  ///
+  /// In ar, this message translates to:
+  /// **'تعذّر تحضير الملخص'**
+  String get printOverviewShareFailed;
+
+  /// No description provided for @printColumnProduct.
+  ///
+  /// In ar, this message translates to:
+  /// **'المنتج'**
+  String get printColumnProduct;
+
+  /// No description provided for @printColumnUnitType.
+  ///
+  /// In ar, this message translates to:
+  /// **'نوع الوحدة'**
+  String get printColumnUnitType;
+
+  /// No description provided for @printColumnDateTime.
+  ///
+  /// In ar, this message translates to:
+  /// **'التاريخ'**
+  String get printColumnDateTime;
+
+  /// No description provided for @printColumnAmount.
+  ///
+  /// In ar, this message translates to:
+  /// **'المبلغ'**
+  String get printColumnAmount;
+
+  /// No description provided for @printColumnNote.
+  ///
+  /// In ar, this message translates to:
+  /// **'ملاحظة'**
+  String get printColumnNote;
+
+  /// No description provided for @printColumnVehicle.
+  ///
+  /// In ar, this message translates to:
+  /// **'المركبة'**
+  String get printColumnVehicle;
+
   /// No description provided for @operations.
   ///
   /// In ar, this message translates to:

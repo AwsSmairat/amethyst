@@ -114,9 +114,19 @@ export async function repayStationDebtForDebtor(body, actor) {
     throw new AppError('Invalid debtor name', 400, 'VALIDATION');
   }
 
+  const unpaidWhere =
+    actor.role === 'driver'
+      ? {
+          debtorName,
+          repaidAt: null,
+          recordedById: actor.id,
+          recordingSource: 'vehicle',
+        }
+      : { debtorName, repaidAt: null };
+
   return prisma.$transaction(async (tx) => {
     const entries = await tx.stationDebtEntry.findMany({
-      where: { debtorName, repaidAt: null },
+      where: unpaidWhere,
     });
     if (entries.length === 0) {
       throw new AppError('No unpaid debt for this person', 404, 'NOT_FOUND');

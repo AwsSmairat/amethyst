@@ -3,7 +3,6 @@ import 'package:amethyst/core/theme/app_colors.dart';
 import 'package:amethyst/di/injection.dart';
 import 'package:amethyst/features/auth/presentation/cubit/auth_cubit.dart';
 import 'package:amethyst/features/auth/presentation/cubit/auth_state.dart';
-import 'package:amethyst/features/user_dashboard/domain/entities/driver_dashboard.dart';
 import 'package:amethyst/features/user_dashboard/presentation/cubit/user_dashboard_cubit.dart';
 import 'package:amethyst/features/user_dashboard/presentation/cubit/user_dashboard_state.dart';
 import 'package:amethyst/features/user_dashboard/presentation/widgets/quick_action_button.dart';
@@ -69,7 +68,6 @@ class _UserDashboardView extends StatelessWidget {
               return Center(child: Text(state.message));
             }
 
-            final dashboard = (state as UserDashboardLoaded).dashboard;
             return CustomScrollView(
               slivers: <Widget>[
                 SliverPadding(
@@ -80,8 +78,6 @@ class _UserDashboardView extends StatelessWidget {
                       const SizedBox(height: 12),
                       const _DriverDebtActionsRow(),
                       const SizedBox(height: 22),
-                      _InventorySection(items: dashboard.inventory),
-                      const SizedBox(height: 16),
                       const _NotesCardRow(),
                     ]),
                   ),
@@ -226,244 +222,6 @@ class _DriverDebtActionsRow extends StatelessWidget {
               ),
             ),
           ],
-        ),
-      ],
-    );
-  }
-}
-
-class _InventorySection extends StatefulWidget {
-  const _InventorySection({required this.items});
-
-  final List<InventoryItem> items;
-
-  @override
-  State<_InventorySection> createState() => _InventorySectionState();
-}
-
-class _InventorySectionState extends State<_InventorySection> {
-  bool _expanded = false;
-
-  @override
-  Widget build(BuildContext context) {
-    final l10n = context.l10n;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: <Widget>[
-        DecoratedBox(
-          decoration: BoxDecoration(
-            color: AppColors.surfaceLowest,
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: AppColors.outlineVariant),
-          ),
-          child: Material(
-            color: Colors.transparent,
-            child: InkWell(
-              onTap: () => setState(() => _expanded = !_expanded),
-              borderRadius: BorderRadius.circular(14),
-              child: Padding(
-                padding: const EdgeInsetsDirectional.symmetric(
-                  horizontal: 16,
-                  vertical: 14,
-                ),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: <Widget>[
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: <Widget>[
-                          Text(
-                            l10n.todaysInventory,
-                            style: Theme.of(context)
-                                .textTheme
-                                .titleMedium
-                                ?.copyWith(
-                                  fontWeight: FontWeight.w800,
-                                ),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            l10n.updatedAgo,
-                            style: Theme.of(context)
-                                .textTheme
-                                .bodySmall
-                                ?.copyWith(
-                                  color: AppColors.onSurfaceVariant,
-                                ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    Icon(
-                      _expanded ? Icons.expand_less : Icons.expand_more,
-                      color: AppColors.onSurfaceVariant,
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-        ),
-        if (_expanded) ...<Widget>[
-          const SizedBox(height: 12),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 8),
-            child: Row(
-              children: <Widget>[
-                _HeaderCell(l10n.itemHeader, flex: 3, align: TextAlign.left),
-                _HeaderCell(l10n.loaded, flex: 2),
-                _HeaderCell(l10n.sold, flex: 2),
-                _HeaderCell(l10n.left, flex: 2),
-              ],
-            ),
-          ),
-          const SizedBox(height: 10),
-          DecoratedBox(
-            decoration: BoxDecoration(
-              color: AppColors.surfaceLowest,
-              borderRadius: BorderRadius.circular(18),
-              boxShadow: const <BoxShadow>[
-                BoxShadow(
-                  color: Color.fromRGBO(10, 37, 64, 0.06),
-                  blurRadius: 18,
-                  offset: Offset(0, 10),
-                ),
-              ],
-            ),
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                children: widget.items
-                    .map(
-                      (InventoryItem e) => Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 10),
-                        child: _InventoryRow(item: e),
-                      ),
-                    )
-                    .toList(growable: false),
-              ),
-            ),
-          ),
-        ],
-      ],
-    );
-  }
-}
-
-class _HeaderCell extends StatelessWidget {
-  const _HeaderCell(
-    this.text, {
-    required this.flex,
-    this.align = TextAlign.center,
-  });
-
-  final String text;
-  final int flex;
-  final TextAlign align;
-
-  @override
-  Widget build(BuildContext context) {
-    return Expanded(
-      flex: flex,
-      child: Text(
-        text.toUpperCase(),
-        textAlign: align,
-        style: Theme.of(context).textTheme.labelSmall?.copyWith(
-              fontSize: 10,
-              letterSpacing: 1.2,
-              color: AppColors.onSurfaceVariant.withValues(alpha: 0.60),
-              fontWeight: FontWeight.w800,
-            ),
-      ),
-    );
-  }
-}
-
-class _InventoryRow extends StatelessWidget {
-  const _InventoryRow({required this.item});
-
-  final InventoryItem item;
-
-  IconData _iconForKey(String key) {
-    return switch (key) {
-      'eco' => Icons.eco,
-      'inventory_2' => Icons.inventory_2,
-      'water_drop' => Icons.water_drop,
-      _ => Icons.category,
-    };
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final icon = _iconForKey(item.iconKey);
-    return Row(
-      children: <Widget>[
-        Expanded(
-          flex: 3,
-          child: Row(
-            children: <Widget>[
-              Container(
-                width: 34,
-                height: 34,
-                decoration: BoxDecoration(
-                  color: AppColors.tertiaryFixed.withValues(alpha: 0.30),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Icon(icon, size: 18, color: AppColors.tertiary),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Text(
-                  item.name,
-                  style: const TextStyle(fontWeight: FontWeight.w700),
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-            ],
-          ),
-        ),
-        Expanded(
-          flex: 2,
-          child: Text(
-            '${item.loaded}',
-            textAlign: TextAlign.center,
-            style: TextStyle(color: AppColors.onSurfaceVariant),
-          ),
-        ),
-        Expanded(
-          flex: 2,
-          child: Text(
-            '${item.sold}',
-            textAlign: TextAlign.center,
-            style: const TextStyle(
-              color: AppColors.success,
-              fontWeight: FontWeight.w800,
-            ),
-          ),
-        ),
-        Expanded(
-          flex: 2,
-          child: Align(
-            alignment: Alignment.center,
-            child: DecoratedBox(
-              decoration: BoxDecoration(
-                color: AppColors.surfaceContainerLow,
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: Padding(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                child: Text(
-                  '${item.left}',
-                  style: const TextStyle(
-                    color: AppColors.primary,
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-              ),
-            ),
-          ),
         ),
       ],
     );

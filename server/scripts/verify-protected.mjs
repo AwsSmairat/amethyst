@@ -218,6 +218,17 @@ async function main() {
     ''
   );
 
+  // --- Station debt: driver can list own vehicle-recorded unpaid entries ---
+  const driverDebtList = await authFetch(
+    '/station-debt-entries?page=1&limit=50',
+    tDriver
+  );
+  must(
+    driverDebtList.status === 200,
+    'Driver can GET /station-debt-entries',
+    `${driverDebtList.status} ${JSON.stringify(driverDebtList.json)}`
+  );
+
   // --- Vehicle sales: driver isolation ---
   const vs = await authFetch('/vehicle-sales?limit=100', tDriver);
   if (vs.status === 200) {
