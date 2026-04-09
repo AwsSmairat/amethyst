@@ -13,7 +13,7 @@ final class SaveStationBalanceInvalidQuantity extends SaveStationBalanceOutcome 
   const SaveStationBalanceInvalidQuantity();
 }
 
-/// فهرس الصف (٠–١١) الذي لا يوجد له منتج مطابق في النظام.
+/// فهرس الصف الثابت الذي لا يوجد له منتج مطابق في النظام.
 final class SaveStationBalanceUnlinkedRow extends SaveStationBalanceOutcome {
   const SaveStationBalanceUnlinkedRow(this.rowIndex);
 

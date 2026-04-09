@@ -9,10 +9,28 @@ final class RecordOperationsRepositoryImpl implements RecordOperationsRepository
 
   @override
   Future<List<Map<String, dynamic>>> listProductItems() async {
-    final Map<String, dynamic> p = await _api.listProducts();
-    return (p['items'] as List<dynamic>? ?? <dynamic>[])
-        .whereType<Map<String, dynamic>>()
-        .toList(growable: false);
+    final List<Map<String, dynamic>> all = <Map<String, dynamic>>[];
+    var page = 1;
+    const int limit = 100;
+    while (true) {
+      final Map<String, dynamic> p =
+          await _api.listProducts(page: page, limit: limit);
+      final List<Map<String, dynamic>> items =
+          (p['items'] as List<dynamic>? ?? <dynamic>[])
+              .whereType<Map<String, dynamic>>()
+              .toList(growable: false);
+      all.addAll(items);
+      final int total = switch (p['total']) {
+        final int t => t,
+        final num t => t.toInt(),
+        _ => all.length,
+      };
+      if (items.length < limit || all.length >= total) {
+        break;
+      }
+      page++;
+    }
+    return all;
   }
 
   @override

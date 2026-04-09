@@ -72,7 +72,13 @@ abstract final class StationBalanceProductLookup {
     <String>['Shanta Small', 'ش صغير', 'Sh Small', 'Small Shanta'],
     <String>['Saudi Bottle', 'ق سعودي', 'Bottle Saudi'],
     <String>['Jordanian Bottle', 'ق اردني', 'Bottle Jordanian'],
-    <String>['Empty Gallon', 'ج فارغ', 'Gallon Empty'],
+    <String>[
+      'Empty Gallon',
+      'ج فارغ',
+      'جالون فارغ',
+      'جالون فاضي',
+      'Gallon Empty',
+    ],
     <String>[
       'Bottle 10 Liter',
       'ق ١٠ لتر',
@@ -130,6 +136,55 @@ ParsedStationStockInput parseStationStockInput(String raw) {
   return ParsedStationStockOk(v);
 }
 
+/// تطبيع بسيط لأسماء المنتجات عند المطابقة (مسافات، أحرف خفية، حركات عربية).
+String normalizeStationBalanceProductName(String raw) {
+  var s = raw.trim();
+  if (s.isEmpty) {
+    return '';
+  }
+  s = s.replaceAll(
+    RegExp(r'[\u200B-\u200F\u202A-\u202E\u2066-\u2069\uFEFF]'),
+    '',
+  );
+  s = s.replaceAll(RegExp(r'[\u0610-\u061A\u064B-\u065F\u0670]'), '');
+  s = s.replaceAll(RegExp(r'\s+'), ' ');
+  return s.toLowerCase();
+}
+
+bool _stationBalanceNamesMatch(String dbName, String candidate) {
+  final String a = normalizeStationBalanceProductName(dbName);
+  final String b = normalizeStationBalanceProductName(candidate);
+  if (a.isEmpty || b.isEmpty) {
+    return false;
+  }
+  if (a == b) {
+    return true;
+  }
+  // أسماء طويلة قد تختلف بلاحقة (مثل "ق ١٠ لتر — مخزن")
+  if (a.length >= 6 && b.length >= 6 && (a.contains(b) || b.contains(a))) {
+    return true;
+  }
+  return false;
+}
+
+Map<String, dynamic>? _resolveStationBalanceProductFromPool({
+  required List<Map<String, dynamic>> pool,
+  required List<String> candidates,
+}) {
+  for (final String c in candidates) {
+    if (c.trim().isEmpty) {
+      continue;
+    }
+    for (final Map<String, dynamic> p in pool) {
+      final String n = p['name']?.toString() ?? '';
+      if (_stationBalanceNamesMatch(n, c)) {
+        return p;
+      }
+    }
+  }
+  return null;
+}
+
 /// يعيد منتج المحطة المطابق للصف، أو `null` إن لم يُعثر على اسم مطابق.
 Map<String, dynamic>? resolveStationBalanceProduct({
   required List<Map<String, dynamic>> products,
@@ -145,20 +200,18 @@ Map<String, dynamic>? resolveStationBalanceProduct({
   final List<Map<String, dynamic>> active = products
       .where((Map<String, dynamic> p) => p['isActive'] != false)
       .toList(growable: false);
-  for (final String c in candidates) {
-    final String want = c.trim().toLowerCase();
-    if (want.isEmpty) {
-      continue;
-    }
-    for (final Map<String, dynamic> p in active) {
-      final String n =
-          (p['name']?.toString() ?? '').trim().toLowerCase();
-      if (n == want) {
-        return p;
-      }
-    }
+  final Map<String, dynamic>? fromActive = _resolveStationBalanceProductFromPool(
+    pool: active,
+    candidates: candidates,
+  );
+  if (fromActive != null) {
+    return fromActive;
   }
-  return null;
+  // منتج موجود لكن معطّل — ما زلنا نربط الصف لتحديث المخزون من رصيد المحطة
+  return _resolveStationBalanceProductFromPool(
+    pool: products,
+    candidates: candidates,
+  );
 }
 
 int stationStockFromProductJson(Map<String, dynamic> item) {
