@@ -743,7 +743,13 @@ class AppLocalizationsAr extends AppLocalizations {
   String get stationBalanceField11 => 'ج ارضية';
 
   @override
-  String get stationBalanceField12 => 'دفتر كوبون';
+  String get stationBalanceField12 => 'كوبون ١٢';
+
+  @override
+  String get stationBalanceField13 => 'كوبون ٢٤';
+
+  @override
+  String get stationBalanceField14 => 'كوبون ٥٠';
 
   @override
   String get stationBalanceField13Optional => 'حقل إضافي (اختياري)';

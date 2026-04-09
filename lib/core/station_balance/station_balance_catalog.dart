@@ -1,12 +1,12 @@
-/// عدد صفوف رصيد المحطة المعروضة في الواجهة (١٢ بنداً + صف اختياري).
-const int kStationBalanceRowCount = 13;
+/// عدد صفوف رصيد المحطة المعروضة في الواجهة (١٤ بنداً ثابتاً + صف اختياري).
+const int kStationBalanceRowCount = 15;
 
 /// آخر فهرس للبند الثابت (قبل الصف الاختياري).
-const int kStationBalanceLastFixedRowIndex = 11;
+const int kStationBalanceLastFixedRowIndex = 13;
 
-/// صفوف رصيد المحطة التي تُثبَّت في لوحة التسعير (ترتيب العرض):
-/// ك يافا، ش كبير/وسط/صغير، ق سعودي/اردني، ج فارغ، ق ١٠ لتر.
+/// صفوف رصيد المحطة في لوحة «أسعار المنتجات» (كل البنود الثابتة).
 const List<int> kStationPricingBalanceRowIndices = <int>[
+  0,
   1,
   2,
   3,
@@ -15,11 +15,18 @@ const List<int> kStationPricingBalanceRowIndices = <int>[
   6,
   7,
   8,
+  9,
+  10,
+  11,
+  12,
+  13,
 ];
 
 /// اسم ووحدة إنشاء المنتج في الـ API عند عدم وجوده (يتطابق مع [StationBalanceProductLookup]).
 ({String name, String unitType}) stationBalanceSeedSpecForRow(int rowIndex) {
   switch (rowIndex) {
+    case 0:
+      return (name: 'Water Carton', unitType: 'carton');
     case 1:
       return (name: 'Carton Yafa', unitType: 'carton');
     case 2:
@@ -36,6 +43,16 @@ const List<int> kStationPricingBalanceRowIndices = <int>[
       return (name: 'Empty Gallon', unitType: 'gallon');
     case 8:
       return (name: 'Bottle 10 Liter', unitType: 'bottle');
+    case 9:
+      return (name: 'Ground Bottle', unitType: 'bottle');
+    case 10:
+      return (name: 'Ground Gallon', unitType: 'gallon');
+    case 11:
+      return (name: 'Coupon', unitType: 'coupon');
+    case 12:
+      return (name: 'Coupon 2', unitType: 'coupon');
+    case 13:
+      return (name: 'Coupon 3', unitType: 'coupon');
     default:
       throw ArgumentError.value(
         rowIndex,
@@ -65,7 +82,10 @@ abstract final class StationBalanceProductLookup {
     ],
     <String>['Ground Bottle', 'ق ارضية', 'Bottle Ground'],
     <String>['Ground Gallon', 'ج ارضية', 'Gallon Ground'],
-    <String>['Coupon', 'دفتر كوبون', 'Coupon Book', 'كوبون'],
+    /// مطابقة [StationSaleApiProductNames.filling] وباقي التطبيق (كوبون ١٢ / ٢٤ / ٥٠).
+    <String>['Coupon', 'دفتر كوبون ١٢', 'Coupon Book 12', 'كوبون ١٢'],
+    <String>['Coupon 2', 'دفتر كوبون ٢٤', 'Coupon Book 24', 'كوبون ٢٤'],
+    <String>['Coupon 3', 'دفتر كوبون ٥٠', 'Coupon Book 50', 'كوبون ٥٠'],
   ];
 }
 

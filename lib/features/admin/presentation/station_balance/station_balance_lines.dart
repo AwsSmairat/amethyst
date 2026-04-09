@@ -29,6 +29,10 @@ String stationBalanceRowLabel(AppLocalizations l10n, int index) {
     case 11:
       return l10n.stationBalanceField12;
     case 12:
+      return l10n.stationBalanceField13;
+    case 13:
+      return l10n.stationBalanceField14;
+    case 14:
       return l10n.stationBalanceField13Optional;
     default:
       return '';

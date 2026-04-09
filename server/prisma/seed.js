@@ -80,49 +80,38 @@ async function main() {
     phone: '+10000090003',
   });
 
-  await ensureStoreVehicleProducts();
-  await ensureCoreCatalogProducts();
+  await ensureAllAmethystProducts();
 
   console.log('[seed] done (password for all test users: 123456)');
 }
 
 /**
- * منتجات التحميل/البيع الأساسية (أسماء إنجليزية كما في تطبيق Flutter).
- * بعد مسح بيانات التشغيل غالباً لا يوجد إلا المستخدمون — أعد تشغيل seed لإعادة إنشائها.
+ * كل المنتجات التي يتوقعها تطبيق Flutter (رصيد المحطة، بيع المحطة، بيع/تحميل المركبة).
+ * الأسماء الإنجليزية مطابقة لـ `StationBalanceProductLookup` و`StationSaleApiProductNames`.
+ * عند البيع يخصم الخادم `stationStock` تلقائياً طالما الـ productId صحيح.
  */
-async function ensureCoreCatalogProducts() {
+async function ensureAllAmethystProducts() {
   const specs = [
-    { name: 'Water Gallon', unitType: 'gallon' },
-    { name: 'Water Bottle', unitType: 'bottle' },
+    // صفوف رصيد المحطة 0–10 (ك مهدي … ج ارضية)
     { name: 'Water Carton', unitType: 'carton' },
+    { name: 'Carton Yafa', unitType: 'carton' },
+    { name: 'Shanta Large', unitType: 'carton' },
+    { name: 'Shanta Medium', unitType: 'carton' },
+    { name: 'Shanta Small', unitType: 'carton' },
+    { name: 'Saudi Bottle', unitType: 'bottle' },
+    { name: 'Jordanian Bottle', unitType: 'bottle' },
+    { name: 'Empty Gallon', unitType: 'gallon' },
+    { name: 'Bottle 10 Liter', unitType: 'bottle' },
+    { name: 'Ground Bottle', unitType: 'bottle' },
+    { name: 'Ground Gallon', unitType: 'gallon' },
+    // كوبون ١٢ / ٢٤ / ٥٠ — بيع المحطة (تعبئة) + رصيد المحطة + تحميل
     { name: 'Coupon', unitType: 'coupon' },
     { name: 'Coupon 2', unitType: 'coupon' },
     { name: 'Coupon 3', unitType: 'coupon' },
-  ];
-  for (const s of specs) {
-    const existing = await prisma.product.findFirst({
-      where: { name: s.name },
-    });
-    if (existing) {
-      console.log(`[seed] skip product (exists): ${s.name}`);
-      continue;
-    }
-    await prisma.product.create({
-      data: {
-        name: s.name,
-        unitType: s.unitType,
-        price: 0,
-        stationStock: 0,
-        isActive: true,
-      },
-    });
-    console.log(`[seed] created product: ${s.name}`);
-  }
-}
-
-/** أصناف بيع «متجر» من المركبة — أسماء مطابقة للتطبيق (أسعار من السوبر أدمن). */
-async function ensureStoreVehicleProducts() {
-  const specs = [
+    // تحميل المركبة + بيع «منزل» من السيارة
+    { name: 'Water Gallon', unitType: 'gallon' },
+    { name: 'Water Bottle', unitType: 'bottle' },
+    // بيع «متجر» من المركبة (أسماء عربية)
     { name: 'جالون متجر', unitType: 'gallon' },
     { name: 'قاروره متجر', unitType: 'bottle' },
     { name: 'مهدي متجر', unitType: 'carton' },

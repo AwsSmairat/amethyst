@@ -23,11 +23,11 @@ String stationSaleProductLabel(
     case 2:
       return l10n.stationSaleProductMahdi;
     case 3:
-      return l10n.productTemplateCoupon1;
+      return l10n.stationBalanceField12;
     case 4:
-      return l10n.productTemplateCoupon2;
+      return l10n.stationBalanceField13;
     case 5:
-      return l10n.productTemplateCoupon3;
+      return l10n.stationBalanceField14;
     default:
       return '';
   }

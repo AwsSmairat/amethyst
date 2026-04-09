@@ -1489,8 +1489,20 @@ abstract class AppLocalizations {
   /// No description provided for @stationBalanceField12.
   ///
   /// In ar, this message translates to:
-  /// **'دفتر كوبون'**
+  /// **'كوبون ١٢'**
   String get stationBalanceField12;
+
+  /// No description provided for @stationBalanceField13.
+  ///
+  /// In ar, this message translates to:
+  /// **'كوبون ٢٤'**
+  String get stationBalanceField13;
+
+  /// No description provided for @stationBalanceField14.
+  ///
+  /// In ar, this message translates to:
+  /// **'كوبون ٥٠'**
+  String get stationBalanceField14;
 
   /// No description provided for @stationBalanceField13Optional.
   ///
