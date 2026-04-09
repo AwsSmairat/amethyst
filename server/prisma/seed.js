@@ -81,8 +81,43 @@ async function main() {
   });
 
   await ensureStoreVehicleProducts();
+  await ensureCoreCatalogProducts();
 
   console.log('[seed] done (password for all test users: 123456)');
+}
+
+/**
+ * منتجات التحميل/البيع الأساسية (أسماء إنجليزية كما في تطبيق Flutter).
+ * بعد مسح بيانات التشغيل غالباً لا يوجد إلا المستخدمون — أعد تشغيل seed لإعادة إنشائها.
+ */
+async function ensureCoreCatalogProducts() {
+  const specs = [
+    { name: 'Water Gallon', unitType: 'gallon' },
+    { name: 'Water Bottle', unitType: 'bottle' },
+    { name: 'Water Carton', unitType: 'carton' },
+    { name: 'Coupon', unitType: 'coupon' },
+    { name: 'Coupon 2', unitType: 'coupon' },
+    { name: 'Coupon 3', unitType: 'coupon' },
+  ];
+  for (const s of specs) {
+    const existing = await prisma.product.findFirst({
+      where: { name: s.name },
+    });
+    if (existing) {
+      console.log(`[seed] skip product (exists): ${s.name}`);
+      continue;
+    }
+    await prisma.product.create({
+      data: {
+        name: s.name,
+        unitType: s.unitType,
+        price: 0,
+        stationStock: 0,
+        isActive: true,
+      },
+    });
+    console.log(`[seed] created product: ${s.name}`);
+  }
 }
 
 /** أصناف بيع «متجر» من المركبة — أسماء مطابقة للتطبيق (أسعار من السوبر أدمن). */

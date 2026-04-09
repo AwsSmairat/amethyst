@@ -65,6 +65,37 @@ class _AddVehicleLoadBodyState extends State<_AddVehicleLoadBody> {
     _load();
   }
 
+  /// مطابقة اسم القالب مع `products.name` (trim + حالة الأحرف)، منتج نشط فقط.
+  static Map<String, dynamic>? _findProductByCatalogName(
+    List<Map<String, dynamic>> items,
+    String requestedName,
+  ) {
+    final String want = requestedName.trim();
+    if (want.isEmpty) {
+      return null;
+    }
+    for (final Map<String, dynamic> pr in items) {
+      if (pr['isActive'] == false) {
+        continue;
+      }
+      final String? n = pr['name']?.toString().trim();
+      if (n != null && n == want) {
+        return pr;
+      }
+    }
+    final String wantLower = want.toLowerCase();
+    for (final Map<String, dynamic> pr in items) {
+      if (pr['isActive'] == false) {
+        continue;
+      }
+      final String? n = pr['name']?.toString().trim();
+      if (n != null && n.toLowerCase() == wantLower) {
+        return pr;
+      }
+    }
+    return null;
+  }
+
   Future<void> _load() async {
     try {
       final api = sl<AmethystApi>();
@@ -77,23 +108,18 @@ class _AddVehicleLoadBodyState extends State<_AddVehicleLoadBody> {
           .whereType<Map<String, dynamic>>()
           .toList(growable: false);
       if (!mounted) return;
-      final Map<String, Map<String, dynamic>> byName =
-          <String, Map<String, dynamic>>{};
-      for (final Map<String, dynamic> pr in products) {
-        final String? n = pr['name']?.toString();
-        if (n != null) byName[n] = pr;
-      }
       setState(() {
         _vehicles = vehicles;
         _vehicleId = _pickInitialVehicleId(vehicles);
         for (var i = 0; i < _rowCount; i++) {
           final String fixedName =
               i < _kFixedProductNames.length ? _kFixedProductNames[i] : '';
-          final Map<String, dynamic>? match =
-              fixedName.isNotEmpty ? byName[fixedName] : null;
+          final Map<String, dynamic>? match = fixedName.isNotEmpty
+              ? _findProductByCatalogName(products, fixedName)
+              : null;
           _productIds[i] = match?['id'] as String?;
           _productLabels[i] =
-              match?['name']?.toString() ?? fixedName;
+              match?['name']?.toString().trim() ?? fixedName;
         }
         _loading = false;
       });
@@ -285,6 +311,17 @@ class _AddVehicleLoadBodyState extends State<_AddVehicleLoadBody> {
                         color: Theme.of(context).colorScheme.primary,
                       ),
                 ),
+                if (_productIds.any((String? id) => id == null)) ...<Widget>[
+                  const SizedBox(height: 12),
+                  Text(
+                    l10n.vehicleLoadCatalogGapHint,
+                    textAlign: TextAlign.right,
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: Theme.of(context).colorScheme.error,
+                          fontWeight: FontWeight.w600,
+                        ),
+                  ),
+                ],
                 const SizedBox(height: 12),
                 for (var i = 0; i < _rowCount; i++) ...<Widget>[
                   InputDecorator(

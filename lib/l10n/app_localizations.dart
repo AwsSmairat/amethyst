@@ -2493,6 +2493,12 @@ abstract class AppLocalizations {
   /// **'أضف منتجاً واحداً على الأقل مع كمية محمّلة.'**
   String get vehicleLoadNeedOneLine;
 
+  /// No description provided for @vehicleLoadCatalogGapHint.
+  ///
+  /// In ar, this message translates to:
+  /// **'بعض البنود غير مربوطة بمنتج في النظام (غالباً بعد مسح بيانات التشغيل). من «أسعار المنتجات» أنشئ منتجاً لكل اسم إنجليزي يظهر أدناه بنفس الحرفية، أو على الخادم نفّذ: npx prisma db seed'**
+  String get vehicleLoadCatalogGapHint;
+
   /// No description provided for @loadsRecorded.
   ///
   /// In ar, this message translates to:
