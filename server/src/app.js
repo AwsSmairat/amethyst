@@ -14,6 +14,10 @@ const __dirname = join(fileURLToPath(import.meta.url), '..');
 
 app.use(
   helmet({
+    // This API is consumed by a separate web origin (Firebase Hosting).
+    // Helmet v8 defaults `Cross-Origin-Resource-Policy: same-origin`, which
+    // blocks cross-origin fetch/XHR even if CORS is enabled.
+    crossOriginResourcePolicy: { policy: 'cross-origin' },
     contentSecurityPolicy: {
       directives: {
         defaultSrc: ["'self'"],
@@ -32,16 +36,21 @@ const corsOriginsList = corsWildcard
       .map((s) => s.trim())
       .filter(Boolean);
 
-app.use(
-  cors({
-    origin: corsWildcard
+const corsOptions = {
+  origin: corsWildcard
+    ? true
+    : corsOriginsList.length === 0
       ? true
-      : corsOriginsList.length === 0
-        ? true
-        : corsOriginsList,
-    credentials: true,
-  })
+      : corsOriginsList,
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Authorization', 'Content-Type'],
+};
+
+app.use(
+  cors(corsOptions)
 );
+app.options('*', cors(corsOptions));
 app.use(morgan(env.nodeEnv === 'production' ? 'combined' : 'dev'));
 app.use(express.json({ limit: '1mb' }));
 app.use('/uploads', express.static(join(__dirname, '..', 'uploads')));

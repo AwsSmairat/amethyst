@@ -155,6 +155,47 @@ class _AddVehicleSaleBodyState extends State<_AddVehicleSaleBody> {
     }
   }
 
+  String _arabicLabelForCatalogName(String raw) {
+    final String name = raw.trim();
+    return switch (name) {
+      'Water Gallon' => 'جالون',
+      'Water Bottle' => 'قارورة',
+      'Water Carton' => 'كرتون',
+      'Coupon' => 'كوبون',
+      'Coupon 2' => 'كوبون 2',
+      'Coupon 3' => 'كوبون 3',
+      // "متجر" أصلاً عربية في القالب.
+      _ => name,
+    };
+  }
+
+  int _vehicleRemainingForColumn(int columnIndex) {
+    final place = _selectedPlace;
+    if (place == null) return 0;
+
+    // ربط أعمدة الشاشة باسم حمولة السيارة الحقيقي (driverCurrentLoad).
+    // - منزل: أول 3 أعمدة = Water Gallon/Bottle/Carton
+    // - متجر: الأعمدة 0..2 تستهلك من Water Gallon/Bottle/Carton
+    final String loadName = switch (place) {
+      VehicleSalePlace.home => switch (columnIndex) {
+          0 => 'Water Gallon',
+          1 => 'Water Bottle',
+          2 => 'Water Carton',
+          _ => '',
+        },
+      VehicleSalePlace.store => switch (columnIndex) {
+          0 => 'Water Gallon',
+          1 => 'Water Bottle',
+          2 => 'Water Carton',
+          _ => '',
+        },
+    };
+
+    if (loadName.isEmpty) return 0;
+    final String key = normalizeStationBalanceProductName(loadName);
+    return _vehicleLoadRemainingByNormalizedName[key] ?? 0;
+  }
+
   /// يطابق اسم القالب مع `products.name` بعد `trim` (وتطابق حالة الأحرف للأسماء اللاتينية).
   /// يُفضَّل منتج نشط فقط؛ البيع من السيرفر يُرفض إن كان المنتج غير نشط.
   Map<String, dynamic>? _findProductByCatalogName(String requestedName) {
@@ -193,7 +234,11 @@ class _AddVehicleSaleBodyState extends State<_AddVehicleSaleBody> {
 
   String _columnTitle(BuildContext context, int index) {
     final label = _productLabels[index];
-    return label.isNotEmpty ? label : '—';
+    final String base = label.isNotEmpty ? label : '—';
+    // عرض اسم عربي ثابت لمنتجات المنزل، وباقي الحالات نترك اسم المنتج كما هو من الـ API.
+    return _selectedPlace == VehicleSalePlace.home
+        ? _arabicLabelForCatalogName(base)
+        : base;
   }
 
   List<VehicleSaleLineInput>? _collectLines() {
@@ -394,6 +439,7 @@ class _AddVehicleSaleBodyState extends State<_AddVehicleSaleBody> {
                             child: _VehicleSaleColumn(
                               index: i,
                               productLabel: _columnTitle(context, i),
+                              vehicleRemaining: _vehicleRemainingForColumn(i),
                               quantity: _quantities[i],
                               onDecrement: () => _adjustQuantity(i, -1),
                               onIncrement: () => _adjustQuantity(i, 1),
@@ -456,6 +502,7 @@ class _VehicleSaleColumn extends StatelessWidget {
   const _VehicleSaleColumn({
     required this.index,
     required this.productLabel,
+    required this.vehicleRemaining,
     required this.quantity,
     required this.onDecrement,
     required this.onIncrement,
@@ -467,6 +514,7 @@ class _VehicleSaleColumn extends StatelessWidget {
 
   final int index;
   final String productLabel;
+  final int vehicleRemaining;
   final int quantity;
   final VoidCallback onDecrement;
   final VoidCallback onIncrement;
@@ -500,6 +548,17 @@ class _VehicleSaleColumn extends StatelessWidget {
           style: theme.textTheme.bodySmall?.copyWith(
                 fontWeight: FontWeight.w700,
                 color: AppColors.primaryText,
+              ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          'المتبقي: $vehicleRemaining',
+          textAlign: TextAlign.center,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: theme.textTheme.labelSmall?.copyWith(
+                color: AppColors.onSurfaceVariant,
+                fontWeight: FontWeight.w600,
               ),
         ),
         const SizedBox(height: 10),

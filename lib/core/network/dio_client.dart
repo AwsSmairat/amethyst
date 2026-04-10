@@ -1,8 +1,9 @@
 import 'package:amethyst/core/config/api_config.dart';
 import 'package:amethyst/core/network/api_exception.dart';
+import 'package:amethyst/core/network/platform_socket_exception.dart';
 import 'package:amethyst/core/storage/secure_token_storage.dart';
 import 'package:dio/dio.dart';
-import 'dart:io';
+import 'package:flutter/foundation.dart';
 
 typedef UnauthorizedCallback = void Function();
 
@@ -124,8 +125,18 @@ final class DioClient {
         e.type == DioExceptionType.sendTimeout) {
       throw ApiException('Cannot connect to server. Please try again.');
     }
+    if (e.type == DioExceptionType.connectionError) {
+      final String base = ApiConfig.resolvedBaseUrl;
+      final String hint = kIsWeb
+          ? 'If you are using the web app, this can be caused by CORS or mixed-content (http vs https).'
+          : 'Check your internet connection and server URL.';
+      throw ApiException(
+        'Cannot connect to server. $hint${base.isNotEmpty ? ' (API: $base)' : ''}',
+        statusCode: res?.statusCode,
+      );
+    }
     final err = e.error;
-    if (err is SocketException) {
+    if (isPlatformSocketException(err)) {
       throw ApiException('Cannot connect to server. Check your internet connection and server URL.');
     }
     throw ApiException(e.message ?? 'Network error', statusCode: res?.statusCode);

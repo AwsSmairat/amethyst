@@ -242,12 +242,31 @@ final class StationDebtRegistrationCubit extends Cubit<StationDebtRegistrationSt
     if (index < 0 || index >= state.columnCount) {
       return;
     }
-    if (delta > 0 &&
-        index < state.columnSkipsStationStock.length &&
-        index < state.columnStationStock.length &&
-        !state.columnSkipsStationStock[index] &&
-        state.quantities[index] >= state.columnStationStock[index]) {
-      return;
+    if (delta > 0) {
+      // وضع السائق: السقف يكون حسب المتبقي على المركبة، وبعض المنتجات أيضاً حسب مخزون المحطة.
+      if (vehiclePlace != null && index < state.columnVehicleRemaining.length) {
+        final int vehicleRem = state.columnVehicleRemaining[index];
+        int cap = vehicleRem;
+        final bool deductStationStock = vehiclePlace == StationDebtVehiclePlace.home
+            ? index >= 2
+            : index == 2;
+        if (deductStationStock &&
+            index < state.columnStationStock.length &&
+            index < state.columnSkipsStationStock.length &&
+            !state.columnSkipsStationStock[index]) {
+          final int station = state.columnStationStock[index];
+          cap = cap < station ? cap : station;
+        }
+        if (state.quantities[index] >= cap) {
+          return;
+        }
+      } else if (index < state.columnSkipsStationStock.length &&
+          index < state.columnStationStock.length &&
+          !state.columnSkipsStationStock[index] &&
+          state.quantities[index] >= state.columnStationStock[index]) {
+        // وضع الإدارة: سقف = مخزون المحطة (للأعمدة التي يُخصم منها).
+        return;
+      }
     }
     final List<int> nextQty = List<int>.from(state.quantities);
     final int v = nextQty[index] + delta;
