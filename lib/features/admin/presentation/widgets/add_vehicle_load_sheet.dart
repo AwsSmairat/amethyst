@@ -1,5 +1,6 @@
 import 'package:amethyst/core/data/amethyst_api.dart';
 import 'package:amethyst/core/l10n/context_l10n.dart';
+import 'package:amethyst/core/station_balance/station_balance_catalog.dart';
 import 'package:amethyst/core/utils/parse_quantity_input.dart';
 import 'package:amethyst/core/theme/app_colors.dart';
 import 'package:amethyst/di/injection.dart';
@@ -52,6 +53,7 @@ class _AddVehicleLoadBodyState extends State<_AddVehicleLoadBody> {
   );
   final List<String?> _productIds = List<String?>.filled(_rowCount, null);
   final List<String> _productLabels = List<String>.filled(_rowCount, '');
+  final List<int> _stationStocks = List<int>.filled(_rowCount, 0);
 
   String? _vehicleId;
   DateTime _date = DateTime.now();
@@ -120,6 +122,7 @@ class _AddVehicleLoadBodyState extends State<_AddVehicleLoadBody> {
           _productIds[i] = match?['id'] as String?;
           _productLabels[i] =
               match?['name']?.toString().trim() ?? fixedName;
+          _stationStocks[i] = stationStockFromProductJson(match ?? <String, dynamic>{});
         }
         _loading = false;
       });
@@ -198,6 +201,14 @@ class _AddVehicleLoadBodyState extends State<_AddVehicleLoadBody> {
       if (pid == null) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(l10n.vehicleLoadInvalidRow)),
+        );
+        return null;
+      }
+      final int available =
+          i < _stationStocks.length ? _stationStocks[i] : 0;
+      if (q > available) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(l10n.stationSaleValidationInsufficientStock)),
         );
         return null;
       }
@@ -331,15 +342,31 @@ class _AddVehicleLoadBodyState extends State<_AddVehicleLoadBody> {
                     ),
                     child: Padding(
                       padding: const EdgeInsets.only(top: 4, bottom: 2),
-                      child: Text(
-                        _productLabels[i].isNotEmpty
-                            ? _productLabels[i]
-                            : '—',
-                        textAlign: TextAlign.right,
-                        style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                              fontWeight: FontWeight.w600,
-                              color: AppColors.primaryText,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: <Widget>[
+                          Text(
+                            _productLabels[i].isNotEmpty
+                                ? _productLabels[i]
+                                : '—',
+                            textAlign: TextAlign.right,
+                            style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                                  fontWeight: FontWeight.w600,
+                                  color: AppColors.primaryText,
+                                ),
+                          ),
+                          const SizedBox(height: 6),
+                          Text(
+                            l10n.stationSaleStockAvailable(
+                              i < _stationStocks.length ? _stationStocks[i] : 0,
                             ),
+                            textAlign: TextAlign.right,
+                            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                  fontWeight: FontWeight.w600,
+                                  color: AppColors.onSurfaceVariant,
+                                ),
+                          ),
+                        ],
                       ),
                     ),
                   ),

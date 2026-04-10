@@ -229,12 +229,16 @@ class _StationDebtRegistrationPageState
                 busy: busy,
                 showCouponButton: false,
                 stationStockAvailable:
-                    i < state.columnSkipsStationStock.length &&
-                            !state.columnSkipsStationStock[i]
-                        ? (i < state.columnStationStock.length
-                            ? state.columnStationStock[i]
+                    state.useVehicleProductLabels
+                        ? (i < state.columnVehicleRemaining.length
+                            ? state.columnVehicleRemaining[i]
                             : null)
-                        : null,
+                        : (i < state.columnSkipsStationStock.length &&
+                                !state.columnSkipsStationStock[i]
+                            ? (i < state.columnStationStock.length
+                                ? state.columnStationStock[i]
+                                : null)
+                            : null),
               ),
             ),
           ),

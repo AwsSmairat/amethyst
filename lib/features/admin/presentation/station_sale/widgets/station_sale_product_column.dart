@@ -33,6 +33,7 @@ class StationSaleProductColumn extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = context.l10n;
     final ThemeData theme = Theme.of(context);
+    final bool couponEligible = index == 0 || index == 1;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       mainAxisSize: MainAxisSize.min,
@@ -117,6 +118,7 @@ class StationSaleProductColumn extends StatelessWidget {
           ),
         ],
         if (showCouponButton &&
+            couponEligible &&
             quantity > 0 &&
             onCouponToggle != null) ...<Widget>[
           const SizedBox(height: 6),

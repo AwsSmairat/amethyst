@@ -77,6 +77,21 @@ final class CreateVehicleSaleUseCase {
       );
 }
 
+final class PatchProductStationStockUseCase {
+  PatchProductStationStockUseCase(this._repository);
+
+  final RecordOperationsRepository _repository;
+
+  Future<void> call({
+    required String productId,
+    required int stationStock,
+  }) =>
+      _repository.patchProductStationStock(
+        productId: productId,
+        stationStock: stationStock,
+      );
+}
+
 final class CreateExpenseUseCase {
   CreateExpenseUseCase(this._repository);
 

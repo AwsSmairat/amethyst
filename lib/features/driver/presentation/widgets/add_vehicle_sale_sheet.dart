@@ -1,6 +1,7 @@
 import 'package:amethyst/core/utils/parse_dynamic_double.dart';
 import 'package:amethyst/core/data/amethyst_api.dart';
 import 'package:amethyst/core/l10n/context_l10n.dart';
+import 'package:amethyst/core/station_balance/station_balance_catalog.dart';
 import 'package:amethyst/core/theme/app_colors.dart';
 import 'package:amethyst/di/injection.dart';
 import 'package:amethyst/features/record_operations/domain/usecases/record_operation_usecases.dart';
@@ -21,7 +22,10 @@ Future<void> showAddVehicleSaleSheet(BuildContext context) {
     showDragHandle: true,
     builder: (context) => BlocProvider(
       create: (_) =>
-          VehicleSaleSubmitCubit(sl<CreateVehicleSaleUseCase>()),
+          VehicleSaleSubmitCubit(
+            sl<CreateVehicleSaleUseCase>(),
+            sl<PatchProductStationStockUseCase>(),
+          ),
       child: const _AddVehicleSaleBody(),
     ),
   );
@@ -40,6 +44,8 @@ class _AddVehicleSaleBodyState extends State<_AddVehicleSaleBody> {
     'Water Bottle',
     'Water Carton',
     'Coupon',
+    'Coupon 2',
+    'Coupon 3',
   ];
 
   /// أسماء المنتجات في الـ API — مطابقة لقوالب السوبر أدمن وصف التحميل.
@@ -49,14 +55,19 @@ class _AddVehicleSaleBodyState extends State<_AddVehicleSaleBody> {
     'مهدي متجر',
   ];
 
-  int _columnCount = 4;
-  List<int> _quantities = List<int>.filled(4, 0);
-  List<String?> _productIds = List<String?>.filled(4, null);
-  List<String> _productLabels = List<String>.filled(4, '');
-  List<double?> _unitPrices = List<double?>.filled(4, null);
+  int _columnCount = 6;
+  List<int> _quantities = List<int>.filled(6, 0);
+  List<String?> _productIds = List<String?>.filled(6, null);
+  List<String> _productLabels = List<String>.filled(6, '');
+  List<double?> _unitPrices = List<double?>.filled(6, null);
+  List<int> _stationStocks = List<int>.filled(6, 0);
 
   /// قائمة المنتجات من الـ API (بحث بالاسم مع تطبيع بسيط).
   List<Map<String, dynamic>> _productItems = <Map<String, dynamic>>[];
+
+  /// لقطة متبقي حمولة السائق الحالية (من `/vehicle-loads/driver/current`).
+  /// مفتاحها اسم المنتج بعد التطبيع (لأنه قد يختلف حسب قالب البيع "متجر").
+  Map<String, int> _vehicleLoadRemainingByNormalizedName = <String, int>{};
 
   String? _vehicleId;
   bool _loadingCtx = true;
@@ -91,13 +102,24 @@ class _AddVehicleSaleBodyState extends State<_AddVehicleSaleBody> {
       final dash = await api.getDashboardDriver();
       final vehicle = dash['assignedVehicle'] as Map<String, dynamic>?;
       final products = await api.listProducts(page: 1, limit: 100);
+      final currentLoad = await api.driverCurrentLoad();
       final items = (products['items'] as List<dynamic>? ?? <dynamic>[])
+          .whereType<Map<String, dynamic>>()
+          .toList(growable: false);
+      final loads = (currentLoad['loads'] as List<dynamic>? ?? <dynamic>[])
           .whereType<Map<String, dynamic>>()
           .toList(growable: false);
       if (!mounted) return;
       setState(() {
         _vehicleId = vehicle?['id'] as String?;
         _productItems = items;
+        final Map<String, int> remainingByName = <String, int>{
+          for (final Map<String, dynamic> l in loads)
+            normalizeStationBalanceProductName(
+              (l['product'] as Map<String, dynamic>?)?['name']?.toString() ?? '',
+            ): (l['remaining'] as int?) ?? 0,
+        }..removeWhere((k, _) => k.trim().isEmpty);
+        _vehicleLoadRemainingByNormalizedName = remainingByName;
         _loadingCtx = false;
         if (_selectedPlace != null) {
           _applyPlaceBindings(_selectedPlace!);
@@ -121,12 +143,15 @@ class _AddVehicleSaleBodyState extends State<_AddVehicleSaleBody> {
     _productIds = List<String?>.filled(_columnCount, null);
     _productLabels = List<String>.filled(_columnCount, '');
     _unitPrices = List<double?>.filled(_columnCount, null);
+    _stationStocks = List<int>.filled(_columnCount, 0);
     for (var i = 0; i < _columnCount; i++) {
       final String name = names[i];
       final match = _findProductByCatalogName(name);
       _productIds[i] = match?['id']?.toString();
       _productLabels[i] = match?['name']?.toString().trim() ?? name;
       _unitPrices[i] = parseDynamicDouble(match?['price']);
+      _stationStocks[i] =
+          stationStockFromProductJson(match ?? <String, dynamic>{});
     }
   }
 
@@ -167,17 +192,13 @@ class _AddVehicleSaleBodyState extends State<_AddVehicleSaleBody> {
   }
 
   String _columnTitle(BuildContext context, int index) {
-    if (_selectedPlace == VehicleSalePlace.home &&
-        index == _columnCount - 1) {
-      return context.l10n.couponProduct;
-    }
     final label = _productLabels[index];
     return label.isNotEmpty ? label : '—';
   }
 
-  List<({String productId, int quantity, double unitPrice})>? _collectLines() {
+  List<VehicleSaleLineInput>? _collectLines() {
     final l10n = context.l10n;
-    final lines = <({String productId, int quantity, double unitPrice})>[];
+    final lines = <VehicleSaleLineInput>[];
     for (var i = 0; i < _columnCount; i++) {
       final pid = _productIds[i];
       final q = _quantities[i];
@@ -195,7 +216,52 @@ class _AddVehicleSaleBodyState extends State<_AddVehicleSaleBody> {
         );
         return null;
       }
-      lines.add((productId: pid, quantity: q, unitPrice: unit));
+      final bool homeStationStockDeduct =
+          _selectedPlace == VehicleSalePlace.home && i >= 2 && i <= 5;
+      final bool storeStationStockDeduct =
+          _selectedPlace == VehicleSalePlace.store && i == 2;
+      final bool needsStationStockCheck =
+          homeStationStockDeduct || storeStationStockDeduct;
+      final int available =
+          i < _stationStocks.length ? _stationStocks[i] : 0;
+      if (needsStationStockCheck && q > available) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(l10n.stationSaleValidationInsufficientStock)),
+        );
+        return null;
+      }
+
+      // تحقق من حمولة السيارة عند البيع للمتجر:
+      // منتج 1/2/3 في واجهة "متجر" يستهلك من حمولة (Water Gallon / Water Bottle / Water Carton).
+      if (_selectedPlace == VehicleSalePlace.store && i >= 0 && i <= 2) {
+        final String loadName = switch (i) {
+          0 => 'Water Gallon',
+          1 => 'Water Bottle',
+          _ => 'Water Carton',
+        };
+        final String key = normalizeStationBalanceProductName(loadName);
+        final int rem = _vehicleLoadRemainingByNormalizedName[key] ?? 0;
+        if (q > rem) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(l10n.stationSaleValidationInsufficientStock)),
+          );
+          return null;
+        }
+      }
+
+      final bool couponPriceZero =
+          _selectedPlace == VehicleSalePlace.home &&
+              ((i == 0 && _homeCouponLine1On) ||
+                  (i == 1 && _homeCouponLine2On));
+      lines.add(
+        (
+          productId: pid,
+          quantity: q,
+          unitPrice: couponPriceZero ? 0.0 : unit,
+          deductStationStock: needsStationStockCheck,
+          stationStockSnapshot: available,
+        ),
+      );
     }
     if (lines.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -357,7 +423,9 @@ class _AddVehicleSaleBodyState extends State<_AddVehicleSaleBody> {
                         : () {
                             final lines = _collectLines();
                             if (lines == null) return;
-                            context.read<VehicleSaleSubmitCubit>().submitLines(
+                            context
+                                .read<VehicleSaleSubmitCubit>()
+                                .submitLinesAndDeductStationStock(
                                   vehicleId: _vehicleId!,
                                   lines: lines,
                                   saleDestination:

@@ -12,6 +12,7 @@ final class StationDebtRegistrationState extends Equatable {
     required this.unitPrices,
     required this.columnSkipsStationStock,
     required this.columnStationStock,
+    required this.columnVehicleRemaining,
     required this.columnProductNames,
     required this.useVehicleProductLabels,
   });
@@ -29,6 +30,7 @@ final class StationDebtRegistrationState extends Equatable {
         unitPrices: List<double?>.filled(columnCount, null),
         columnSkipsStationStock: List<bool>.filled(columnCount, false),
         columnStationStock: List<int>.filled(columnCount, 0),
+        columnVehicleRemaining: List<int>.filled(columnCount, 0),
         columnProductNames: List<String>.filled(columnCount, ''),
         useVehicleProductLabels: useVehicleProductLabels,
       );
@@ -46,6 +48,8 @@ final class StationDebtRegistrationState extends Equatable {
   final List<double?> unitPrices;
   final List<bool> columnSkipsStationStock;
   final List<int> columnStationStock;
+  /// لقطة المتبقي على المركبة لكل عمود عند وضع السائق (٠ عند عدم توفرها).
+  final List<int> columnVehicleRemaining;
   /// اسم العرض لكل عمود (من كتالوج الـ API) عند وضع المركبة؛ أو فارغ لاستخدام تسميات التعبئة.
   final List<String> columnProductNames;
   final bool useVehicleProductLabels;
@@ -65,6 +69,7 @@ final class StationDebtRegistrationState extends Equatable {
     List<double?>? unitPrices,
     List<bool>? columnSkipsStationStock,
     List<int>? columnStationStock,
+    List<int>? columnVehicleRemaining,
     List<String>? columnProductNames,
     bool? useVehicleProductLabels,
   }) {
@@ -80,6 +85,8 @@ final class StationDebtRegistrationState extends Equatable {
       columnSkipsStationStock:
           columnSkipsStationStock ?? this.columnSkipsStationStock,
       columnStationStock: columnStationStock ?? this.columnStationStock,
+      columnVehicleRemaining:
+          columnVehicleRemaining ?? this.columnVehicleRemaining,
       columnProductNames: columnProductNames ?? this.columnProductNames,
       useVehicleProductLabels:
           useVehicleProductLabels ?? this.useVehicleProductLabels,
@@ -98,6 +105,7 @@ final class StationDebtRegistrationState extends Equatable {
         unitPrices,
         columnSkipsStationStock,
         columnStationStock,
+        columnVehicleRemaining,
         columnProductNames,
         useVehicleProductLabels,
       ];
