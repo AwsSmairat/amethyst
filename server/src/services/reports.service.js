@@ -1,6 +1,12 @@
 import { prisma } from '../utils/prisma.js';
 import { AppError } from '../utils/AppError.js';
-import { startOfDay, endOfDay } from '../utils/dateRange.js';
+import { env } from '../config/env.js';
+import {
+  startOfDay,
+  endOfDay,
+  businessDayUtcRange,
+  businessYmdToUtcRange,
+} from '../utils/dateRange.js';
 import { mapProduct } from '../utils/serialize.js';
 
 function requireStaff(actor) {
@@ -188,10 +194,22 @@ export async function inventoryReport(actor) {
 
 export async function expensesReport(query, actor) {
   requireStaff(actor);
-  const from = query.dateFrom
-    ? startOfDay(new Date(query.dateFrom))
-    : startOfDay(new Date());
-  const to = query.dateTo ? endOfDay(new Date(query.dateTo)) : endOfDay(new Date());
+  const tz = env.businessTimeZone;
+  const df =
+    typeof query.dateFrom === 'string' ? query.dateFrom.trim() : undefined;
+  const dt = typeof query.dateTo === 'string' ? query.dateTo.trim() : undefined;
+  let from;
+  let to;
+  if (df && dt) {
+    from = businessYmdToUtcRange(df, tz).start;
+    to = businessYmdToUtcRange(dt, tz).end;
+  } else if (df) {
+    ({ start: from, end: to } = businessYmdToUtcRange(df, tz));
+  } else if (dt) {
+    ({ start: from, end: to } = businessYmdToUtcRange(dt, tz));
+  } else {
+    ({ start: from, end: to } = businessDayUtcRange(new Date(), tz));
+  }
 
   const items = await prisma.expense.findMany({
     where: { createdAt: { gte: from, lte: to } },
@@ -209,10 +227,22 @@ export async function expensesReport(query, actor) {
 
 export async function profitLossReport(query, actor) {
   requireStaff(actor);
-  const from = query.dateFrom
-    ? startOfDay(new Date(query.dateFrom))
-    : startOfDay(new Date());
-  const to = query.dateTo ? endOfDay(new Date(query.dateTo)) : endOfDay(new Date());
+  const tz = env.businessTimeZone;
+  const df =
+    typeof query.dateFrom === 'string' ? query.dateFrom.trim() : undefined;
+  const dt = typeof query.dateTo === 'string' ? query.dateTo.trim() : undefined;
+  let from;
+  let to;
+  if (df && dt) {
+    from = businessYmdToUtcRange(df, tz).start;
+    to = businessYmdToUtcRange(dt, tz).end;
+  } else if (df) {
+    ({ start: from, end: to } = businessYmdToUtcRange(df, tz));
+  } else if (dt) {
+    ({ start: from, end: to } = businessYmdToUtcRange(dt, tz));
+  } else {
+    ({ start: from, end: to } = businessDayUtcRange(new Date(), tz));
+  }
 
   const [stationSales, vehicleSales, expenses] = await Promise.all([
     prisma.stationSale.findMany({

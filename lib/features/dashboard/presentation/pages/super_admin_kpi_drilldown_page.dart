@@ -378,7 +378,16 @@ class _SuperAdminKpiDrilldownPageState extends State<SuperAdminKpiDrilldownPage>
           final Map<String, dynamic> data = snapshot.data ?? <String, dynamic>{};
           switch (widget.kind) {
             case SuperAdminKpiDrilldown.profitToday:
-              return _ProfitBody(data: data);
+              return RefreshIndicator(
+                onRefresh: () async {
+                  final Future<Map<String, dynamic>> f = _fetch();
+                  setState(() {
+                    _load = f;
+                  });
+                  await f;
+                },
+                child: _ProfitBody(data: data),
+              );
             case SuperAdminKpiDrilldown.expensesToday:
               return RefreshIndicator(
                 onRefresh: () async {
@@ -455,6 +464,7 @@ class _ProfitBody extends StatelessWidget {
     final double net = _toDouble(data['net']);
     final l = context.l10n;
     return ListView(
+      physics: const AlwaysScrollableScrollPhysics(),
       padding: const EdgeInsets.all(20),
       children: <Widget>[
         _ProfitMetricCard(

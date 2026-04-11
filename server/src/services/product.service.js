@@ -1,3 +1,4 @@
+import { Prisma } from '@prisma/client';
 import { prisma } from '../utils/prisma.js';
 import { AppError } from '../utils/AppError.js';
 import { auditLog } from './audit.service.js';
@@ -93,9 +94,28 @@ export async function patchStock(id, stationStock, actor) {
 }
 
 export async function deleteProduct(id, actor) {
-  await prisma.product.delete({ where: { id } }).catch(() => {
-    throw new AppError('Product not found', 404, 'NOT_FOUND');
+  const existing = await prisma.product.findUnique({
+    where: { id },
+    select: { id: true },
   });
+  if (!existing) {
+    throw new AppError('Product not found', 404, 'NOT_FOUND');
+  }
+  try {
+    await prisma.product.delete({ where: { id } });
+  } catch (e) {
+    if (
+      e instanceof Prisma.PrismaClientKnownRequestError &&
+      e.code === 'P2003'
+    ) {
+      throw new AppError(
+        'لا يمكن حذف المنتج لأنه مرتبط بمبيعات أو تحميلات أو سجلات أخرى. احذف أو عدّل تلك السجلات أولاً، أو عطّل المنتج بدل الحذف.',
+        409,
+        'PRODUCT_IN_USE'
+      );
+    }
+    throw e;
+  }
   await auditLog({
     userId: actor.id,
     action: 'PRODUCT_DELETE',

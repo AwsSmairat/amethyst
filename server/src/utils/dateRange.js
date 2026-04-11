@@ -51,3 +51,21 @@ export function parseDateRange(query) {
     dateTo: dateTo && !Number.isNaN(dateTo.getTime()) ? dateTo : null,
   };
 }
+
+/**
+ * One calendar day `yyyy-MM-dd` in `timeZone` → UTC instants for Prisma `createdAt` filters.
+ * (Avoids `new Date('yyyy-MM-dd')` UTC-only parsing + `setHours` server-local mismatch vs business TZ.)
+ */
+export function businessYmdToUtcRange(ymd, timeZone) {
+  const local = DateTime.fromFormat(String(ymd).trim(), 'yyyy-MM-dd', {
+    zone: timeZone,
+  });
+  if (!local.isValid) {
+    throw new Error(
+      `Invalid calendar date "${ymd}": ${local.invalidReason ?? 'parse error'}`
+    );
+  }
+  const start = local.startOf('day').toUTC();
+  const end = local.endOf('day').toUTC();
+  return { start: start.toJSDate(), end: end.toJSDate() };
+}

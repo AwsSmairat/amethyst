@@ -2511,6 +2511,12 @@ abstract class AppLocalizations {
   /// **'بعض البنود غير مربوطة بمنتج في النظام (غالباً بعد مسح بيانات التشغيل). من «أسعار المنتجات» أنشئ منتجاً لكل اسم إنجليزي يظهر أدناه بنفس الحرفية، أو على الخادم نفّذ: npx prisma db seed'**
   String get vehicleLoadCatalogGapHint;
 
+  /// No description provided for @vehicleLoadNoStationStockForRow.
+  ///
+  /// In ar, this message translates to:
+  /// **'لا يُتحقق من مخزون المحطة ولا يُخصم عند التحميل لهذا البند.'**
+  String get vehicleLoadNoStationStockForRow;
+
   /// No description provided for @loadsRecorded.
   ///
   /// In ar, this message translates to:

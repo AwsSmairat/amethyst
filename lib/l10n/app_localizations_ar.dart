@@ -1303,6 +1303,10 @@ class AppLocalizationsAr extends AppLocalizations {
       'بعض البنود غير مربوطة بمنتج في النظام (غالباً بعد مسح بيانات التشغيل). من «أسعار المنتجات» أنشئ منتجاً لكل اسم إنجليزي يظهر أدناه بنفس الحرفية، أو على الخادم نفّذ: npx prisma db seed';
 
   @override
+  String get vehicleLoadNoStationStockForRow =>
+      'لا يُتحقق من مخزون المحطة ولا يُخصم عند التحميل لهذا البند.';
+
+  @override
   String get loadsRecorded => 'تم تسجيل التحميلات';
 
   @override

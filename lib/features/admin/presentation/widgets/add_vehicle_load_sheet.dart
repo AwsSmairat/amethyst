@@ -37,6 +37,10 @@ class _AddVehicleLoadBodyState extends State<_AddVehicleLoadBody> {
   /// ترتيب ثابت لأسماء المنتجات (كما في الخادم) — بدون قوائم اختيار.
   /// ثلاثة أصناف كوبون (١٢ / ٢٤ / ٥٠): أنشئ منتجات `Coupon` و `Coupon 2` و `Coupon 3`.
   /// بيع «متجر» من السيارة يستهلك نفس الحمل (جالون/قارورة/كرتون) بأسعار منفصلة في الخادم.
+  /// Water Gallon / Water Bottle: لا ربط بمخزون المحطة عند التحميل (لا تحقق ولا خصم في الواجهة؛ الخادم لا يخصم عند الإنشاء).
+  static bool _rowSkipsStationStockLimit(int rowIndex) =>
+      rowIndex == 0 || rowIndex == 1;
+
   static const List<String> _kFixedProductNames = <String>[
     'Water Gallon',
     'Water Bottle',
@@ -204,13 +208,15 @@ class _AddVehicleLoadBodyState extends State<_AddVehicleLoadBody> {
         );
         return null;
       }
-      final int available =
-          i < _stationStocks.length ? _stationStocks[i] : 0;
-      if (q > available) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(l10n.stationSaleValidationInsufficientStock)),
-        );
-        return null;
+      if (!_rowSkipsStationStockLimit(i)) {
+        final int available =
+            i < _stationStocks.length ? _stationStocks[i] : 0;
+        if (q > available) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(l10n.stationSaleValidationInsufficientStock)),
+          );
+          return null;
+        }
       }
       lines.add((productId: pid, quantityLoaded: q));
     }
@@ -357,9 +363,13 @@ class _AddVehicleLoadBodyState extends State<_AddVehicleLoadBody> {
                           ),
                           const SizedBox(height: 6),
                           Text(
-                            l10n.stationSaleStockAvailable(
-                              i < _stationStocks.length ? _stationStocks[i] : 0,
-                            ),
+                            _rowSkipsStationStockLimit(i)
+                                ? l10n.vehicleLoadNoStationStockForRow
+                                : l10n.stationSaleStockAvailable(
+                                    i < _stationStocks.length
+                                        ? _stationStocks[i]
+                                        : 0,
+                                  ),
                             textAlign: TextAlign.right,
                             style: Theme.of(context).textTheme.bodySmall?.copyWith(
                                   fontWeight: FontWeight.w600,
