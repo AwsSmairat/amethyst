@@ -4,7 +4,11 @@ const int kStationBalanceRowCount = 15;
 /// آخر فهرس للبند الثابت (قبل الصف الاختياري).
 const int kStationBalanceLastFixedRowIndex = 13;
 
-/// صفوف رصيد المحطة في لوحة «أسعار المنتجات» (كل البنود الثابتة).
+/// صفوف التسعير في شاشة سوبر أدمن «تعديل أسعار المنتجات» فقط — **بدون** صفّي 9 و 10
+/// (Ground Bottle / Ground Gallon ↔ «ق ارضية» / «ج ارضية»).
+///
+/// هذان الصفّان يبقيان في **شاشة مخزون المحطة** (`AdminStationBalancePage` + نموذج تسجيل الرصيد)
+/// لتعديل **الكمية يدوياً** فقط، وليس السعر من سوبر أدمن.
 const List<int> kStationPricingBalanceRowIndices = <int>[
   0,
   1,
@@ -15,12 +19,13 @@ const List<int> kStationPricingBalanceRowIndices = <int>[
   6,
   7,
   8,
-  9,
-  10,
   11,
   12,
   13,
 ];
+
+/// نفس الصفوف مستبعدة من قسم «باقي المنتجات» في شاشة أسعار سوبر أدمن حتى لا يظهر المنتج مرتين.
+const List<int> kStationPricingHiddenBalanceRowIndices = <int>[9, 10];
 
 /// اسم ووحدة إنشاء المنتج في الـ API عند عدم وجوده (يتطابق مع [StationBalanceProductLookup]).
 ({String name, String unitType}) stationBalanceSeedSpecForRow(int rowIndex) {
@@ -57,7 +62,7 @@ const List<int> kStationPricingBalanceRowIndices = <int>[
       throw ArgumentError.value(
         rowIndex,
         'rowIndex',
-        'use kStationPricingBalanceRowIndices only',
+        'seed spec defined for fixed balance rows 0..$kStationBalanceLastFixedRowIndex only',
       );
   }
 }

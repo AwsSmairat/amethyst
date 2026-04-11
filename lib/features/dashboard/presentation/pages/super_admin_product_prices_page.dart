@@ -440,10 +440,19 @@ class _SuperAdminProductPricesBody extends StatelessWidget {
               pinnedIds.add(id);
             }
           }
+          final Set<String> hiddenFromPricing = <String>{...pinnedIds};
+          for (final int idx in kStationPricingHiddenBalanceRowIndices) {
+            final Map<String, dynamic>? m =
+                resolveStationBalanceProduct(products: items, rowIndex: idx);
+            final String? id = m?['id']?.toString();
+            if (id != null) {
+              hiddenFromPricing.add(id);
+            }
+          }
           final List<Map<String, dynamic>> rest = items
               .where(
                 (Map<String, dynamic> p) =>
-                    !pinnedIds.contains(p['id']?.toString()),
+                    !hiddenFromPricing.contains(p['id']?.toString()),
               )
               .toList(growable: false);
 
