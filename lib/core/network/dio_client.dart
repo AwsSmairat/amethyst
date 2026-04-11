@@ -97,13 +97,36 @@ final class DioClient {
 
   /// True when Dio on web wraps an XHR that never received a response (CORS,
   /// mixed content, DNS, offline, cold hosting, etc.).
-  static bool _looksLikeBrowserTransportFailure(String? message) {
-    if (message == null || message.isEmpty) return false;
-    final String lower = message.toLowerCase();
-    return lower.contains('xmlhttprequest') ||
-        lower.contains('connection errored') ||
-        lower.contains('failed to fetch') ||
-        lower.contains('networkerror');
+  ///
+  /// On some builds the long text lives on [DioException.error], not [DioException.message].
+  static bool _looksLikeBrowserTransportFailure(DioException e) {
+    final Iterable<String?> chunks = <String?>[
+      e.message,
+      e.error?.toString(),
+    ];
+    for (final String? chunk in chunks) {
+      if (chunk == null || chunk.isEmpty) continue;
+      final String lower = chunk.toLowerCase();
+      if (lower.contains('xmlhttprequest') ||
+          lower.contains('connection errored') ||
+          lower.contains('failed to fetch') ||
+          lower.contains('networkerror') ||
+          lower.contains('clientexception')) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  static Never _throwWebCannotConnect() {
+    final String base = ApiConfig.resolvedBaseUrl;
+    throw ApiException(
+      'Cannot connect to the server from this browser. '
+      'Check: (1) API CORS allows your Firebase domain, (2) API_BASE_URL is HTTPS and ends with /api, '
+      '(3) the Railway service is running. '
+      'تعذّر الاتصال بالخادم من المتصفح — تحقق من CORS وعنوان الـ API وخدمة Railway. '
+      '(API: $base)',
+    );
   }
 
   Never throwFromDio(DioException e) {
@@ -143,12 +166,10 @@ final class DioClient {
         e.type == DioExceptionType.sendTimeout) {
       throw ApiException('Cannot connect to server. Please try again.');
     }
-    // Flutter web often surfaces failed XHR as `unknown` with a long
-    // "XMLHttpRequest onError" message instead of `connectionError`.
-    final bool webTransportFailure = kIsWeb &&
-        res == null &&
-        e.type == DioExceptionType.unknown &&
-        _looksLikeBrowserTransportFailure(e.message);
+    // Flutter web often surfaces failed XHR as `unknown` (sometimes `connectionError`)
+    // with the long "XMLHttpRequest onError" text on [error] or [message].
+    final bool webTransportFailure =
+        kIsWeb && res == null && _looksLikeBrowserTransportFailure(e);
     if (e.type == DioExceptionType.connectionError || webTransportFailure) {
       final String base = ApiConfig.resolvedBaseUrl;
       final String hint = kIsWeb
@@ -162,6 +183,10 @@ final class DioClient {
     final err = e.error;
     if (isPlatformSocketException(err)) {
       throw ApiException('Cannot connect to server. Check your internet connection and server URL.');
+    }
+    // Any other web failure with no HTTP response (e.g. unusual DioExceptionType).
+    if (kIsWeb && res == null) {
+      _throwWebCannotConnect();
     }
     throw ApiException(e.message ?? 'Network error', statusCode: res?.statusCode);
   }
