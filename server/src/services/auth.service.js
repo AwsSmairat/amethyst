@@ -47,20 +47,49 @@ export async function register(body) {
 }
 
 export async function login({ email, password }) {
+  const emailNorm = String(email ?? '')
+    .trim()
+    .toLowerCase();
+  const debugLogin = process.env.AUTH_DEBUG_LOGIN === '1';
+
   const user = await prisma.user.findUnique({
-    where: { email: email.toLowerCase() },
+    where: { email: emailNorm },
   });
+  if (debugLogin) {
+    console.log('[auth][login-debug] emailNorm=%s userFound=%s', emailNorm, Boolean(user));
+  }
   if (!user) {
+    if (debugLogin) {
+      console.log('[auth][login-debug] reject: no user for email');
+    }
     throw new AppError('Invalid credentials', 401, 'INVALID_CREDENTIALS');
+  }
+  const hasHash =
+    typeof user.passwordHash === 'string' && user.passwordHash.length > 0;
+  if (debugLogin) {
+    console.log(
+      '[auth][login-debug] passwordHashPresent=%s hashLen=%s',
+      hasHash,
+      typeof user.passwordHash === 'string' ? user.passwordHash.length : 0,
+    );
   }
   let passwordOk = false;
   try {
     passwordOk = await comparePassword(password, user.passwordHash);
   } catch (e) {
     console.error('[auth] password compare failed', e);
+    if (debugLogin) {
+      console.log('[auth][login-debug] reject: bcrypt.compare threw');
+    }
     throw new AppError('Invalid credentials', 401, 'INVALID_CREDENTIALS');
   }
+  if (debugLogin) {
+    console.log('[auth][login-debug] bcrypt.compare result=%s', passwordOk);
+  }
   if (!passwordOk) {
+    if (debugLogin) {
+      console.log('[auth][login-debug] reject: password mismatch');
+    }
     throw new AppError('Invalid credentials', 401, 'INVALID_CREDENTIALS');
   }
   if (!user.isActive) {

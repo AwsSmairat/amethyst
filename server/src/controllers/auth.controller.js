@@ -8,6 +8,12 @@ export const register = asyncHandler(async (req, res) => {
 });
 
 export const login = asyncHandler(async (req, res) => {
+  if (process.env.LOG_INCOMING_AUTH === '1') {
+    console.log('[auth] POST /api/auth/login', {
+      origin: req.headers.origin,
+      path: req.originalUrl,
+    });
+  }
   const result = await authService.login(req.body);
   return success(res, result, 'Logged in');
 });

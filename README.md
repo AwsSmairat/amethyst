@@ -8,18 +8,18 @@ A new Flutter project.
 
 The app uses **`API_BASE_URL`** for all HTTP calls (login, dashboards, products, sales, expenses, loads, etc.). It resolves to a single value via `ApiConfig.resolvedBaseUrl` and `DioClient`.
 
-#### Production (Render)
+#### Production (Railway)
 
-The **default** base URL is set in `lib/core/config/api_config.dart` as `_productionDefault` (currently the Render service `https://amethyst-shhh.onrender.com/api`). Change it if your Render hostname differs, **or** pass a full URL at build/run time (recommended for CI):
+The **default** base URL is set in `lib/core/config/api_config.dart` as `_productionDefault` (currently `https://amethyst-production-7418.up.railway.app/api`). Override for another environment **or** pass a full URL at build/run time (recommended for CI):
 
 ```bash
-flutter build apk --dart-define=API_BASE_URL=https://your-service.onrender.com/api
+flutter build apk --dart-define=API_BASE_URL=https://amethyst-production-7418.up.railway.app/api
 ```
 
 **Flutter Web (Firebase Hosting, etc.):** use the same public API URL (not `localhost`). Release builds reject `localhost` / `127.0.0.1` for `API_BASE_URL`.
 
 ```bash
-flutter build web --release --dart-define=API_BASE_URL=https://amethyst-shhh.onrender.com/api
+flutter build web --release --dart-define=API_BASE_URL=https://amethyst-production-7418.up.railway.app/api
 ```
 
 No backend code changes are required; only the Flutter `API_BASE_URL` must point at your live API (must include the `/api` suffix if that is how your server is mounted).
@@ -29,7 +29,7 @@ No backend code changes are required; only the Flutter `API_BASE_URL` must point
 `--dart-define` always overrides the compile-time default:
 
 ```bash
-flutter run --dart-define=API_BASE_URL=https://your-service.onrender.com/api
+flutter run --dart-define=API_BASE_URL=https://amethyst-production-7418.up.railway.app/api
 ```
 
 #### Local development (optional)
@@ -54,11 +54,11 @@ flutter run --dart-define=API_BASE_URL=https://your-tunnel.example.com/api
 
 #### Startup validation
 
-If `API_BASE_URL` is empty, not a valid `http`/`https` URL, or still contains the `YOUR-RENDER-URL` template, the app shows a configuration screen with details instead of connecting.
+If `API_BASE_URL` is empty, not a valid `http`/`https` URL, still contains a placeholder host, or points at the retired demo API host, the app shows a configuration screen with details instead of connecting.
 
 ### Common mistakes
 
-- Leaving `YOUR-RENDER-URL` in the default without replacing it or passing `--dart-define`.
+- Leaving a placeholder host in the default without replacing it or passing `--dart-define`.
 - Using `localhost` on a real phone (it points to the phone itself).
 - Using an old tunnel URL after the tunnel restarts.
 - Backend listening only on `127.0.0.1` instead of `0.0.0.0` (local dev).
@@ -74,7 +74,7 @@ If `API_BASE_URL` is empty, not a valid `http`/`https` URL, or still contains th
 
 #### Different network / production
 
-- Prefer **HTTPS** (e.g. Render URL).
+- Prefer **HTTPS** (e.g. Railway or other hosting URL).
 - If you change the deployed URL, rebuild the app or pass a new `--dart-define=API_BASE_URL=...`.
 
 #### Backend not reachable

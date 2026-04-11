@@ -10,10 +10,13 @@ async function hashPassword(plain) {
 }
 
 /**
- * Inserts a user only if no row exists with the same email.
- * Avoids phone collisions with older seeded rows (phone is unique).
+ * Ensures a seed user exists with the expected email, password, and reserved phone.
+ * - If another row holds the reserved phone, clears it (phone is optional) so the
+ *   test account can claim it — avoids the old bug where the user row was never
+ *   created and login returned INVALID_CREDENTIALS for that email.
+ * - If the email already exists, refreshes password + profile so re-seed matches docs.
  */
-async function createUserIfMissing({
+async function upsertSeedUser({
   email,
   password,
   fullName,
@@ -21,25 +24,39 @@ async function createUserIfMissing({
   phone,
 }) {
   const normalizedEmail = email.toLowerCase();
+  const passwordHash = await hashPassword(password);
+
+  const phoneHolder = await prisma.user.findUnique({
+    where: { phone },
+  });
+  if (phoneHolder && phoneHolder.email !== normalizedEmail) {
+    await prisma.user.update({
+      where: { id: phoneHolder.id },
+      data: { phone: null },
+    });
+    console.log(
+      `[seed] freed phone ${phone} (was ${phoneHolder.email}) for ${normalizedEmail}`,
+    );
+  }
+
   const existingByEmail = await prisma.user.findUnique({
     where: { email: normalizedEmail },
   });
   if (existingByEmail) {
-    console.log(`[seed] skip (exists): ${normalizedEmail}`);
+    await prisma.user.update({
+      where: { id: existingByEmail.id },
+      data: {
+        passwordHash,
+        fullName,
+        role,
+        phone,
+        isActive: true,
+      },
+    });
+    console.log(`[seed] updated: ${normalizedEmail} (${role})`);
     return existingByEmail;
   }
 
-  const existingByPhone = await prisma.user.findUnique({
-    where: { phone },
-  });
-  if (existingByPhone) {
-    console.log(
-      `[seed] skip (phone ${phone} already used by ${existingByPhone.email}): ${normalizedEmail}`,
-    );
-    return existingByPhone;
-  }
-
-  const passwordHash = await hashPassword(password);
   const user = await prisma.user.create({
     data: {
       email: normalizedEmail,
@@ -56,7 +73,7 @@ async function createUserIfMissing({
 
 async function main() {
   // Reserved range so we do not collide with legacy seed phones (+1000000000x).
-  await createUserIfMissing({
+  await upsertSeedUser({
     email: 'super@test.com',
     password: '123456',
     fullName: 'Super Admin',
@@ -64,7 +81,7 @@ async function main() {
     phone: '+10000090001',
   });
 
-  await createUserIfMissing({
+  await upsertSeedUser({
     email: 'admin@test.com',
     password: '123456',
     fullName: 'Admin',
@@ -72,7 +89,7 @@ async function main() {
     phone: '+10000090002',
   });
 
-  await createUserIfMissing({
+  await upsertSeedUser({
     email: 'driver@test.com',
     password: '123456',
     fullName: 'Driver',

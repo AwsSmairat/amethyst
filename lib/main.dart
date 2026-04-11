@@ -12,6 +12,9 @@ Future<void> main() async {
       '[env] API_BASE_URL="${ApiConfig.resolvedBaseUrl}" (raw="${ApiConfig.baseUrl}") '
       'mode=${ApiConfig.mode}',
     );
+    if (kIsWeb) {
+      debugPrint('[env] Web login endpoint (POST): ${ApiConfig.debugResolvedLoginUrl}');
+    }
   }
 
   final String? configIssue = ApiConfig.configurationBlockReason;

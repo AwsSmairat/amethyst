@@ -12,9 +12,9 @@ class ApiBaseUrlMissingPage extends StatelessWidget {
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
     final cmdRun =
-        'flutter run --dart-define=API_BASE_URL=https://YOUR-RENDER-URL.onrender.com/api';
+        'flutter run --dart-define=API_BASE_URL=https://YOUR_SERVICE.up.railway.app/api';
     final cmdApk =
-        'flutter build apk --dart-define=API_BASE_URL=https://YOUR-RENDER-URL.onrender.com/api';
+        'flutter build apk --dart-define=API_BASE_URL=https://YOUR_SERVICE.up.railway.app/api';
 
     return Scaffold(
       backgroundColor: Colors.black,

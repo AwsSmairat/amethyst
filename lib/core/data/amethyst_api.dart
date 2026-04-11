@@ -1,5 +1,7 @@
+import 'package:amethyst/core/config/api_config.dart';
 import 'package:amethyst/core/network/dio_client.dart';
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 import 'dart:math';
 import 'dart:typed_data';
 
@@ -22,6 +24,13 @@ final class AmethystApi {
     required String email,
     required String password,
   }) async {
+    final bool logNet = ApiConfig.debugNetwork || (kDebugMode && kIsWeb);
+    if (logNet) {
+      debugPrint(
+        '[AmethystApi] login POST ${ApiConfig.debugResolvedLoginUrl} '
+        '(base=${ApiConfig.resolvedBaseUrl})',
+      );
+    }
     try {
       final res = await _dio.post<Map<String, dynamic>>(
         '/auth/login',
@@ -29,6 +38,12 @@ final class AmethystApi {
       );
       return DioClient.unwrapMap(res);
     } on DioException catch (e) {
+      if (logNet) {
+        debugPrint(
+          '[AmethystApi] login DioException type=${e.type} '
+          'status=${e.response?.statusCode} message=${e.message} error=${e.error}',
+        );
+      }
       _client.throwFromDio(e);
     }
   }

@@ -28,6 +28,8 @@ app.use(
     },
   })
 );
+// `CORS_ORIGIN=*` uses `origin: true` so the response echoes the request `Origin`
+// (required with `credentials: true`; never sends `Access-Control-Allow-Origin: *`).
 const corsWildcard = env.corsOrigin === '*';
 const corsOriginsList = corsWildcard
   ? []
@@ -44,7 +46,8 @@ const corsOptions = {
       : corsOriginsList,
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Authorization', 'Content-Type'],
+  // Dio / browsers send `Accept: application/json`; omitting it breaks preflight on some clients.
+  allowedHeaders: ['Authorization', 'Content-Type', 'Accept'],
 };
 
 app.use(
