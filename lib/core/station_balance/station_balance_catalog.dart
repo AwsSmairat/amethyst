@@ -70,7 +70,12 @@ const List<int> kStationPricingHiddenBalanceRowIndices = <int>[9, 10];
 /// أسماء المنتج في الـ API لكل صف (يُجرى البحث بالتطابق بدون حساسية لحالة الأحرف).
 abstract final class StationBalanceProductLookup {
   static const List<List<String>> nameCandidates = <List<String>>[
-    <String>['Water Carton', 'Carton Mahdi', 'ك مهدي'],
+    <String>[
+      'Water Carton',
+      'Carton Mahdi',
+      'ك مهدي',
+      'مهدي (كرتون)',
+    ],
     <String>['Carton Yafa', 'ك يافا', 'Yafa Carton'],
     <String>['Shanta Large', 'ش كبير', 'Sh Large', 'Large Shanta'],
     <String>['Shanta Medium', 'ش وسط', 'Sh Medium', 'Medium Shanta'],
@@ -190,6 +195,46 @@ Map<String, dynamic>? _resolveStationBalanceProductFromPool({
   return null;
 }
 
+/// مجموع `stationStock` لكل منتجات نشطة تطابق مرشّحات صف الرصيد (بدون تكرار `id`).
+///
+/// يُفضَّل لبند «مهدي متجر» حيث قد يوجد أكثر من اسم API (`Water Carton` و`ك مهدي`) —
+/// [resolveStationBalanceProduct] يعيد مطابقة واحدة فقط وقد تكون بمخزون ٠.
+int aggregateStationStockForBalanceRow({
+  required List<Map<String, dynamic>> products,
+  required int rowIndex,
+}) {
+  if (rowIndex < 0 ||
+      rowIndex >= StationBalanceProductLookup.nameCandidates.length) {
+    return 0;
+  }
+  final List<String> candidates =
+      StationBalanceProductLookup.nameCandidates[rowIndex];
+  final List<Map<String, dynamic>> active = products
+      .where((Map<String, dynamic> p) => p['isActive'] != false)
+      .toList(growable: false);
+  final Set<String> seen = <String>{};
+  var sum = 0;
+  for (final Map<String, dynamic> p in active) {
+    final String id = p['id']?.toString() ?? '';
+    if (id.isEmpty || seen.contains(id)) {
+      continue;
+    }
+    final String n = p['name']?.toString() ?? '';
+    var matched = false;
+    for (final String c in candidates) {
+      if (_stationBalanceNamesMatch(n, c)) {
+        matched = true;
+        break;
+      }
+    }
+    if (matched) {
+      seen.add(id);
+      sum += stationStockFromProductJson(p);
+    }
+  }
+  return sum;
+}
+
 /// يعيد منتج المحطة المطابق للصف، أو `null` إن لم يُعثر على اسم مطابق.
 Map<String, dynamic>? resolveStationBalanceProduct({
   required List<Map<String, dynamic>> products,
@@ -227,5 +272,13 @@ int stationStockFromProductJson(Map<String, dynamic> item) {
   if (v is num) {
     return v.toInt();
   }
-  return int.tryParse(v?.toString() ?? '') ?? 0;
+  final String t = v?.toString().trim() ?? '';
+  if (t.isEmpty) {
+    return 0;
+  }
+  final num? n = num.tryParse(t.replaceAll(',', ''));
+  if (n != null) {
+    return n.round();
+  }
+  return int.tryParse(t) ?? 0;
 }

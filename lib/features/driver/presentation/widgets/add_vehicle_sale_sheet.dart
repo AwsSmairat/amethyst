@@ -189,9 +189,7 @@ class _AddVehicleSaleBodyState extends State<_AddVehicleSaleBody> {
       _productLabels[i] = match?['name']?.toString().trim() ?? name;
       _unitPrices[i] = parseDynamicDouble(match?['price']);
       if (place == VehicleSalePlace.store && i == 2) {
-        _stationStocks[i] = _stationStockSumDistinctCanonicalProducts(
-          _kStoreMahdiCanonicalProductNames,
-        );
+        _stationStocks[i] = _storeMahdiStationStockFromCatalog();
       } else {
         _stationStocks[i] =
             stationStockFromProductJson(match ?? <String, dynamic>{});
@@ -199,11 +197,32 @@ class _AddVehicleSaleBodyState extends State<_AddVehicleSaleBody> {
     }
   }
 
-  /// مجموع مخزون المحطة لعدة أسماء كنيسة (بدون تكرار نفس `productId`).
-  int _stationStockSumDistinctCanonicalProducts(List<String> names) {
-    final Set<String> seen = <String>{};
+  /// مخزون المحطة لبند «مهدي متجر»: جمع مخزون كل أسماء صف الكرتون في كتالوج المحطة (مطابقة مرنة).
+  int _storeMahdiStationStockFromCatalog() {
+    final int rowSum = aggregateStationStockForBalanceRow(
+      products: _productItems,
+      rowIndex: 0,
+    );
+    if (rowSum > 0) {
+      return rowSum;
+    }
+    for (final Map<String, dynamic> p in _productItems) {
+      if (p['isActive'] == false) {
+        continue;
+      }
+      final String ut =
+          (p['unitType'] ?? p['type'])?.toString().trim().toLowerCase() ?? '';
+      if (ut != 'carton') {
+        continue;
+      }
+      final String raw = p['name']?.toString() ?? '';
+      if (raw.contains('مهدي') || raw.toLowerCase().contains('mahdi')) {
+        return stationStockFromProductJson(p);
+      }
+    }
     var sum = 0;
-    for (final String n in names) {
+    final Set<String> seen = <String>{};
+    for (final String n in _kStoreMahdiCanonicalProductNames) {
       final Map<String, dynamic>? m = _findProductByCatalogName(n);
       final String? id = m?['id']?.toString();
       if (m == null || id == null || seen.contains(id)) {
@@ -338,8 +357,9 @@ class _AddVehicleSaleBodyState extends State<_AddVehicleSaleBody> {
           _selectedPlace == VehicleSalePlace.store && i == 2;
       final bool needsStationStockCheck =
           homeStationStockDeduct || storeStationStockDeduct;
-      final int available =
-          i < _stationStocks.length ? _stationStocks[i] : 0;
+      final int available = storeStationStockDeduct
+          ? _storeMahdiStationStockFromCatalog()
+          : (i < _stationStocks.length ? _stationStocks[i] : 0);
       if (needsStationStockCheck && q > available) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(l10n.stationSaleValidationInsufficientStock)),
