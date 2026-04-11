@@ -3,6 +3,7 @@ import { AppError } from '../utils/AppError.js';
 import { auditLog } from './audit.service.js';
 import { parsePagination, parseSort } from '../utils/pagination.js';
 import { parseDateRange, startOfDay, endOfDay } from '../utils/dateRange.js';
+import { shouldSkipStationStockForDebtProduct } from '../utils/stationStockSkip.js';
 
 function remainingPhysical(load) {
   return load.quantityLoaded - load.quantitySold - load.quantityReturned;
@@ -103,10 +104,13 @@ export async function recordReturn(body, actor) {
       },
     });
 
-    await tx.product.update({
-      where: { id: load.productId },
-      data: { stationStock: { increment: body.quantityReturned } },
-    });
+    /** جالون/قارورة: لا يُربَط حمّل المركبة بمخزون المحطة — لا نُضيف للمخزون عند الإرجاع. */
+    if (!shouldSkipStationStockForDebtProduct(load.product)) {
+      await tx.product.update({
+        where: { id: load.productId },
+        data: { stationStock: { increment: body.quantityReturned } },
+      });
+    }
 
     await auditLog({
       userId: actor.id,

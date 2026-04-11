@@ -1,4 +1,3 @@
-import { Prisma } from '@prisma/client';
 import { prisma } from '../utils/prisma.js';
 import { AppError } from '../utils/AppError.js';
 import { auditLog } from './audit.service.js';
@@ -93,6 +92,19 @@ export async function patchStock(id, stationStock, actor) {
   return mapProduct(product);
 }
 
+function _isForeignKeyViolation(e) {
+  const code = typeof e === 'object' && e !== null ? e.code : undefined;
+  if (code === 'P2003' || code === 'P2014') {
+    return true;
+  }
+  const msg = String(
+    typeof e === 'object' && e !== null && 'message' in e
+      ? /** @type {{ message?: string }} */ (e).message
+      : e
+  );
+  return /foreign key|violates foreign key constraint/i.test(msg);
+}
+
 export async function deleteProduct(id, actor) {
   const existing = await prisma.product.findUnique({
     where: { id },
@@ -104,23 +116,42 @@ export async function deleteProduct(id, actor) {
   try {
     await prisma.product.delete({ where: { id } });
   } catch (e) {
-    if (
-      e instanceof Prisma.PrismaClientKnownRequestError &&
-      e.code === 'P2003'
-    ) {
-      throw new AppError(
-        'لا يمكن حذف المنتج لأنه مرتبط بمبيعات أو تحميلات أو سجلات أخرى. احذف أو عدّل تلك السجلات أولاً، أو عطّل المنتج بدل الحذف.',
-        409,
-        'PRODUCT_IN_USE'
-      );
+    if (_isForeignKeyViolation(e)) {
+      /** Hard delete blocked — deactivate so UI can stop offering it without breaking history. */
+      const updated = await prisma.product.update({
+        where: { id },
+        data: { isActive: false },
+      });
+      try {
+        await auditLog({
+          userId: actor.id,
+          action: 'PRODUCT_UPDATE',
+          entityType: 'Product',
+          entityId: id,
+          details: {
+            reason: 'deactivated instead of delete (product still referenced)',
+          },
+        });
+      } catch (logErr) {
+        console.error('[audit] PRODUCT deactivate-after-fk log failed', logErr);
+      }
+      return {
+        deleted: false,
+        deactivated: true,
+        product: mapProduct(updated),
+      };
     }
     throw e;
   }
-  await auditLog({
-    userId: actor.id,
-    action: 'PRODUCT_DELETE',
-    entityType: 'Product',
-    entityId: id,
-  });
+  try {
+    await auditLog({
+      userId: actor.id,
+      action: 'PRODUCT_DELETE',
+      entityType: 'Product',
+      entityId: id,
+    });
+  } catch (logErr) {
+    console.error('[audit] PRODUCT_DELETE log failed (product was removed)', logErr);
+  }
   return { deleted: true };
 }

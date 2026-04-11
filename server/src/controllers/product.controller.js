@@ -33,5 +33,9 @@ export const patchStock = asyncHandler(async (req, res) => {
 
 export const remove = asyncHandler(async (req, res) => {
   const r = await productService.deleteProduct(req.params.id, req.user);
-  return success(res, r, 'Product deleted');
+  const message =
+    r.deactivated === true
+      ? 'تم تعطيل المنتج لأنه لا يزال مرتبطاً بسجلات (مبيعات، تحميلات، …) ولا يمكن حذفه نهائياً.'
+      : 'Product deleted';
+  return success(res, r, message);
 });
