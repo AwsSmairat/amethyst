@@ -114,15 +114,40 @@ class _AddVehicleLoadBodyState extends State<_AddVehicleLoadBody> {
     return null;
   }
 
+  /// جلب كل الصفحات — تجنّباً لفقدان تطابق أسماء القالب عندما يتجاوز عدد المنتجات [limit].
+  static Future<List<Map<String, dynamic>>> _fetchAllProducts(
+    AmethystApi api,
+  ) async {
+    final List<Map<String, dynamic>> all = <Map<String, dynamic>>[];
+    var page = 1;
+    const int limit = 100;
+    while (true) {
+      final Map<String, dynamic> p =
+          await api.listProducts(page: page, limit: limit);
+      final List<Map<String, dynamic>> items =
+          (p['items'] as List<dynamic>? ?? <dynamic>[])
+              .whereType<Map<String, dynamic>>()
+              .toList(growable: false);
+      all.addAll(items);
+      final int total = switch (p['total']) {
+        final int t => t,
+        final num t => t.toInt(),
+        _ => all.length,
+      };
+      if (items.length < limit || all.length >= total) {
+        break;
+      }
+      page++;
+    }
+    return all;
+  }
+
   Future<void> _load() async {
     try {
       final api = sl<AmethystApi>();
       final v = await api.listVehicles();
-      final p = await api.listProducts();
+      final products = await _fetchAllProducts(api);
       final vehicles = (v['items'] as List<dynamic>? ?? <dynamic>[])
-          .whereType<Map<String, dynamic>>()
-          .toList(growable: false);
-      final products = (p['items'] as List<dynamic>? ?? <dynamic>[])
           .whereType<Map<String, dynamic>>()
           .toList(growable: false);
       if (!mounted) return;
@@ -221,16 +246,7 @@ class _AddVehicleLoadBodyState extends State<_AddVehicleLoadBody> {
         );
         return null;
       }
-      if (!_lineSkipsStationStock(i)) {
-        final int available =
-            i < _stationStocks.length ? _stationStocks[i] : 0;
-        if (q > available) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(l10n.stationSaleValidationInsufficientStock)),
-          );
-          return null;
-        }
-      }
+      // تأكيد الحمل لا يعتمد على مخزون المحطة؛ السيرفر لا يخصم عند إنشاء التحميل.
       lines.add((productId: pid, quantityLoaded: q));
     }
     if (lines.isEmpty) {
