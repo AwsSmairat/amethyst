@@ -55,6 +55,14 @@ class _AddVehicleSaleBodyState extends State<_AddVehicleSaleBody> {
     'مهدي متجر',
   ];
 
+  /// مطابق [server/src/services/vehicleSale.service.js] `STORE_CANONICAL_NAME_LISTS` لبند الكرتون.
+  static const List<String> _kStoreCartonCanonicalNames = <String>[
+    'Water Carton',
+    'Carton Mahdi',
+    'ك مهدي',
+    'مهدي (كرتون)',
+  ];
+
   int _columnCount = 6;
   List<int> _quantities = List<int>.filled(6, 0);
   List<String?> _productIds = List<String?>.filled(6, null);
@@ -150,9 +158,40 @@ class _AddVehicleSaleBodyState extends State<_AddVehicleSaleBody> {
       _productIds[i] = match?['id']?.toString();
       _productLabels[i] = match?['name']?.toString().trim() ?? name;
       _unitPrices[i] = parseDynamicDouble(match?['price']);
-      _stationStocks[i] =
-          stationStockFromProductJson(match ?? <String, dynamic>{});
+      // «مهدي متجر» سعر فقط؛ مخزون المحطة يُقرأ من منتج الكرتون الأساسي (ك مهدي / Water Carton …).
+      if (place == VehicleSalePlace.store && i == 2) {
+        _stationStocks[i] = _stationStockForStoreCartonCanonical();
+      } else {
+        _stationStocks[i] =
+            stationStockFromProductJson(match ?? <String, dynamic>{});
+      }
     }
+  }
+
+  /// أكبر قيمة `stationStock` بين أسماء الكرتون الأساسية (لا يُجمع — نفس البضاعة مسجّلة مرة واحدة غالباً).
+  int _stationStockForStoreCartonCanonical() {
+    var best = 0;
+    for (final String name in _kStoreCartonCanonicalNames) {
+      final Map<String, dynamic>? m = _findProductByCatalogName(name);
+      if (m == null) {
+        continue;
+      }
+      final int v = stationStockFromProductJson(m);
+      if (v > best) {
+        best = v;
+      }
+    }
+    return best;
+  }
+
+  /// مجموع المتبقي على المركبة لكل أسماء تحميل الكرتون المرادفة (حمولة قد تكون باسم «ك مهدي» والواجهة تقيس بـ Water Carton).
+  int _vehicleRemainingSumForCartonAliases() {
+    var sum = 0;
+    for (final String name in _kStoreCartonCanonicalNames) {
+      final String key = normalizeStationBalanceProductName(name);
+      sum += _vehicleLoadRemainingByNormalizedName[key] ?? 0;
+    }
+    return sum;
   }
 
   String _arabicLabelForCatalogName(String raw) {
@@ -192,6 +231,9 @@ class _AddVehicleSaleBodyState extends State<_AddVehicleSaleBody> {
     };
 
     if (loadName.isEmpty) return 0;
+    if (loadName == 'Water Carton') {
+      return _vehicleRemainingSumForCartonAliases();
+    }
     final String key = normalizeStationBalanceProductName(loadName);
     return _vehicleLoadRemainingByNormalizedName[key] ?? 0;
   }
@@ -263,12 +305,14 @@ class _AddVehicleSaleBodyState extends State<_AddVehicleSaleBody> {
       }
       final bool homeStationStockDeduct =
           _selectedPlace == VehicleSalePlace.home && i >= 2 && i <= 5;
-      final bool storeStationStockDeduct =
+      final bool storeCartonStationCheck =
           _selectedPlace == VehicleSalePlace.store && i == 2;
       final bool needsStationStockCheck =
-          homeStationStockDeduct || storeStationStockDeduct;
-      final int available =
-          i < _stationStocks.length ? _stationStocks[i] : 0;
+          homeStationStockDeduct || storeCartonStationCheck;
+      int available = i < _stationStocks.length ? _stationStocks[i] : 0;
+      if (storeCartonStationCheck) {
+        available = _stationStockForStoreCartonCanonical();
+      }
       if (needsStationStockCheck && q > available) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(l10n.stationSaleValidationInsufficientStock)),
@@ -279,13 +323,9 @@ class _AddVehicleSaleBodyState extends State<_AddVehicleSaleBody> {
       // تحقق من حمولة السيارة عند البيع للمتجر:
       // منتج 1/2/3 في واجهة "متجر" يستهلك من حمولة (Water Gallon / Water Bottle / Water Carton).
       if (_selectedPlace == VehicleSalePlace.store && i >= 0 && i <= 2) {
-        final String loadName = switch (i) {
-          0 => 'Water Gallon',
-          1 => 'Water Bottle',
-          _ => 'Water Carton',
-        };
-        final String key = normalizeStationBalanceProductName(loadName);
-        final int rem = _vehicleLoadRemainingByNormalizedName[key] ?? 0;
+        final int rem = i == 2
+            ? _vehicleRemainingSumForCartonAliases()
+            : _vehicleRemainingForColumn(i);
         if (q > rem) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text(l10n.stationSaleValidationInsufficientStock)),
@@ -303,7 +343,8 @@ class _AddVehicleSaleBodyState extends State<_AddVehicleSaleBody> {
           productId: pid,
           quantity: q,
           unitPrice: couponPriceZero ? 0.0 : unit,
-          deductStationStock: needsStationStockCheck,
+          // PATCH المحطة بعد البيع للمنزل فقط؛ بيع «متجر» للكرتون يخصمه السيرفر من منتج الحمولة.
+          deductStationStock: homeStationStockDeduct,
           stationStockSnapshot: available,
         ),
       );
