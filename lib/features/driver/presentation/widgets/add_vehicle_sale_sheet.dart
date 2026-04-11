@@ -55,11 +55,9 @@ class _AddVehicleSaleBodyState extends State<_AddVehicleSaleBody> {
     'مهدي متجر',
   ];
 
-  /// مطابق [server/src/services/vehicleSale.service.js] `STORE_CANONICAL_NAME_LISTS` لبند الكرتون.
-  static const List<String> _kStoreCartonCanonicalNames = <String>[
-    'Water Carton',
-    'Carton Mahdi',
-    'ك مهدي',
+  /// أسماء مرادفة للكرتون: صف رصيد المحطة ٠ + اسم إضافي من الخادم لبيع «متجر».
+  static final List<String> _kStoreCartonAliasNames = <String>[
+    ...StationBalanceProductLookup.nameCandidates[0],
     'مهدي (كرتون)',
   ];
 
@@ -104,16 +102,40 @@ class _AddVehicleSaleBodyState extends State<_AddVehicleSaleBody> {
     _load();
   }
 
+  static Future<List<Map<String, dynamic>>> _fetchAllProducts(
+    AmethystApi api,
+  ) async {
+    final List<Map<String, dynamic>> all = <Map<String, dynamic>>[];
+    var page = 1;
+    const int limit = 100;
+    while (true) {
+      final Map<String, dynamic> p =
+          await api.listProducts(page: page, limit: limit);
+      final List<Map<String, dynamic>> items =
+          (p['items'] as List<dynamic>? ?? <dynamic>[])
+              .whereType<Map<String, dynamic>>()
+              .toList(growable: false);
+      all.addAll(items);
+      final int total = switch (p['total']) {
+        final int t => t,
+        final num t => t.toInt(),
+        _ => all.length,
+      };
+      if (items.length < limit || all.length >= total) {
+        break;
+      }
+      page++;
+    }
+    return all;
+  }
+
   Future<void> _load() async {
     try {
       final api = sl<AmethystApi>();
       final dash = await api.getDashboardDriver();
       final vehicle = dash['assignedVehicle'] as Map<String, dynamic>?;
-      final products = await api.listProducts(page: 1, limit: 100);
+      final items = await _fetchAllProducts(api);
       final currentLoad = await api.driverCurrentLoad();
-      final items = (products['items'] as List<dynamic>? ?? <dynamic>[])
-          .whereType<Map<String, dynamic>>()
-          .toList(growable: false);
       final loads = (currentLoad['loads'] as List<dynamic>? ?? <dynamic>[])
           .whereType<Map<String, dynamic>>()
           .toList(growable: false);
@@ -121,12 +143,17 @@ class _AddVehicleSaleBodyState extends State<_AddVehicleSaleBody> {
       setState(() {
         _vehicleId = vehicle?['id'] as String?;
         _productItems = items;
-        final Map<String, int> remainingByName = <String, int>{
-          for (final Map<String, dynamic> l in loads)
-            normalizeStationBalanceProductName(
-              (l['product'] as Map<String, dynamic>?)?['name']?.toString() ?? '',
-            ): (l['remaining'] as int?) ?? 0,
-        }..removeWhere((k, _) => k.trim().isEmpty);
+        final Map<String, int> remainingByName = <String, int>{};
+        for (final Map<String, dynamic> l in loads) {
+          final String k = normalizeStationBalanceProductName(
+            (l['product'] as Map<String, dynamic>?)?['name']?.toString() ?? '',
+          );
+          if (k.trim().isEmpty) {
+            continue;
+          }
+          final int r = (l['remaining'] as int?) ?? 0;
+          remainingByName[k] = (remainingByName[k] ?? 0) + r;
+        }
         _vehicleLoadRemainingByNormalizedName = remainingByName;
         _loadingCtx = false;
         if (_selectedPlace != null) {
@@ -168,10 +195,17 @@ class _AddVehicleSaleBodyState extends State<_AddVehicleSaleBody> {
     }
   }
 
-  /// أكبر قيمة `stationStock` بين أسماء الكرتون الأساسية (لا يُجمع — نفس البضاعة مسجّلة مرة واحدة غالباً).
+  /// مخزون المحطة لبند الكرتون: نفس منطق شاشة رصيد المحطة (تطابق مرن للأسماء).
   int _stationStockForStoreCartonCanonical() {
+    final Map<String, dynamic>? resolved = resolveStationBalanceProduct(
+      products: _productItems,
+      rowIndex: 0,
+    );
+    if (resolved != null) {
+      return stationStockFromProductJson(resolved);
+    }
     var best = 0;
-    for (final String name in _kStoreCartonCanonicalNames) {
+    for (final String name in _kStoreCartonAliasNames) {
       final Map<String, dynamic>? m = _findProductByCatalogName(name);
       if (m == null) {
         continue;
@@ -187,7 +221,7 @@ class _AddVehicleSaleBodyState extends State<_AddVehicleSaleBody> {
   /// مجموع المتبقي على المركبة لكل أسماء تحميل الكرتون المرادفة (حمولة قد تكون باسم «ك مهدي» والواجهة تقيس بـ Water Carton).
   int _vehicleRemainingSumForCartonAliases() {
     var sum = 0;
-    for (final String name in _kStoreCartonCanonicalNames) {
+    for (final String name in _kStoreCartonAliasNames) {
       final String key = normalizeStationBalanceProductName(name);
       sum += _vehicleLoadRemainingByNormalizedName[key] ?? 0;
     }
@@ -305,14 +339,10 @@ class _AddVehicleSaleBodyState extends State<_AddVehicleSaleBody> {
       }
       final bool homeStationStockDeduct =
           _selectedPlace == VehicleSalePlace.home && i >= 2 && i <= 5;
-      final bool storeCartonStationCheck =
-          _selectedPlace == VehicleSalePlace.store && i == 2;
-      final bool needsStationStockCheck =
-          homeStationStockDeduct || storeCartonStationCheck;
-      int available = i < _stationStocks.length ? _stationStocks[i] : 0;
-      if (storeCartonStationCheck) {
-        available = _stationStockForStoreCartonCanonical();
-      }
+      // بيع «متجر» للكرتون: السيرفر يتحقق من مخزون المحطة على منتج الحمولة الأساسي — لا نكرر شرطاً على العميل يختلف عن الـ API.
+      final bool needsStationStockCheck = homeStationStockDeduct;
+      final int available =
+          i < _stationStocks.length ? _stationStocks[i] : 0;
       if (needsStationStockCheck && q > available) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(l10n.stationSaleValidationInsufficientStock)),
