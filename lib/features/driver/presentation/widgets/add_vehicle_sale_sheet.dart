@@ -55,9 +55,12 @@ class _AddVehicleSaleBodyState extends State<_AddVehicleSaleBody> {
     'مهدي متجر',
   ];
 
-  /// أسماء مرادفة للكرتون: صف رصيد المحطة ٠ + اسم إضافي من الخادم لبيع «متجر».
-  static final List<String> _kStoreCartonAliasNames = <String>[
-    ...StationBalanceProductLookup.nameCandidates[0],
+  /// مطابقة [server/src/services/vehicleSale.service.js] `STORE_CANONICAL_NAME_LISTS['مهدي متجر']`.
+  /// مخزون المحطة والمتبقي على السيارة لهذا البند يُحسبان من هذه الأسماء وليس من صف «مهدي متجر» لو كان ID منفصلاً.
+  static const List<String> _kStoreMahdiCanonicalProductNames = <String>[
+    'Water Carton',
+    'Carton Mahdi',
+    'ك مهدي',
     'مهدي (كرتون)',
   ];
 
@@ -185,9 +188,10 @@ class _AddVehicleSaleBodyState extends State<_AddVehicleSaleBody> {
       _productIds[i] = match?['id']?.toString();
       _productLabels[i] = match?['name']?.toString().trim() ?? name;
       _unitPrices[i] = parseDynamicDouble(match?['price']);
-      // «مهدي متجر» سعر فقط؛ مخزون المحطة يُقرأ من منتج الكرتون الأساسي (ك مهدي / Water Carton …).
       if (place == VehicleSalePlace.store && i == 2) {
-        _stationStocks[i] = _stationStockForStoreCartonCanonical();
+        _stationStocks[i] = _stationStockSumDistinctCanonicalProducts(
+          _kStoreMahdiCanonicalProductNames,
+        );
       } else {
         _stationStocks[i] =
             stationStockFromProductJson(match ?? <String, dynamic>{});
@@ -195,35 +199,18 @@ class _AddVehicleSaleBodyState extends State<_AddVehicleSaleBody> {
     }
   }
 
-  /// مخزون المحطة لبند الكرتون: نفس منطق شاشة رصيد المحطة (تطابق مرن للأسماء).
-  int _stationStockForStoreCartonCanonical() {
-    final Map<String, dynamic>? resolved = resolveStationBalanceProduct(
-      products: _productItems,
-      rowIndex: 0,
-    );
-    if (resolved != null) {
-      return stationStockFromProductJson(resolved);
-    }
-    var best = 0;
-    for (final String name in _kStoreCartonAliasNames) {
-      final Map<String, dynamic>? m = _findProductByCatalogName(name);
-      if (m == null) {
+  /// مجموع مخزون المحطة لعدة أسماء كنيسة (بدون تكرار نفس `productId`).
+  int _stationStockSumDistinctCanonicalProducts(List<String> names) {
+    final Set<String> seen = <String>{};
+    var sum = 0;
+    for (final String n in names) {
+      final Map<String, dynamic>? m = _findProductByCatalogName(n);
+      final String? id = m?['id']?.toString();
+      if (m == null || id == null || seen.contains(id)) {
         continue;
       }
-      final int v = stationStockFromProductJson(m);
-      if (v > best) {
-        best = v;
-      }
-    }
-    return best;
-  }
-
-  /// مجموع المتبقي على المركبة لكل أسماء تحميل الكرتون المرادفة (حمولة قد تكون باسم «ك مهدي» والواجهة تقيس بـ Water Carton).
-  int _vehicleRemainingSumForCartonAliases() {
-    var sum = 0;
-    for (final String name in _kStoreCartonAliasNames) {
-      final String key = normalizeStationBalanceProductName(name);
-      sum += _vehicleLoadRemainingByNormalizedName[key] ?? 0;
+      seen.add(id);
+      sum += stationStockFromProductJson(m);
     }
     return sum;
   }
@@ -265,9 +252,17 @@ class _AddVehicleSaleBodyState extends State<_AddVehicleSaleBody> {
     };
 
     if (loadName.isEmpty) return 0;
-    if (loadName == 'Water Carton') {
-      return _vehicleRemainingSumForCartonAliases();
+
+    // الكرتون قد يُحمَّل كـ Water Carton أو «ك مهدي» — نجمع المتبقي لكل المرشّحات.
+    if (columnIndex == 2) {
+      var sum = 0;
+      for (final String c in _kStoreMahdiCanonicalProductNames) {
+        final String k = normalizeStationBalanceProductName(c);
+        sum += _vehicleLoadRemainingByNormalizedName[k] ?? 0;
+      }
+      return sum;
     }
+
     final String key = normalizeStationBalanceProductName(loadName);
     return _vehicleLoadRemainingByNormalizedName[key] ?? 0;
   }
@@ -339,8 +334,10 @@ class _AddVehicleSaleBodyState extends State<_AddVehicleSaleBody> {
       }
       final bool homeStationStockDeduct =
           _selectedPlace == VehicleSalePlace.home && i >= 2 && i <= 5;
-      // بيع «متجر» للكرتون: السيرفر يتحقق من مخزون المحطة على منتج الحمولة الأساسي — لا نكرر شرطاً على العميل يختلف عن الـ API.
-      final bool needsStationStockCheck = homeStationStockDeduct;
+      final bool storeStationStockDeduct =
+          _selectedPlace == VehicleSalePlace.store && i == 2;
+      final bool needsStationStockCheck =
+          homeStationStockDeduct || storeStationStockDeduct;
       final int available =
           i < _stationStocks.length ? _stationStocks[i] : 0;
       if (needsStationStockCheck && q > available) {
@@ -350,12 +347,9 @@ class _AddVehicleSaleBodyState extends State<_AddVehicleSaleBody> {
         return null;
       }
 
-      // تحقق من حمولة السيارة عند البيع للمتجر:
-      // منتج 1/2/3 في واجهة "متجر" يستهلك من حمولة (Water Gallon / Water Bottle / Water Carton).
+      // تحقق من حمولة السيارة عند البيع للمتجر (الكرتون = مجموع أسماء الكنسي).
       if (_selectedPlace == VehicleSalePlace.store && i >= 0 && i <= 2) {
-        final int rem = i == 2
-            ? _vehicleRemainingSumForCartonAliases()
-            : _vehicleRemainingForColumn(i);
+        final int rem = _vehicleRemainingForColumn(i);
         if (q > rem) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text(l10n.stationSaleValidationInsufficientStock)),
@@ -368,12 +362,12 @@ class _AddVehicleSaleBodyState extends State<_AddVehicleSaleBody> {
           _selectedPlace == VehicleSalePlace.home &&
               ((i == 0 && _homeCouponLine1On) ||
                   (i == 1 && _homeCouponLine2On));
+      // بيع «متجر» للكرتون: السيرفر يخصم مخزون المحطة من المنتج الكنسي على الحمولة — لا نُرسل PATCH لصف «مهدي متجر».
       lines.add(
         (
           productId: pid,
           quantity: q,
           unitPrice: couponPriceZero ? 0.0 : unit,
-          // PATCH المحطة بعد البيع للمنزل فقط؛ بيع «متجر» للكرتون يخصمه السيرفر من منتج الحمولة.
           deductStationStock: homeStationStockDeduct,
           stationStockSnapshot: available,
         ),
