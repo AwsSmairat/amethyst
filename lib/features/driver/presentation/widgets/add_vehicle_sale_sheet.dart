@@ -62,6 +62,8 @@ class _AddVehicleSaleBodyState extends State<_AddVehicleSaleBody> {
     'Carton Mahdi',
     'ك مهدي',
     'مهدي (كرتون)',
+    // أحياناً يكون اسم الحمولة/المنتج على الـ API مطابق لقالب البيع نفسه.
+    'مهدي متجر',
   ];
 
   int _columnCount = 6;

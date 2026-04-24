@@ -390,6 +390,21 @@ final class AmethystApi {
     }
   }
 
+  /// سداد دين مُسجّل من السيارة لكن يُحتسب ضمن مبيعات السيارة (بدون خصم مخزون).
+  Future<Map<String, dynamic>> repayStationDebtFromVehicle({
+    required String debtorName,
+  }) async {
+    try {
+      final res = await _dio.post<Map<String, dynamic>>(
+        '/station-debt-entries/repay-from-vehicle',
+        data: <String, dynamic>{'debtorName': debtorName},
+      );
+      return DioClient.unwrapMap(res);
+    } on DioException catch (e) {
+      _client.throwFromDio(e);
+    }
+  }
+
   /// [dateFrom] / [dateTo] بصيغة `yyyy-MM-dd` (يوم واحد: نفس القيمتين).
   Future<Map<String, dynamic>> listVehicleSales({
     int page = 1,

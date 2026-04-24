@@ -73,12 +73,27 @@ class _StationDebtorDetailPageState extends State<StationDebtorDetailPage> {
     }
     setState(() => _submitting = true);
     try {
-      await sl<RepayStationDebtUseCase>().call(debtorName: widget.debtorName);
+      final AuthState authState = context.read<AuthCubit>().state;
+      final bool fromDriver = authState is AuthAuthenticated &&
+          authState.user.role == 'driver';
+      if (fromDriver) {
+        await sl<RepayStationDebtFromVehicleUseCase>().call(
+          debtorName: widget.debtorName,
+        );
+      } else {
+        await sl<RepayStationDebtUseCase>().call(debtorName: widget.debtorName);
+      }
       if (!mounted) {
         return;
       }
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(l10n.stationDebtRepaySuccess)),
+        SnackBar(
+          content: Text(
+            fromDriver
+                ? l10n.stationDebtRepaySuccessVehicle
+                : l10n.stationDebtRepaySuccess,
+          ),
+        ),
       );
       Navigator.of(context).pop(true);
     } on ApiException catch (e) {

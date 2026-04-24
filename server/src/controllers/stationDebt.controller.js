@@ -16,3 +16,11 @@ export const repay = asyncHandler(async (req, res) => {
   const result = await service.repayStationDebtForDebtor(req.body, req.user);
   return success(res, result, 'Debt repaid', 200);
 });
+
+export const repayFromVehicle = asyncHandler(async (req, res) => {
+  const result = await service.repayStationDebtForDebtorFromVehicleSale(
+    req.body,
+    req.user
+  );
+  return success(res, result, 'Debt repaid (vehicle sale)', 200);
+});

@@ -4,6 +4,10 @@ export const stationDebtRepaySchema = z.object({
   debtorName: z.string().trim().min(1).max(200),
 });
 
+export const stationDebtRepayFromVehicleSchema = z.object({
+  debtorName: z.string().trim().min(1).max(200),
+});
+
 export const stationDebtCreateBatchSchema = z.object({
   debtorName: z.string().trim().min(1).max(200),
   lines: z

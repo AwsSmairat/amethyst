@@ -2379,6 +2379,12 @@ abstract class AppLocalizations {
   /// **'تم تسجيل السداد في مبيعات المحطة.'**
   String get stationDebtRepaySuccess;
 
+  /// No description provided for @stationDebtRepaySuccessVehicle.
+  ///
+  /// In ar, this message translates to:
+  /// **'تم تسجيل السداد في مبيعات السيارة.'**
+  String get stationDebtRepaySuccessVehicle;
+
   /// No description provided for @stationSaleRecorded.
   ///
   /// In ar, this message translates to:

@@ -29,6 +29,11 @@ abstract class RecordOperationsRepository {
     required String debtorName,
   });
 
+  /// سداد دين لكن يُحتسب ضمن بيع السيارة (driver only).
+  Future<Map<String, dynamic>> repayStationDebtFromVehicle({
+    required String debtorName,
+  });
+
   Future<void> createVehicleSale({
     required String vehicleId,
     required String productId,

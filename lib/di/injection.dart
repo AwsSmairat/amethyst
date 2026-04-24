@@ -79,6 +79,9 @@ void setupDependencies() {
   sl.registerLazySingleton<RepayStationDebtUseCase>(
     () => RepayStationDebtUseCase(sl<RecordOperationsRepository>()),
   );
+  sl.registerLazySingleton<RepayStationDebtFromVehicleUseCase>(
+    () => RepayStationDebtFromVehicleUseCase(sl<RecordOperationsRepository>()),
+  );
   sl.registerLazySingleton<CreateVehicleSaleUseCase>(
     () => CreateVehicleSaleUseCase(sl<RecordOperationsRepository>()),
   );

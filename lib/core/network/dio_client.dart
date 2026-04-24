@@ -161,6 +161,17 @@ final class DioClient {
         code: m['code']?.toString(),
       );
     }
+    // بعض الردود (خصوصاً أخطاء التحقق/Proxy/HTML) قد تأتي كسلسلة/قائمة وليس JSON Map.
+    // نُمرّر محتوى الرد (مختصر) ليسهل التشخيص في الواجهة والـ logs.
+    if (res != null && res.data != null) {
+      final String raw = res.data.toString().trim();
+      final String snippet = raw.length > 600 ? raw.substring(0, 600) : raw;
+      final String base = (e.message ?? 'Request failed').trim();
+      throw ApiException(
+        snippet.isEmpty ? base : '$base\n$snippet',
+        statusCode: res.statusCode,
+      );
+    }
     if (e.type == DioExceptionType.connectionTimeout ||
         e.type == DioExceptionType.receiveTimeout ||
         e.type == DioExceptionType.sendTimeout) {

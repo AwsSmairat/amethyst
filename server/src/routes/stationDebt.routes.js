@@ -6,6 +6,7 @@ import { validate } from '../middlewares/validate.js';
 import {
   stationDebtCreateBatchSchema,
   stationDebtRepaySchema,
+  stationDebtRepayFromVehicleSchema,
 } from '../validators/stationDebt.validators.js';
 import { listQuerySchema } from '../validators/common.js';
 
@@ -24,6 +25,12 @@ r.post(
   authorize('super_admin', 'admin', 'driver'),
   validate(stationDebtRepaySchema),
   ctrl.repay
+);
+r.post(
+  '/repay-from-vehicle',
+  authorize('driver'),
+  validate(stationDebtRepayFromVehicleSchema),
+  ctrl.repayFromVehicle
 );
 r.post(
   '/',

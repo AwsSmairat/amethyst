@@ -1,7 +1,11 @@
 import { prisma } from '../utils/prisma.js';
 import { AppError } from '../utils/AppError.js';
 import { auditLog } from './audit.service.js';
-import { mapStationDebtEntry, mapStationSale } from '../utils/serialize.js';
+import {
+  mapStationDebtEntry,
+  mapStationSale,
+  mapVehicleSale,
+} from '../utils/serialize.js';
 import { shouldSkipStationStockForDebtProduct } from '../utils/stationStockSkip.js';
 
 /**
@@ -172,6 +176,89 @@ export async function repayStationDebtForDebtor(body, actor) {
       debtorName,
       repaidEntryCount: entries.length,
       sales: sales.map((s) => mapStationSale(s)),
+    };
+  });
+}
+
+/**
+ * سداد دين "من السيارة": يعلّم سجلات الدين كمسددة، ويُنشئ سجلات VehicleSale (بدون خصم مخزون/بدون تخصيص من التحميلات).
+ * الهدف: احتساب السداد ضمن "بيع السيارة" بدلاً من "مبيعات المحطة".
+ */
+export async function repayStationDebtForDebtorFromVehicleSale(body, actor) {
+  if (actor.role !== 'driver') {
+    throw new AppError('Only drivers can repay from vehicle', 403, 'FORBIDDEN');
+  }
+  const debtorName = String(body.debtorName ?? '').trim();
+  if (!debtorName || debtorName.length > 200) {
+    throw new AppError('Invalid debtor name', 400, 'VALIDATION');
+  }
+
+  const assigned = await prisma.vehicle.findFirst({
+    where: { driverId: actor.id, isActive: true },
+    select: { id: true },
+  });
+  if (!assigned) {
+    throw new AppError('No vehicle assigned to you', 403, 'FORBIDDEN');
+  }
+
+  const unpaidWhere = {
+    debtorName,
+    repaidAt: null,
+    recordedById: actor.id,
+    recordingSource: 'vehicle',
+  };
+
+  return prisma.$transaction(async (tx) => {
+    const entries = await tx.stationDebtEntry.findMany({
+      where: unpaidWhere,
+    });
+    if (entries.length === 0) {
+      throw new AppError('No unpaid debt for this person', 404, 'NOT_FOUND');
+    }
+
+    const now = new Date();
+    const sales = [];
+    for (const entry of entries) {
+      const sale = await tx.vehicleSale.create({
+        data: {
+          vehicleId: assigned.id,
+          driverId: actor.id,
+          productId: entry.productId,
+          quantity: entry.quantity,
+          unitPrice: entry.unitPrice,
+          totalAmount: entry.totalAmount,
+          saleDestination: 'home',
+        },
+        include: {
+          vehicle: true,
+          driver: { select: { id: true, fullName: true, phone: true } },
+          product: true,
+        },
+      });
+      sales.push(sale);
+      await tx.stationDebtEntry.update({
+        where: { id: entry.id },
+        data: { repaidAt: now },
+      });
+    }
+
+    await auditLog({
+      userId: actor.id,
+      action: 'STATION_DEBT_REPAY_FROM_VEHICLE',
+      entityType: 'StationDebtEntry',
+      entityId: entries[0]?.id ?? null,
+      details: {
+        debtorName,
+        entryCount: entries.length,
+        vehicleSaleCount: sales.length,
+        vehicleId: assigned.id,
+      },
+    });
+
+    return {
+      debtorName,
+      repaidEntryCount: entries.length,
+      vehicleSales: sales.map((s) => mapVehicleSale(s)),
     };
   });
 }

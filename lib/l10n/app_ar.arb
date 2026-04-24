@@ -512,6 +512,7 @@
   "stationDebtRepayConfirmTitle": "تأكيد السداد",
   "stationDebtRepayConfirmMessage": "سيتم تسجيل هذه المبالغ كمبيعات محطة لهذا اليوم وتدخل في الإجمالي (المخزون سبق خصمه عند تسجيل الدين). هل تريد المتابعة؟",
   "stationDebtRepaySuccess": "تم تسجيل السداد في مبيعات المحطة.",
+  "stationDebtRepaySuccessVehicle": "تم تسجيل السداد في مبيعات السيارة.",
   "stationSaleRecorded": "تم تسجيل بيع المحطة",
   "stationSalesRecorded": "تم تسجيل مبيعات المحطة",
   "stationSaleValidationNeedLine": "حدّد كمية واحدة على الأقل لمنتج واحد (لا يلزم تعبئة كل الأعمدة).",

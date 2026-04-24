@@ -29,6 +29,15 @@ const List<String> _kVehicleDebtStoreCatalogNames = <String>[
   'مهدي متجر',
 ];
 
+/// أسماء الكرتون التي قد تظهر في حمولة السائق أو مخزون المحطة لنفس صف "Water Carton".
+const List<String> _kMahdiCanonicalProductNames = <String>[
+  'Water Carton',
+  'Carton Mahdi',
+  'ك مهدي',
+  'مهدي (كرتون)',
+  'مهدي متجر',
+];
+
 final class StationDebtRegistrationCubit extends Cubit<StationDebtRegistrationState> {
   StationDebtRegistrationCubit({
     required ListProductItemsUseCase listProductItems,
@@ -64,6 +73,34 @@ final class StationDebtRegistrationCubit extends Cubit<StationDebtRegistrationSt
 
   String? _vehicleId;
   Map<String, int> _vehicleRemainingByNormalizedName = <String, int>{};
+  String? _storeMahdiCanonicalProductId;
+  double? _storeMahdiCanonicalUnitPrice;
+
+  int _vehicleRemainingForDebtColumn({
+    required StationDebtVehiclePlace place,
+    required int columnIndex,
+  }) {
+    final String loadName = _vehicleLoadNameForDebtColumn(
+      place: place,
+      columnIndex: columnIndex,
+    );
+    if (loadName.trim().isEmpty) {
+      return 0;
+    }
+    // "متجر": عمود مهدي/كرتون يجمع كل أسماء الكرتون المحتملة.
+    if (place == StationDebtVehiclePlace.store && columnIndex == 2) {
+      var sum = 0;
+      for (final String c in _kMahdiCanonicalProductNames) {
+        sum += _vehicleRemainingByNormalizedName[
+                normalizeStationBalanceProductName(c)] ??
+            0;
+      }
+      return sum;
+    }
+    return _vehicleRemainingByNormalizedName[
+            normalizeStationBalanceProductName(loadName)] ??
+        0;
+  }
 
   Future<void> _loadProducts() async {
     emit(state.copyWith(loadingProducts: true, clearLoadError: true));
@@ -71,6 +108,14 @@ final class StationDebtRegistrationCubit extends Cubit<StationDebtRegistrationSt
       final List<Map<String, dynamic>> items = await _listProductItems();
       final int n = state.columnCount;
       if (vehiclePlace != null) {
+        // "مهدي متجر" يجب أن يخصم/يتحقق من نفس منتج الكرتون الفعلي (Water Carton) على الخادم.
+        // لذلك نربط العمود 2 في وضع "متجر" بـ ID الكرتون القانوني.
+        final Map<String, dynamic>? canonicalCarton =
+            resolveStationBalanceProduct(products: items, rowIndex: 0);
+        _storeMahdiCanonicalProductId = canonicalCarton?['id']?.toString();
+        _storeMahdiCanonicalUnitPrice =
+            parseDynamicDouble(canonicalCarton?['price']);
+
         // لقطة حمولة السائق الحالية للتحقق/الخصم عند تسجيل دين من المركبة.
         final AmethystApi api = _api!;
         final Map<String, dynamic> currentLoad = await api.driverCurrentLoad();
@@ -107,6 +152,14 @@ final class StationDebtRegistrationCubit extends Cubit<StationDebtRegistrationSt
           namesOut[i] =
               (dn != null && dn.isNotEmpty) ? dn : name;
         }
+        // ربط "مهدي متجر" على ID الكرتون القانوني (إن توفر) لتفادي رفض المخزون على الخادم.
+        if (vehiclePlace == StationDebtVehiclePlace.store && n >= 3) {
+          final String? canonicalId = _storeMahdiCanonicalProductId;
+          if (canonicalId != null && canonicalId.isNotEmpty) {
+            ids[2] = canonicalId;
+            prices[2] ??= _storeMahdiCanonicalUnitPrice;
+          }
+        }
         final List<bool> skipStock =
             List<bool>.filled(n, false, growable: false);
         final List<int> stocks = List<int>.filled(n, 0, growable: false);
@@ -123,19 +176,29 @@ final class StationDebtRegistrationCubit extends Cubit<StationDebtRegistrationSt
               }
             }
           }
-          stocks[i] = stationStockFromProductJson(row ?? <String, dynamic>{});
+          // عمود "مهدي متجر": نربطه بنفس صف Water Carton في رصيد المحطة (مجموع).
+          if (vehiclePlace == StationDebtVehiclePlace.store && i == 2) {
+            stocks[i] = aggregateStationStockForBalanceRow(
+              products: items,
+              rowIndex: 0,
+            );
+          } else {
+            stocks[i] =
+                stationStockFromProductJson(row ?? <String, dynamic>{});
+          }
           skipStock[i] = stationSaleColumnSkipsStationStock(
             entryKind: StationSaleEntryKind.filling,
             columnIndex: i,
             product: row,
           );
-          final String loadName = _vehicleLoadNameForDebtColumn(
+          // "مهدي متجر" يجب أن يُعامل كبند كرتون يخصم من مخزون المحطة أيضاً.
+          if (vehiclePlace == StationDebtVehiclePlace.store && i == 2) {
+            skipStock[i] = false;
+          }
+          vehicleRemaining[i] = _vehicleRemainingForDebtColumn(
             place: vehiclePlace!,
             columnIndex: i,
           );
-          vehicleRemaining[i] = _vehicleRemainingByNormalizedName[
-                  normalizeStationBalanceProductName(loadName)] ??
-              0;
         }
         emit(
           state.copyWith(
@@ -316,7 +379,10 @@ final class StationDebtRegistrationCubit extends Cubit<StationDebtRegistrationSt
       if (q <= 0) {
         continue;
       }
-      final String pid = state.productIds[i]!;
+      // في "متجر" لعمود مهدي: نستخدم ID الكرتون القانوني إن توفر.
+      final String pid = (vehiclePlace == StationDebtVehiclePlace.store && i == 2)
+          ? (_storeMahdiCanonicalProductId ?? state.productIds[i]!)
+          : state.productIds[i]!;
       final double price = state.unitPrices[i]!;
       lines.add(<String, dynamic>{
         'productId': pid,
@@ -339,12 +405,10 @@ final class StationDebtRegistrationCubit extends Cubit<StationDebtRegistrationSt
       if (vehiclePlace != null) {
         final StationDebtVehiclePlace place = vehiclePlace!;
         for (final line in vehicleLines) {
-          final String loadName = _vehicleLoadNameForDebtColumn(
+          final int rem = _vehicleRemainingForDebtColumn(
             place: place,
             columnIndex: line.columnIndex,
           );
-          final String key = normalizeStationBalanceProductName(loadName);
-          final int rem = _vehicleRemainingByNormalizedName[key] ?? 0;
           if (line.quantity > rem) {
             emit(
               state.copyWith(
@@ -382,9 +446,11 @@ final class StationDebtRegistrationCubit extends Cubit<StationDebtRegistrationSt
             saleDestination: destination,
           );
 
+          // بيع "متجر": الخادم يخصم مخزون المحطة (خصوصاً الكرتون) ضمن منطق vehicle sale.
+          // لذلك لا نرسل PATCH إضافي هنا حتى لا يحدث تعارض/رفض (INSUFFICIENT_STOCK).
           final bool deductStationStock = place == StationDebtVehiclePlace.home
               ? line.columnIndex >= 2
-              : line.columnIndex == 2;
+              : false;
           if (deductStationStock) {
             final int snapshot = line.columnIndex < state.columnStationStock.length
                 ? state.columnStationStock[line.columnIndex]

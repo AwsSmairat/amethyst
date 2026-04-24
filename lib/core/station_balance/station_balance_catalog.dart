@@ -75,6 +75,8 @@ abstract final class StationBalanceProductLookup {
       'Carton Mahdi',
       'ك مهدي',
       'مهدي (كرتون)',
+      // قالب البيع "متجر" قد ينشئ منتج ID مستقل؛ نربطه هنا بنفس صف Water Carton.
+      'مهدي متجر',
     ],
     <String>['Carton Yafa', 'ك يافا', 'Yafa Carton'],
     <String>['Shanta Large', 'ش كبير', 'Sh Large', 'Large Shanta'],
