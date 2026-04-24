@@ -1225,7 +1225,8 @@ class AppLocalizationsAr extends AppLocalizations {
   String get stationDebtRepaySuccess => 'تم تسجيل السداد في مبيعات المحطة.';
 
   @override
-  String get stationDebtRepaySuccessVehicle => 'تم تسجيل السداد في مبيعات السيارة.';
+  String get stationDebtRepaySuccessVehicle =>
+      'تم تسجيل السداد في مبيعات السيارة.';
 
   @override
   String get stationSaleRecorded => 'تم تسجيل بيع المحطة';
