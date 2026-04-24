@@ -1,11 +1,20 @@
 import 'dart:typed_data';
 
 import 'package:amethyst/core/utils/parse_dynamic_double.dart';
+import 'package:amethyst/core/station_balance/station_balance_catalog.dart';
 import 'package:amethyst/l10n/app_localizations.dart';
 import 'package:intl/intl.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
+
+bool _isHiddenFromStationStockReport(String productName) {
+  final String k = normalizeStationBalanceProductName(productName);
+  // أصناف "متجر" لا يجب أن تظهر ضمن مخزون المحطة (تقرير المخزون).
+  return k == normalizeStationBalanceProductName('جالون متجر') ||
+      k == normalizeStationBalanceProductName('قاروره متجر') ||
+      k == normalizeStationBalanceProductName('مهدي متجر');
+}
 
 Future<Uint8List> buildStationStockPdf({
   required List<Map<String, dynamic>> products,
@@ -25,6 +34,17 @@ Future<Uint8List> buildStationStockPdf({
             .compareTo((b['name']?.toString() ?? '').toLowerCase()),
   );
 
+  // ربط "مهدي متجر" ضمن نفس مخزون Water Carton في التقرير (بدون صف منفصل).
+  final int aggregatedWaterCartonStock = aggregateStationStockForBalanceRow(
+    products: sorted,
+    rowIndex: 0,
+  );
+  final Set<String> normalizedWaterCartonCandidates =
+      StationBalanceProductLookup.nameCandidates.first
+          .map(normalizeStationBalanceProductName)
+          .where((e) => e.isNotEmpty)
+          .toSet();
+
   final List<pw.TableRow> rows = <pw.TableRow>[
     _pdfHeaderRow(
       fontBold,
@@ -41,10 +61,21 @@ Future<Uint8List> buildStationStockPdf({
       continue;
     }
     final String name = pr['name']?.toString() ?? '—';
+    if (_isHiddenFromStationStockReport(name)) {
+      continue;
+    }
+
+    // امنع تكرار أصناف الكرتون المرتبطة: نعرض صف Water Carton فقط ونخفي البقية.
+    final String normalizedName = normalizeStationBalanceProductName(name);
+    if (normalizedWaterCartonCandidates.contains(normalizedName) &&
+        name.trim() != 'Water Carton') {
+      continue;
+    }
+
     final Object? st = pr['stationStock'] ?? pr['stock'];
-    final String stockStr = st is int
-        ? '$st'
-        : (int.tryParse(st?.toString() ?? '') ?? 0).toString();
+    final String stockStr = name.trim() == 'Water Carton'
+        ? aggregatedWaterCartonStock.toString()
+        : (st is int ? '$st' : (int.tryParse(st?.toString() ?? '') ?? 0).toString());
     final String ut =
         pr['unitType']?.toString() ?? pr['type']?.toString() ?? '—';
     rows.add(
