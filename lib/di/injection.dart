@@ -1,6 +1,6 @@
 import 'package:amethyst/core/data/amethyst_api.dart';
-import 'package:amethyst/core/network/dio_client.dart';
-import 'package:amethyst/core/storage/secure_token_storage.dart';
+import 'package:amethyst/core/firebase/amethyst_firebase_backend.dart';
+import 'package:amethyst/core/firebase/firebase_auth_service.dart';
 import 'package:amethyst/features/auth/data/repositories/auth_repository_impl.dart';
 import 'package:amethyst/features/auth/domain/repositories/auth_repository.dart';
 import 'package:amethyst/features/auth/domain/usecases/load_session_usecase.dart';
@@ -20,28 +20,16 @@ import 'package:get_it/get_it.dart';
 final GetIt sl = GetIt.instance;
 
 void setupDependencies() {
-  sl.registerLazySingleton<TokenStorage>(FallbackTokenStorage.new);
-
-  sl.registerLazySingleton<DioClient>(
-    () => DioClient(
-      tokenStorage: sl<TokenStorage>(),
-      onUnauthorized: () {
-        if (sl.isRegistered<AuthCubit>()) {
-          sl<AuthCubit>().handleUnauthorized();
-        }
-      },
-    ),
+  sl.registerLazySingleton<FirebaseAuthService>(FirebaseAuthService.new);
+  sl.registerLazySingleton<AmethystFirebaseBackend>(
+    () => AmethystFirebaseBackend(authService: sl<FirebaseAuthService>()),
   );
-
   sl.registerLazySingleton<AmethystApi>(
-    () => AmethystApi(sl<DioClient>()),
+    () => AmethystApi(sl<AmethystFirebaseBackend>()),
   );
 
   sl.registerLazySingleton<AuthRepository>(
-    () => AuthRepositoryImpl(
-      api: sl<AmethystApi>(),
-      tokenStorage: sl<TokenStorage>(),
-    ),
+    () => AuthRepositoryImpl(authService: sl<FirebaseAuthService>()),
   );
 
   sl.registerLazySingleton<LoginUseCase>(
@@ -59,7 +47,7 @@ void setupDependencies() {
       loginUseCase: sl<LoginUseCase>(),
       loadSessionUseCase: sl<LoadSessionUseCase>(),
       logoutUseCase: sl<LogoutUseCase>(),
-      tokenStorage: sl<TokenStorage>(),
+      authService: sl<FirebaseAuthService>(),
     ),
   );
 

@@ -1,5 +1,5 @@
+import 'package:amethyst/core/firebase/firebase_auth_service.dart';
 import 'package:amethyst/core/network/api_exception.dart';
-import 'package:amethyst/core/storage/secure_token_storage.dart';
 import 'package:amethyst/features/auth/domain/usecases/load_session_usecase.dart';
 import 'package:amethyst/features/auth/domain/usecases/login_usecase.dart';
 import 'package:amethyst/features/auth/domain/usecases/logout_usecase.dart';
@@ -11,29 +11,21 @@ final class AuthCubit extends Cubit<AuthState> {
     required LoginUseCase loginUseCase,
     required LoadSessionUseCase loadSessionUseCase,
     required LogoutUseCase logoutUseCase,
-    required TokenStorage tokenStorage,
+    required FirebaseAuthService authService,
   })  : _loginUseCase = loginUseCase,
         _loadSessionUseCase = loadSessionUseCase,
         _logoutUseCase = logoutUseCase,
-        _tokenStorage = tokenStorage,
+        _authService = authService,
         super(const AuthInitial());
 
   final LoginUseCase _loginUseCase;
   final LoadSessionUseCase _loadSessionUseCase;
   final LogoutUseCase _logoutUseCase;
-  final TokenStorage _tokenStorage;
+  final FirebaseAuthService _authService;
 
   Future<void> checkSession() async {
     emit(const AuthLoading());
-    String? token;
-    try {
-      token = await _tokenStorage.readToken();
-    } on Object {
-      await _logoutUseCase();
-      emit(const AuthUnauthenticated());
-      return;
-    }
-    if (token == null || token.isEmpty) {
+    if (_authService.currentFirebaseUser == null) {
       emit(const AuthUnauthenticated());
       return;
     }
@@ -66,7 +58,6 @@ final class AuthCubit extends Cubit<AuthState> {
     emit(const AuthUnauthenticated());
   }
 
-  /// Called when the API returns 401 (token cleared by [DioClient]).
   void handleUnauthorized() {
     emit(const AuthUnauthenticated());
   }

@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "963427966128",
+    "project_id": "amethyst-6a511",
+    "storage_bucket": "amethyst-6a511.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:963427966128:android:d95d8b2a6644e479352f75",
+        "android_client_info": {
+          "package_name": "com.amethyst.waterstation"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBvxJTGATtdH5of2gD5cI-BTz6zOlRnCt0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

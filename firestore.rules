@@ -1,0 +1,91 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function userDoc() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid));
+    }
+
+    function isActiveUser() {
+      return isSignedIn() && userDoc().data.isActive == true;
+    }
+
+    function role() {
+      return userDoc().data.role;
+    }
+
+    function isSuperAdmin() {
+      return isActiveUser() && role() == 'super_admin';
+    }
+
+    function isAdmin() {
+      return isActiveUser() && role() == 'admin';
+    }
+
+    function isDriver() {
+      return isActiveUser() && role() == 'driver';
+    }
+
+    function isStaff() {
+      return isSuperAdmin() || isAdmin();
+    }
+
+    match /users/{userId} {
+      allow read: if isActiveUser() && (isStaff() || request.auth.uid == userId);
+      allow create: if isSuperAdmin();
+      allow update: if isSuperAdmin() || (isAdmin() && resource.data.role != 'super_admin');
+      allow delete: if isSuperAdmin();
+    }
+
+    match /products/{productId} {
+      allow read: if isActiveUser();
+      allow write: if isSuperAdmin() || isAdmin();
+    }
+
+    match /vehicles/{vehicleId} {
+      allow read: if isActiveUser();
+      allow write: if isSuperAdmin();
+    }
+
+    match /vehicle_loads/{loadId} {
+      allow read: if isActiveUser();
+      allow create: if isStaff() || isDriver();
+      allow update: if isStaff() || (isDriver() && resource.data.driverId == request.auth.uid);
+    }
+
+    match /station_sales/{saleId} {
+      allow read: if isStaff();
+      allow create: if isStaff();
+    }
+
+    match /station_debt_entries/{entryId} {
+      allow read: if isActiveUser();
+      allow create: if isStaff() || isDriver();
+      allow update: if isStaff() || (isDriver() && resource.data.recordedById == request.auth.uid);
+    }
+
+    match /vehicle_sales/{saleId} {
+      allow read: if isActiveUser();
+      allow create: if isDriver();
+    }
+
+    match /expenses/{expenseId} {
+      allow read: if isActiveUser();
+      allow create: if isActiveUser();
+    }
+
+    match /stock_movements/{movementId} {
+      allow read: if isStaff();
+      allow create: if isActiveUser();
+    }
+
+    match /audit_logs/{logId} {
+      allow read: if isSuperAdmin();
+      allow create: if isActiveUser();
+    }
+  }
+}

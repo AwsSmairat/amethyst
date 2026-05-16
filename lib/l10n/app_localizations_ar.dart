@@ -1201,11 +1201,11 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get stationDebtErrorApiRouteMissing =>
-      'خادم الـ API قديم أو لا يتضمن مسارات الدين (تسجيل الدين وسداد الدين). انشر آخر نسخة من الخادم التي تتضمن POST /api/station-debt-entries/repay ثم شغّل npx prisma migrate deploy وأعد تشغيل الخادم.';
+      'تعذّر تنفيذ عملية الدين. تحقق من اتصال Firebase وقواعد الأمان في Firestore.';
 
   @override
   String get stationDebtErrorForbidden =>
-      'الخادم رفض الطلب (لا صلاحية). إن كنت سائقاً وتفتح «قائمة الدين»، غالباً خادم الـ API المنشور قديم — انشر آخر نسخة من الكود التي تسمح للسائق بقراءة GET /api/station-debt-entries، أو راجع المسؤول.';
+      'لا تملك صلاحية لهذه العملية. راجع المسؤول أو تأكد أن حسابك نشط في Firebase.';
 
   @override
   String get stationDebtRepayNoUnpaid =>
@@ -1304,7 +1304,7 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get vehicleLoadCatalogGapHint =>
-      'بعض البنود غير مربوطة بمنتج في النظام (غالباً بعد مسح بيانات التشغيل). من «أسعار المنتجات» أنشئ منتجاً لكل اسم إنجليزي يظهر أدناه بنفس الحرفية، أو على الخادم نفّذ: npx prisma db seed';
+      'بعض البنود غير مربوطة بمنتج في النظام. من «أسعار المنتجات» أنشئ منتجاً لكل اسم إنجليزي يظهر أدناه بنفس الحرفية.';
 
   @override
   String get vehicleLoadNoStationStockForRow =>

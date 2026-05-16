@@ -1,6 +1,5 @@
 import 'package:amethyst/features/admin/presentation/station_sale/station_sale_entry_kind.dart';
 
-/// مطابقة [server/src/services/stationSale.service.js] — أعمدة لا يُخصم مخزون المحطة لها.
 bool stationSaleColumnSkipsStationStock({
   required StationSaleEntryKind entryKind,
   required int columnIndex,

@@ -2340,13 +2340,13 @@ abstract class AppLocalizations {
   /// No description provided for @stationDebtErrorApiRouteMissing.
   ///
   /// In ar, this message translates to:
-  /// **'خادم الـ API قديم أو لا يتضمن مسارات الدين (تسجيل الدين وسداد الدين). انشر آخر نسخة من الخادم التي تتضمن POST /api/station-debt-entries/repay ثم شغّل npx prisma migrate deploy وأعد تشغيل الخادم.'**
+  /// **'تعذّر تنفيذ عملية الدين. تحقق من اتصال Firebase وقواعد الأمان في Firestore.'**
   String get stationDebtErrorApiRouteMissing;
 
   /// No description provided for @stationDebtErrorForbidden.
   ///
   /// In ar, this message translates to:
-  /// **'الخادم رفض الطلب (لا صلاحية). إن كنت سائقاً وتفتح «قائمة الدين»، غالباً خادم الـ API المنشور قديم — انشر آخر نسخة من الكود التي تسمح للسائق بقراءة GET /api/station-debt-entries، أو راجع المسؤول.'**
+  /// **'لا تملك صلاحية لهذه العملية. راجع المسؤول أو تأكد أن حسابك نشط في Firebase.'**
   String get stationDebtErrorForbidden;
 
   /// No description provided for @stationDebtRepayNoUnpaid.
@@ -2514,7 +2514,7 @@ abstract class AppLocalizations {
   /// No description provided for @vehicleLoadCatalogGapHint.
   ///
   /// In ar, this message translates to:
-  /// **'بعض البنود غير مربوطة بمنتج في النظام (غالباً بعد مسح بيانات التشغيل). من «أسعار المنتجات» أنشئ منتجاً لكل اسم إنجليزي يظهر أدناه بنفس الحرفية، أو على الخادم نفّذ: npx prisma db seed'**
+  /// **'بعض البنود غير مربوطة بمنتج في النظام. من «أسعار المنتجات» أنشئ منتجاً لكل اسم إنجليزي يظهر أدناه بنفس الحرفية.'**
   String get vehicleLoadCatalogGapHint;
 
   /// No description provided for @vehicleLoadNoStationStockForRow.

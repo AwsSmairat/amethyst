@@ -4,10 +4,8 @@ import 'package:amethyst/core/network/api_exception.dart';
 const String kStationDebtInsufficientStockSubmitMarker =
     'STATION_DEBT_INSUFFICIENT_STOCK';
 
-/// استجابة 404 «Not found» من `app.js` — المسار غير مسجّل على الخادم (غالباً نشر قديم).
 const String kStationDebtApiRouteMissingMarker = 'STATION_DEBT_API_ROUTE_MISSING';
 
-/// 403 من الخادم — غالباً نشر قديم لا يسمح للسائق بقراءة القائمة، أو حساب بلا صلاحية.
 const String kStationDebtForbiddenMarker = 'STATION_DEBT_FORBIDDEN';
 
 String mapStationDebtApiException(ApiException e) {
@@ -20,7 +18,6 @@ String mapStationDebtApiException(ApiException e) {
       (e.code == 'FORBIDDEN' || lower == 'forbidden')) {
     return kStationDebtForbiddenMarker;
   }
-  /// 404 عام من Express بدون مسار (مثل POST /repay غير منشور على الخادم).
   if (e.statusCode == 404) {
     final bool isGenericNotFound = lower == 'not found' ||
         (lower.startsWith('not found') &&

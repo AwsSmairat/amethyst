@@ -1,621 +1,9 @@
-import 'package:amethyst/core/config/api_config.dart';
-import 'package:amethyst/core/network/dio_client.dart';
-import 'package:dio/dio.dart';
-import 'package:flutter/foundation.dart';
-import 'dart:math';
 import 'dart:typed_data';
 
-/// Satisfies older APIs that still validate `phone` on POST /users (e.g. production
-/// before deploy). Current server Zod strips unknown keys and stores `null` in DB.
-String _syntheticPhoneForUserCreate() {
-  final int n = Random().nextInt(90000000) + 10000000;
-  return '+1000$n';
-}
+import 'package:amethyst/core/firebase/amethyst_firebase_backend.dart';
+import 'package:amethyst/core/network/api_exception.dart';
 
-/// Central HTTP facade for Amethyst REST endpoints (data layer only).
-final class AmethystApi {
-  AmethystApi(this._client);
-
-  final DioClient _client;
-
-  Dio get _dio => _client.dio;
-
-  Future<Map<String, dynamic>> login({
-    required String email,
-    required String password,
-  }) async {
-    final bool logNet = ApiConfig.debugNetwork || (kDebugMode && kIsWeb);
-    if (logNet) {
-      debugPrint(
-        '[AmethystApi] login POST ${ApiConfig.debugResolvedLoginUrl} '
-        '(base=${ApiConfig.resolvedBaseUrl})',
-      );
-    }
-    try {
-      final res = await _dio.post<Map<String, dynamic>>(
-        '/auth/login',
-        data: <String, dynamic>{'email': email, 'password': password},
-      );
-      return DioClient.unwrapMap(res);
-    } on DioException catch (e) {
-      if (logNet) {
-        debugPrint(
-          '[AmethystApi] login DioException type=${e.type} '
-          'status=${e.response?.statusCode} message=${e.message} error=${e.error}',
-        );
-      }
-      _client.throwFromDio(e);
-    }
-  }
-
-  Future<Map<String, dynamic>> me() async {
-    try {
-      final res = await _dio.get<Map<String, dynamic>>('/auth/me');
-      return DioClient.unwrapMap(res);
-    } on DioException catch (e) {
-      _client.throwFromDio(e);
-    }
-  }
-
-  Future<Map<String, dynamic>> getDashboardSuperAdmin() async {
-    try {
-      final res = await _dio.get<Map<String, dynamic>>('/dashboard/super-admin');
-      final map = DioClient.unwrapMap(res);
-      return _flattenSuperAdminDashboard(map);
-    } on DioException catch (e) {
-      _client.throwFromDio(e);
-    }
-  }
-
-  /// مخزون الكراتين، مجموع مبالغ الشهر؛ منزل = محطة+سيارة؛ متجر = سيارة→متجر فقط.
-  Future<Map<String, dynamic>> getSuperAdminCartonSummary({
-    int? year,
-    int? month,
-  }) async {
-    try {
-      final DateTime n = DateTime.now();
-      final res = await _dio.get<Map<String, dynamic>>(
-        '/dashboard/super-admin/carton-summary',
-        queryParameters: <String, dynamic>{
-          'year': year ?? n.year,
-          'month': month ?? n.month,
-        },
-      );
-      return DioClient.unwrapMap(res);
-    } on DioException catch (e) {
-      _client.throwFromDio(e);
-    }
-  }
-
-  Future<Map<String, dynamic>> getDashboardAdmin() async {
-    try {
-      final res = await _dio.get<Map<String, dynamic>>('/dashboard/admin');
-      return DioClient.unwrapMap(res);
-    } on DioException catch (e) {
-      _client.throwFromDio(e);
-    }
-  }
-
-  Future<Map<String, dynamic>> getDashboardDriver() async {
-    try {
-      final res = await _dio.get<Map<String, dynamic>>('/dashboard/driver');
-      final map = DioClient.unwrapMap(res);
-      return _flattenDriverDashboard(map);
-    } on DioException catch (e) {
-      _client.throwFromDio(e);
-    }
-  }
-
-  Future<Map<String, dynamic>> listProducts({int page = 1, int limit = 100}) =>
-      _getPaginated('/products', page: page, limit: limit);
-
-  Future<Map<String, dynamic>> createProduct({
-    required String name,
-    required String unitType,
-    required double price,
-    int stationStock = 0,
-  }) async {
-    try {
-      final res = await _dio.post<Map<String, dynamic>>(
-        '/products',
-        data: <String, dynamic>{
-          'name': name,
-          'unitType': unitType,
-          'price': price,
-          'stationStock': stationStock,
-        },
-      );
-      return DioClient.unwrapMap(res);
-    } on DioException catch (e) {
-      _client.throwFromDio(e);
-    }
-  }
-
-  Future<void> patchProductStationStock({
-    required String id,
-    required int stationStock,
-  }) async {
-    try {
-      final res = await _dio.patch<Map<String, dynamic>>(
-        '/products/$id/stock',
-        data: <String, dynamic>{'stationStock': stationStock},
-      );
-      DioClient.unwrapMap(res);
-    } on DioException catch (e) {
-      _client.throwFromDio(e);
-    }
-  }
-
-  Future<Map<String, dynamic>> updateProduct({
-    required String id,
-    double? price,
-  }) async {
-    try {
-      final res = await _dio.put<Map<String, dynamic>>(
-        '/products/$id',
-        data: <String, dynamic>{
-          if (price != null) 'price': price,
-        },
-      );
-      return DioClient.unwrapMap(res);
-    } on DioException catch (e) {
-      _client.throwFromDio(e);
-    }
-  }
-
-  Future<void> deleteProduct(String id) async {
-    try {
-      final res = await _dio.delete<Map<String, dynamic>>('/products/$id');
-      DioClient.unwrapData(res);
-    } on DioException catch (e) {
-      _client.throwFromDio(e);
-    }
-  }
-
-  Future<Map<String, dynamic>> listVehicles({int page = 1, int limit = 100}) =>
-      _getPaginated('/vehicles', page: page, limit: limit);
-
-  Future<Map<String, dynamic>> createVehicle({
-    required String vehicleNumber,
-    String? driverId,
-    String? notes,
-  }) async {
-    try {
-      final res = await _dio.post<Map<String, dynamic>>(
-        '/vehicles',
-        data: <String, dynamic>{
-          'vehicleNumber': vehicleNumber,
-          if (driverId != null && driverId.isNotEmpty) 'driverId': driverId,
-          if (notes != null && notes.trim().isNotEmpty) 'notes': notes.trim(),
-        },
-      );
-      return DioClient.unwrapMap(res);
-    } on DioException catch (e) {
-      _client.throwFromDio(e);
-    }
-  }
-
-  Future<void> deleteVehicle(String id) async {
-    try {
-      final res = await _dio.delete<Map<String, dynamic>>('/vehicles/$id');
-      DioClient.unwrapData(res);
-    } on DioException catch (e) {
-      _client.throwFromDio(e);
-    }
-  }
-
-  /// `limit` must be ≤ 100 (API query validation).
-  Future<Map<String, dynamic>> listUsers({int page = 1, int limit = 100}) =>
-      _getPaginated('/users', page: page, limit: limit);
-
-  Future<Map<String, dynamic>> createUser({
-    required String fullName,
-    required String email,
-    required String password,
-    required String role,
-  }) async {
-    try {
-      final res = await _dio.post<Map<String, dynamic>>(
-        '/users',
-        data: <String, dynamic>{
-          'fullName': fullName,
-          'email': email,
-          'password': password,
-          'role': role,
-          'phone': _syntheticPhoneForUserCreate(),
-        },
-      );
-      return DioClient.unwrapMap(res);
-    } on DioException catch (e) {
-      _client.throwFromDio(e);
-    }
-  }
-
-  Future<void> deleteUser(String id) async {
-    try {
-      final res = await _dio.delete<Map<String, dynamic>>('/users/$id');
-      DioClient.unwrapData(res);
-    } on DioException catch (e) {
-      _client.throwFromDio(e);
-    }
-  }
-
-  /// [dateFrom] / [dateTo] بصيغة `yyyy-MM-dd` (يوم واحد: نفس القيمتين) — يُفلتر حقل `load_date`.
-  Future<Map<String, dynamic>> listVehicleLoads({
-    int page = 1,
-    int limit = 100,
-    String? status,
-    String? vehicleId,
-    String? driverId,
-    String? dateFrom,
-    String? dateTo,
-  }) async {
-    try {
-      final int safeLimit = limit.clamp(1, 100);
-      final res = await _dio.get<Map<String, dynamic>>(
-        '/vehicle-loads',
-        queryParameters: <String, dynamic>{
-          'page': page,
-          'limit': safeLimit,
-          if (status != null && status.isNotEmpty) 'status': status,
-          if (vehicleId != null && vehicleId.isNotEmpty) 'vehicleId': vehicleId,
-          if (driverId != null && driverId.isNotEmpty) 'driverId': driverId,
-          if (dateFrom != null && dateFrom.isNotEmpty) 'dateFrom': dateFrom,
-          if (dateTo != null && dateTo.isNotEmpty) 'dateTo': dateTo,
-        },
-      );
-      return DioClient.unwrapPaginated(res);
-    } on DioException catch (e) {
-      _client.throwFromDio(e);
-    }
-  }
-
-  Future<Map<String, dynamic>> driverCurrentLoad() async {
-    try {
-      final res = await _dio.get<Map<String, dynamic>>('/vehicle-loads/driver/current');
-      return DioClient.unwrapMap(res);
-    } on DioException catch (e) {
-      _client.throwFromDio(e);
-    }
-  }
-
-  Future<Map<String, dynamic>> createVehicleLoad({
-    required String vehicleId,
-    required String driverId,
-    required String productId,
-    required int quantityLoaded,
-    required String loadDate,
-  }) async {
-    try {
-      final res = await _dio.post<Map<String, dynamic>>(
-        '/vehicle-loads',
-        data: <String, dynamic>{
-          'vehicleId': vehicleId,
-          'driverId': driverId,
-          'productId': productId,
-          'quantityLoaded': quantityLoaded,
-          'loadDate': loadDate,
-        },
-      );
-      return DioClient.unwrapMap(res);
-    } on DioException catch (e) {
-      _client.throwFromDio(e);
-    }
-  }
-
-  Future<Map<String, dynamic>> listStationSales({int page = 1, int limit = 100}) =>
-      _getPaginated('/station-sales', page: page, limit: limit);
-
-  Future<Map<String, dynamic>> createStationSale({
-    required String productId,
-    required int quantity,
-    required double unitPrice,
-    bool fillingSale = false,
-    int? fillingLineSlot,
-    String? note,
-  }) async {
-    try {
-      final Map<String, dynamic> data = <String, dynamic>{
-        'productId': productId,
-        'quantity': quantity,
-        'unitPrice': unitPrice,
-        'fillingSale': fillingSale,
-      };
-      // تعبئة: يجب إرسال فهرس العمود دائماً (٠ و١ = بدون خصم مخزون). القيمة ٠ صالحة.
-      if (fillingSale) {
-        final int slot = fillingLineSlot!;
-        data['fillingLineSlot'] = slot;
-        // احتياط إن وُجد وسيط يتعامل مع snake_case فقط
-        data['filling_slot'] = slot;
-      }
-      // ملاحظة «كوبون» لبيع التعبئة (جالون/قارورة بسعر 0) — نرسلها حتى لو ضاعت في طبقة أخرى.
-      String? noteOut;
-      if (note != null && note.trim().isNotEmpty) {
-        noteOut = note.trim();
-      } else if (fillingSale &&
-          fillingLineSlot != null &&
-          fillingLineSlot < 2 &&
-          unitPrice == 0) {
-        noteOut = 'كوبون';
-      }
-      if (noteOut != null && noteOut.isNotEmpty) {
-        data['note'] = noteOut;
-      }
-      final res = await _dio.post<Map<String, dynamic>>(
-        '/station-sales',
-        data: data,
-      );
-      return DioClient.unwrapMap(res);
-    } on DioException catch (e) {
-      _client.throwFromDio(e);
-    }
-  }
-
-  /// تسجيل دين (لا مخزون، لا StationSale).
-  Future<void> createStationDebtEntries({
-    required String debtorName,
-    required List<Map<String, dynamic>> lines,
-  }) async {
-    try {
-      await _dio.post<Map<String, dynamic>>(
-        '/station-debt-entries',
-        data: <String, dynamic>{
-          'debtorName': debtorName,
-          'lines': lines,
-        },
-      );
-    } on DioException catch (e) {
-      _client.throwFromDio(e);
-    }
-  }
-
-  Future<Map<String, dynamic>> listStationDebtEntries({
-    int page = 1,
-    int limit = 100,
-  }) =>
-      _getPaginated('/station-debt-entries', page: page, limit: limit);
-
-  /// تسجيل سداد دين — يُنشئ مبيعات محطة (بدون خصم مخزون) ليُحتسب في مبيعات اليوم.
-  Future<Map<String, dynamic>> repayStationDebt({
-    required String debtorName,
-  }) async {
-    try {
-      final res = await _dio.post<Map<String, dynamic>>(
-        '/station-debt-entries/repay',
-        data: <String, dynamic>{'debtorName': debtorName},
-      );
-      return DioClient.unwrapMap(res);
-    } on DioException catch (e) {
-      _client.throwFromDio(e);
-    }
-  }
-
-  /// سداد دين مُسجّل من السيارة لكن يُحتسب ضمن مبيعات السيارة (بدون خصم مخزون).
-  Future<Map<String, dynamic>> repayStationDebtFromVehicle({
-    required String debtorName,
-  }) async {
-    try {
-      final res = await _dio.post<Map<String, dynamic>>(
-        '/station-debt-entries/repay-from-vehicle',
-        data: <String, dynamic>{'debtorName': debtorName},
-      );
-      return DioClient.unwrapMap(res);
-    } on DioException catch (e) {
-      _client.throwFromDio(e);
-    }
-  }
-
-  /// [dateFrom] / [dateTo] بصيغة `yyyy-MM-dd` (يوم واحد: نفس القيمتين).
-  Future<Map<String, dynamic>> listVehicleSales({
-    int page = 1,
-    int limit = 100,
-    String? vehicleId,
-    String? driverId,
-    String? dateFrom,
-    String? dateTo,
-  }) async {
-    try {
-      final int safeLimit = limit.clamp(1, 100);
-      final res = await _dio.get<Map<String, dynamic>>(
-        '/vehicle-sales',
-        queryParameters: <String, dynamic>{
-          'page': page,
-          'limit': safeLimit,
-          if (vehicleId != null && vehicleId.isNotEmpty) 'vehicleId': vehicleId,
-          if (driverId != null && driverId.isNotEmpty) 'driverId': driverId,
-          if (dateFrom != null && dateFrom.isNotEmpty) 'dateFrom': dateFrom,
-          if (dateTo != null && dateTo.isNotEmpty) 'dateTo': dateTo,
-        },
-      );
-      return DioClient.unwrapPaginated(res);
-    } on DioException catch (e) {
-      _client.throwFromDio(e);
-    }
-  }
-
-  Future<Map<String, dynamic>> createVehicleSale({
-    required String vehicleId,
-    required String productId,
-    required int quantity,
-    required double unitPrice,
-    String saleDestination = 'home',
-  }) async {
-    try {
-      final res = await _dio.post<Map<String, dynamic>>(
-        '/vehicle-sales',
-        data: <String, dynamic>{
-          'vehicleId': vehicleId,
-          'productId': productId,
-          'quantity': quantity,
-          'unitPrice': unitPrice,
-          'saleDestination': saleDestination,
-        },
-      );
-      return DioClient.unwrapMap(res);
-    } on DioException catch (e) {
-      _client.throwFromDio(e);
-    }
-  }
-
-  /// `limit` على الخادم بحد أقصى 100 ([listQuerySchema]).
-  Future<Map<String, dynamic>> listExpenses({
-    int page = 1,
-    int limit = 100,
-    String? dateFrom,
-    String? dateTo,
-  }) async {
-    final int safeLimit = limit.clamp(1, 100);
-    try {
-      final res = await _dio.get<Map<String, dynamic>>(
-        '/expenses',
-        queryParameters: <String, dynamic>{
-          'page': page,
-          'limit': safeLimit,
-          if (dateFrom != null) 'dateFrom': dateFrom,
-          if (dateTo != null) 'dateTo': dateTo,
-        },
-      );
-      return DioClient.unwrapPaginated(res);
-    } on DioException catch (e) {
-      _client.throwFromDio(e);
-    }
-  }
-
-  Future<Map<String, dynamic>> createExpense({
-    String? vehicleId,
-    required double amount,
-    String? note,
-    Uint8List? receiptBytes,
-    String? receiptFilename,
-  }) async {
-    try {
-      final data = receiptBytes == null
-          ? <String, dynamic>{
-              if (vehicleId != null) 'vehicleId': vehicleId,
-              'amount': amount,
-              if (note != null && note.isNotEmpty) 'note': note,
-            }
-          : FormData.fromMap(<String, dynamic>{
-              if (vehicleId != null) 'vehicleId': vehicleId,
-              'amount': amount,
-              if (note != null && note.isNotEmpty) 'note': note,
-              'receipt': MultipartFile.fromBytes(
-                receiptBytes,
-                filename: receiptFilename ?? 'receipt.jpg',
-              ),
-            });
-      final res = await _dio.post<Map<String, dynamic>>(
-        '/expenses',
-        data: data,
-      );
-      return DioClient.unwrapMap(res);
-    } on DioException catch (e) {
-      _client.throwFromDio(e);
-    }
-  }
-
-  Future<Map<String, dynamic>> listReturns({int page = 1, int limit = 100}) =>
-      _getPaginated('/returns', page: page, limit: limit);
-
-  Future<Map<String, dynamic>> createReturn({
-    required String vehicleLoadId,
-    required int quantityReturned,
-  }) async {
-    try {
-      final res = await _dio.post<Map<String, dynamic>>(
-        '/returns',
-        data: <String, dynamic>{
-          'vehicleLoadId': vehicleLoadId,
-          'quantityReturned': quantityReturned,
-        },
-      );
-      return DioClient.unwrapMap(res);
-    } on DioException catch (e) {
-      _client.throwFromDio(e);
-    }
-  }
-
-  Future<Map<String, dynamic>> reportsInventory() async {
-    try {
-      final res = await _dio.get<Map<String, dynamic>>('/reports/inventory');
-      return DioClient.unwrapMap(res);
-    } on DioException catch (e) {
-      _client.throwFromDio(e);
-    }
-  }
-
-  /// Days with at least one station or vehicle sale (for super admin history).
-  Future<Map<String, dynamic>> reportsSalesWorkingDays() async {
-    try {
-      final res = await _dio.get<Map<String, dynamic>>('/reports/sales/working-days');
-      return DioClient.unwrapMap(res);
-    } on DioException catch (e) {
-      _client.throwFromDio(e);
-    }
-  }
-
-  Future<Map<String, dynamic>> reportsProfitLoss({
-    int page = 1,
-    int limit = 100,
-    String? dateFrom,
-    String? dateTo,
-  }) async {
-    try {
-      final res = await _dio.get<Map<String, dynamic>>(
-        '/reports/profit-loss',
-        queryParameters: <String, dynamic>{
-          'page': page,
-          'limit': limit,
-          if (dateFrom != null) 'dateFrom': dateFrom,
-          if (dateTo != null) 'dateTo': dateTo,
-        },
-      );
-      return DioClient.unwrapMap(res);
-    } on DioException catch (e) {
-      _client.throwFromDio(e);
-    }
-  }
-
-  /// Station + vehicle sales for a calendar month (current month by default).
-  Future<Map<String, dynamic>> reportsSalesMonthly({
-    int? year,
-    int? month,
-  }) async {
-    try {
-      final DateTime n = DateTime.now();
-      final res = await _dio.get<Map<String, dynamic>>(
-        '/reports/sales/monthly',
-        queryParameters: <String, dynamic>{
-          'year': year ?? n.year,
-          'month': month ?? n.month,
-        },
-      );
-      return DioClient.unwrapMap(res);
-    } on DioException catch (e) {
-      _client.throwFromDio(e);
-    }
-  }
-
-  Future<Map<String, dynamic>> _getPaginated(
-    String path, {
-    required int page,
-    required int limit,
-  }) async {
-    try {
-      final res = await _dio.get<Map<String, dynamic>>(
-        path,
-        queryParameters: <String, dynamic>{'page': page, 'limit': limit},
-      );
-      return DioClient.unwrapPaginated(res);
-    } on DioException catch (e) {
-      _client.throwFromDio(e);
-    }
-  }
-}
-
-/// `/dashboard/super-admin` uses the same envelope as other roles; KPI widgets
-/// expect flat keys (`totalSalesToday`, `totalUsers`, …).
-Map<String, dynamic> _flattenSuperAdminDashboard(Map<String, dynamic> root) {
+Map<String, dynamic> flattenSuperAdminDashboard(Map<String, dynamic> root) {
   final Object? details = root['details'];
   final Object? metrics = root['metrics'];
   if (details is! Map<String, dynamic> || metrics is! Map<String, dynamic>) {
@@ -627,18 +15,16 @@ Map<String, dynamic> _flattenSuperAdminDashboard(Map<String, dynamic> root) {
   return <String, dynamic>{
     ...root,
     ...metrics,
-    'totalUsers': c['users'] ?? 0,
-    'totalAdmins': c['admins'] ?? 0,
-    'totalDrivers': c['drivers'] ?? 0,
-    'totalVehicles': c['vehicles'] ?? 0,
-    'totalProducts': c['products'] ?? 0,
-    'productsWithPrice': c['pricedProducts'] ?? 0,
+    'totalUsers': c['users'] ?? root['totalUsers'] ?? 0,
+    'totalAdmins': c['admins'] ?? root['totalAdmins'] ?? 0,
+    'totalDrivers': c['drivers'] ?? root['totalDrivers'] ?? 0,
+    'totalVehicles': c['vehicles'] ?? root['totalVehicles'] ?? 0,
+    'totalProducts': c['products'] ?? root['totalProducts'] ?? 0,
+    'productsWithPrice': c['pricedProducts'] ?? root['productsWithPrice'] ?? 0,
   };
 }
 
-/// `/dashboard/driver` is normalized to `{ role, metrics, details }` on the
-/// server. Call sites expect the former flat payload (e.g. `assignedVehicle`).
-Map<String, dynamic> _flattenDriverDashboard(Map<String, dynamic> root) {
+Map<String, dynamic> flattenDriverDashboard(Map<String, dynamic> root) {
   final Object? details = root['details'];
   final Object? metrics = root['metrics'];
   if (details is! Map<String, dynamic> || metrics is! Map<String, dynamic>) {
@@ -656,4 +42,281 @@ Map<String, dynamic> _flattenDriverDashboard(Map<String, dynamic> root) {
     'vehicleSalesAmountToday': metrics['vehicleSalesToday'],
     'remainingOnVehicle': metrics['remainingOnVehicle'],
   };
+}
+
+final class AmethystApi {
+  AmethystApi(this._backend);
+
+  final AmethystFirebaseBackend _backend;
+
+  Future<Map<String, dynamic>> login({
+    required String email,
+    required String password,
+  }) =>
+      _backend.login(email: email, password: password);
+
+  Future<Map<String, dynamic>> me() => _backend.me();
+
+  Future<Map<String, dynamic>> getDashboardSuperAdmin() async {
+    final map = await _backend.getDashboardSuperAdmin();
+    return flattenSuperAdminDashboard(map);
+  }
+
+  Future<Map<String, dynamic>> getSuperAdminCartonSummary({
+    int? year,
+    int? month,
+  }) =>
+      _backend.getSuperAdminCartonSummary(year: year, month: month);
+
+  Future<Map<String, dynamic>> getDashboardAdmin() => _backend.getDashboardAdmin();
+
+  Future<Map<String, dynamic>> getDashboardDriver() async {
+    final map = await _backend.getDashboardDriver();
+    return flattenDriverDashboard(map);
+  }
+
+  Future<Map<String, dynamic>> listProducts({int page = 1, int limit = 100}) =>
+      _backend.listProducts(page: page, limit: limit);
+
+  Future<Map<String, dynamic>> createProduct({
+    required String name,
+    required String unitType,
+    required double price,
+    int stationStock = 0,
+  }) =>
+      _backend.createProduct(
+        name: name,
+        unitType: unitType,
+        price: price,
+        stationStock: stationStock,
+      );
+
+  Future<void> patchProductStationStock({
+    required String id,
+    required int stationStock,
+  }) =>
+      _backend.patchProductStationStock(id: id, stationStock: stationStock);
+
+  Future<Map<String, dynamic>> updateProduct({
+    required String id,
+    double? price,
+  }) =>
+      _backend.updateProduct(id: id, price: price);
+
+  Future<void> deleteProduct(String id) => _backend.deleteProduct(id);
+
+  Future<Map<String, dynamic>> listVehicles({int page = 1, int limit = 100}) =>
+      _backend.listVehicles(page: page, limit: limit);
+
+  Future<Map<String, dynamic>> createVehicle({
+    required String vehicleNumber,
+    String? driverId,
+    String? notes,
+  }) =>
+      _backend.createVehicle(
+        vehicleNumber: vehicleNumber,
+        driverId: driverId,
+        notes: notes,
+      );
+
+  Future<void> deleteVehicle(String id) => _backend.deleteVehicle(id);
+
+  Future<Map<String, dynamic>> listUsers({int page = 1, int limit = 100}) =>
+      _backend.listUsers(page: page, limit: limit);
+
+  Future<Map<String, dynamic>> createUser({
+    required String fullName,
+    required String email,
+    required String password,
+    required String role,
+  }) =>
+      _backend.createUser(
+        fullName: fullName,
+        email: email,
+        password: password,
+        role: role,
+      );
+
+  Future<void> deleteUser(String id) => _backend.deleteUser(id);
+
+  Future<Map<String, dynamic>> listVehicleLoads({
+    int page = 1,
+    int limit = 100,
+    String? status,
+    String? vehicleId,
+    String? driverId,
+    String? dateFrom,
+    String? dateTo,
+  }) =>
+      _backend.listVehicleLoads(
+        page: page,
+        limit: limit,
+        status: status,
+        vehicleId: vehicleId,
+        driverId: driverId,
+        dateFrom: dateFrom,
+        dateTo: dateTo,
+      );
+
+  Future<Map<String, dynamic>> driverCurrentLoad() => _backend.driverCurrentLoad();
+
+  Future<Map<String, dynamic>> createVehicleLoad({
+    required String vehicleId,
+    required String driverId,
+    required String productId,
+    required int quantityLoaded,
+    required String loadDate,
+  }) =>
+      _backend.createVehicleLoad(
+        vehicleId: vehicleId,
+        driverId: driverId,
+        productId: productId,
+        quantityLoaded: quantityLoaded,
+        loadDate: loadDate,
+      );
+
+  Future<Map<String, dynamic>> listStationSales({int page = 1, int limit = 100}) =>
+      _backend.listStationSales(page: page, limit: limit);
+
+  Future<Map<String, dynamic>> createStationSale({
+    required String productId,
+    required int quantity,
+    required double unitPrice,
+    bool fillingSale = false,
+    int? fillingLineSlot,
+    String? note,
+  }) =>
+      _backend.createStationSale(
+        productId: productId,
+        quantity: quantity,
+        unitPrice: unitPrice,
+        fillingSale: fillingSale,
+        fillingLineSlot: fillingLineSlot,
+        note: note,
+      );
+
+  Future<void> createStationDebtEntries({
+    required String debtorName,
+    required List<Map<String, dynamic>> lines,
+  }) =>
+      _backend.createStationDebtEntries(debtorName: debtorName, lines: lines);
+
+  Future<Map<String, dynamic>> listStationDebtEntries({
+    int page = 1,
+    int limit = 100,
+  }) =>
+      _backend.listStationDebtEntries(page: page, limit: limit);
+
+  Future<Map<String, dynamic>> repayStationDebt({required String debtorName}) =>
+      _backend.repayStationDebt(debtorName: debtorName);
+
+  Future<Map<String, dynamic>> repayStationDebtFromVehicle({
+    required String debtorName,
+  }) =>
+      _backend.repayStationDebtFromVehicle(debtorName: debtorName);
+
+  Future<Map<String, dynamic>> listVehicleSales({
+    int page = 1,
+    int limit = 100,
+    String? vehicleId,
+    String? driverId,
+    String? dateFrom,
+    String? dateTo,
+  }) =>
+      _backend.listVehicleSales(
+        page: page,
+        limit: limit,
+        vehicleId: vehicleId,
+        driverId: driverId,
+        dateFrom: dateFrom,
+        dateTo: dateTo,
+      );
+
+  Future<Map<String, dynamic>> createVehicleSale({
+    required String vehicleId,
+    required String productId,
+    required int quantity,
+    required double unitPrice,
+    String saleDestination = 'home',
+  }) =>
+      _backend.createVehicleSale(
+        vehicleId: vehicleId,
+        productId: productId,
+        quantity: quantity,
+        unitPrice: unitPrice,
+        saleDestination: saleDestination,
+      );
+
+  Future<Map<String, dynamic>> listExpenses({
+    int page = 1,
+    int limit = 100,
+    String? dateFrom,
+    String? dateTo,
+  }) =>
+      _backend.listExpenses(
+        page: page,
+        limit: limit,
+        dateFrom: dateFrom,
+        dateTo: dateTo,
+      );
+
+  Future<Map<String, dynamic>> createExpense({
+    String? vehicleId,
+    required double amount,
+    String? note,
+    Uint8List? receiptBytes,
+    String? receiptFilename,
+  }) =>
+      _backend.createExpense(
+        vehicleId: vehicleId,
+        amount: amount,
+        note: note,
+        receiptBytes: receiptBytes,
+        receiptFilename: receiptFilename,
+      );
+
+  Future<Map<String, dynamic>> listReturns({int page = 1, int limit = 100}) =>
+      _backend.listReturns(page: page, limit: limit);
+
+  Future<Map<String, dynamic>> createReturn({
+    required String vehicleLoadId,
+    required int quantityReturned,
+  }) =>
+      _backend.createReturn(
+        vehicleLoadId: vehicleLoadId,
+        quantityReturned: quantityReturned,
+      );
+
+  Future<Map<String, dynamic>> reportsInventory() => _backend.reportsInventory();
+
+  Future<Map<String, dynamic>> reportsSalesWorkingDays() =>
+      _backend.reportsSalesWorkingDays();
+
+  Future<Map<String, dynamic>> reportsProfitLoss({
+    int page = 1,
+    int limit = 100,
+    String? dateFrom,
+    String? dateTo,
+  }) =>
+      _backend.reportsProfitLoss(
+        page: page,
+        limit: limit,
+        dateFrom: dateFrom,
+        dateTo: dateTo,
+      );
+
+  Future<Map<String, dynamic>> reportsSalesMonthly({
+    int? year,
+    int? month,
+  }) =>
+      _backend.reportsSalesMonthly(year: year, month: month);
+}
+
+extension AmethystApiErrors on AmethystApi {
+  static ApiException wrap(Object e) {
+    if (e is ApiException) {
+      return e;
+    }
+    return ApiException(e.toString());
+  }
 }

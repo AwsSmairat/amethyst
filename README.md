@@ -1,95 +1,49 @@
-# amethyst
+# Amethyst
 
-A new Flutter project.
+Flutter app for water station accounting and management. The app uses **Firebase** only (Authentication, Cloud Firestore, Firebase Storage).
 
-## Getting Started
+## Prerequisites
 
-### API base URL (production + overrides)
+- Flutter SDK 3.11+
+- A Firebase project with Email/Password auth, Firestore, and Storage enabled
 
-The app uses **`API_BASE_URL`** for all HTTP calls (login, dashboards, products, sales, expenses, loads, etc.). It resolves to a single value via `ApiConfig.resolvedBaseUrl` and `DioClient`.
+## Firebase setup
 
-#### Production (Railway)
-
-The **default** base URL is set in `lib/core/config/api_config.dart` as `_productionDefault` (currently `https://amethyst-production-7418.up.railway.app/api`). Override for another environment **or** pass a full URL at build/run time (recommended for CI):
-
-```bash
-flutter build apk --dart-define=API_BASE_URL=https://amethyst-production-7418.up.railway.app/api
-```
-
-**Flutter Web (Firebase Hosting, etc.):** use the same public API URL (not `localhost`). Release builds reject `localhost` / `127.0.0.1` for `API_BASE_URL`.
+1. Install FlutterFire CLI and configure the project:
 
 ```bash
-flutter build web --release --dart-define=API_BASE_URL=https://amethyst-production-7418.up.railway.app/api
+dart pub global activate flutterfire_cli
+flutterfire configure
 ```
 
-No backend code changes are required; only the Flutter `API_BASE_URL` must point at your live API (must include the `/api` suffix if that is how your server is mounted).
+This generates `lib/firebase_options.dart` with your project credentials.
 
-#### Override for local / staging / tests
-
-`--dart-define` always overrides the compile-time default:
+2. Deploy security rules and indexes:
 
 ```bash
-flutter run --dart-define=API_BASE_URL=https://amethyst-production-7418.up.railway.app/api
+firebase deploy --only firestore:rules,firestore:indexes,storage
 ```
 
-#### Local development (optional)
+3. Create the first super admin in Firebase Console:
+   - Authentication → add a user (email + password)
+   - Firestore → `users/{uid}` with fields: `fullName`, `email`, `role: super_admin`, `isActive: true`, `createdAt`, `updatedAt`
 
-Use your machine’s LAN IP or the Android emulator loopback as needed:
+## Run the app
 
 ```bash
-# Android emulator → host machine
-flutter run --dart-define=API_BASE_URL=http://10.0.2.2:4000/api
+flutter pub get
+flutter run
 ```
+
+## Web deploy (Firebase Hosting)
 
 ```bash
-# Real phone, same Wi‑Fi as laptop
-flutter run --dart-define=API_BASE_URL=http://192.168.1.8:4000/api
+flutter build web --release
+firebase deploy --only hosting
 ```
 
-#### Tunnel (optional)
+## Collections
 
-```bash
-flutter run --dart-define=API_BASE_URL=https://your-tunnel.example.com/api
-```
+Firestore collections: `users`, `products`, `vehicles`, `vehicle_loads`, `station_sales`, `station_debt_entries`, `vehicle_sales`, `expenses`, `stock_movements`.
 
-#### Startup validation
-
-If `API_BASE_URL` is empty, not a valid `http`/`https` URL, still contains a placeholder host, or points at the retired demo API host, the app shows a configuration screen with details instead of connecting.
-
-### Common mistakes
-
-- Leaving a placeholder host in the default without replacing it or passing `--dart-define`.
-- Using `localhost` on a real phone (it points to the phone itself).
-- Using an old tunnel URL after the tunnel restarts.
-- Backend listening only on `127.0.0.1` instead of `0.0.0.0` (local dev).
-- Firewall blocking the backend port (local dev).
-
-### Troubleshooting
-
-#### Same Wi‑Fi issues (LAN)
-
-- Confirm phone and laptop are on the same Wi‑Fi.
-- Test from the phone browser: `http://<LAN-IP>:4000/health` (or your backend health URL).
-- Ensure the backend binds `0.0.0.0` and the port is open.
-
-#### Different network / production
-
-- Prefer **HTTPS** (e.g. Railway or other hosting URL).
-- If you change the deployed URL, rebuild the app or pass a new `--dart-define=API_BASE_URL=...`.
-
-#### Backend not reachable
-
-- Confirm the URL opens in the device browser.
-- Check TLS/certificate issues for custom domains.
-
-This project is a starting point for a Flutter application.
-
-A few resources to get you started if this is your first Flutter project:
-
-- [Learn Flutter](https://docs.flutter.dev/get-started/learn-flutter)
-- [Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Flutter learning resources](https://docs.flutter.dev/reference/learning-resources)
-
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+See `firestore.rules` and `firestore.indexes.json` in the project root.

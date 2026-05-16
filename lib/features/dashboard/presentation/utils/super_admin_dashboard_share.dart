@@ -15,7 +15,6 @@ int _parseTotal(Object? v) {
   return int.tryParse(v?.toString() ?? '') ?? 0;
 }
 
-/// الخادم يعيد `total` داخل `data.pagination` (انظر `server/src/utils/response.js`).
 int _parseListTotal(Map<String, dynamic> data) {
   final Object? pag = data['pagination'];
   if (pag is Map<String, dynamic>) {

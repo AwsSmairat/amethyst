@@ -55,8 +55,6 @@ class _AddVehicleSaleBodyState extends State<_AddVehicleSaleBody> {
     'مهدي متجر',
   ];
 
-  /// مطابقة [server/src/services/vehicleSale.service.js] `STORE_CANONICAL_NAME_LISTS['مهدي متجر']`.
-  /// مخزون المحطة والمتبقي على السيارة لهذا البند يُحسبان من هذه الأسماء وليس من صف «مهدي متجر» لو كان ID منفصلاً.
   static const List<String> _kStoreMahdiCanonicalProductNames = <String>[
     'Water Carton',
     'Carton Mahdi',

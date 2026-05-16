@@ -1,0 +1,50 @@
+{
+  "indexes": [
+    {
+      "collectionGroup": "vehicle_loads",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "driverId", "order": "ASCENDING" },
+        { "fieldPath": "status", "order": "ASCENDING" },
+        { "fieldPath": "createdAt", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "vehicle_loads",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "vehicleId", "order": "ASCENDING" },
+        { "fieldPath": "productId", "order": "ASCENDING" },
+        { "fieldPath": "status", "order": "ASCENDING" },
+        { "fieldPath": "createdAt", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "station_debt_entries",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "debtorName", "order": "ASCENDING" },
+        { "fieldPath": "repaidAt", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "station_debt_entries",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "debtorName", "order": "ASCENDING" },
+        { "fieldPath": "repaidAt", "order": "ASCENDING" },
+        { "fieldPath": "recordedById", "order": "ASCENDING" },
+        { "fieldPath": "recordingSource", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "users",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "role", "order": "ASCENDING" },
+        { "fieldPath": "isActive", "order": "ASCENDING" }
+      ]
+    }
+  ],
+  "fieldOverrides": []
+}

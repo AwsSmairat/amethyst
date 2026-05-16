@@ -1,6 +1,5 @@
 import 'package:amethyst/core/l10n/context_l10n.dart';
 import 'package:amethyst/core/data/amethyst_api.dart';
-import 'package:amethyst/core/config/api_config.dart';
 import 'package:amethyst/core/presentation/list_load_state.dart';
 import 'package:amethyst/di/injection.dart';
 import 'package:amethyst/features/admin/presentation/station_debt/station_debt_api_error.dart';
@@ -95,9 +94,7 @@ class StationDebtListPage extends StatelessWidget {
       return context.l10n.stationSaleSubmitInsufficientStock;
     }
     if (raw == kStationDebtForbiddenMarker) {
-      final String base = ApiConfig.resolvedBaseUrl;
-      final String suffix = base.isEmpty ? '' : '\n\nAPI: $base';
-      return '${context.l10n.stationDebtErrorForbidden}$suffix';
+      return context.l10n.stationDebtErrorForbidden;
     }
     return raw;
   }
