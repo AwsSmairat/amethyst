@@ -1,4 +1,5 @@
 import 'package:amethyst/core/data/amethyst_api.dart';
+import 'package:amethyst/core/prototype/ui_only.dart';
 import 'package:amethyst/core/presentation/list_load_state.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
@@ -32,7 +33,7 @@ final class SuperAdminProductPricesCubit extends Cubit<ListLoadState> {
       await load();
       return null;
     } on Object catch (e) {
-      return e.toString();
+      return errorMessageFrom(e);
     }
   }
 
@@ -50,7 +51,7 @@ final class SuperAdminProductPricesCubit extends Cubit<ListLoadState> {
       await load();
       return null;
     } on Object catch (e) {
-      return e.toString();
+      return errorMessageFrom(e);
     }
   }
 
@@ -60,7 +61,7 @@ final class SuperAdminProductPricesCubit extends Cubit<ListLoadState> {
       await load();
       return null;
     } on Object catch (e) {
-      return e.toString();
+      return errorMessageFrom(e);
     }
   }
 }

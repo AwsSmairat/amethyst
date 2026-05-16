@@ -3,10 +3,10 @@ import 'package:amethyst/features/dashboard/presentation/cubit/super_admin_users
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-Future<void> showAddSuperAdminUserSheet(
-  BuildContext context, {
-  String? fixedRole,
-}) {
+Future<void> showEditSuperAdminUserSheet(
+  BuildContext context,
+  Map<String, dynamic> user,
+) {
   final SuperAdminUsersCubit cubit = context.read<SuperAdminUsersCubit>();
   return showModalBottomSheet<void>(
     context: context,
@@ -14,40 +14,38 @@ Future<void> showAddSuperAdminUserSheet(
     showDragHandle: true,
     builder: (BuildContext context) => BlocProvider.value(
       value: cubit,
-      child: _AddUserBody(fixedRole: fixedRole),
+      child: _EditUserBody(user: user),
     ),
   );
 }
 
-class _AddUserBody extends StatefulWidget {
-  const _AddUserBody({this.fixedRole});
+class _EditUserBody extends StatefulWidget {
+  const _EditUserBody({required this.user});
 
-  final String? fixedRole;
+  final Map<String, dynamic> user;
 
   @override
-  State<_AddUserBody> createState() => _AddUserBodyState();
+  State<_EditUserBody> createState() => _EditUserBodyState();
 }
 
-class _AddUserBodyState extends State<_AddUserBody> {
+class _EditUserBodyState extends State<_EditUserBody> {
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
-  final TextEditingController _fullName = TextEditingController();
-  final TextEditingController _email = TextEditingController();
-  final TextEditingController _password = TextEditingController();
-  final TextEditingController _phone = TextEditingController();
+  late final TextEditingController _fullName;
+  late final TextEditingController _phone;
   late String _role;
   bool _submitting = false;
 
   @override
   void initState() {
     super.initState();
-    _role = widget.fixedRole ?? 'admin';
+    _fullName = TextEditingController(text: widget.user['fullName']?.toString() ?? '');
+    _phone = TextEditingController(text: widget.user['phone']?.toString() ?? '');
+    _role = widget.user['role']?.toString() ?? 'admin';
   }
 
   @override
   void dispose() {
     _fullName.dispose();
-    _email.dispose();
-    _password.dispose();
     _phone.dispose();
     super.dispose();
   }
@@ -56,11 +54,14 @@ class _AddUserBodyState extends State<_AddUserBody> {
     if (!_formKey.currentState!.validate()) {
       return;
     }
+    final String? id = widget.user['id']?.toString();
+    if (id == null) {
+      return;
+    }
     setState(() => _submitting = true);
-    final String? err = await context.read<SuperAdminUsersCubit>().createUser(
+    final String? err = await context.read<SuperAdminUsersCubit>().updateUser(
+          uid: id,
           fullName: _fullName.text.trim(),
-          email: _email.text.trim(),
-          password: _password.text,
           phone: _phone.text.trim().isEmpty ? null : _phone.text.trim(),
           role: _role,
         );
@@ -76,7 +77,7 @@ class _AddUserBodyState extends State<_AddUserBody> {
     }
     Navigator.of(context).pop();
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(context.l10n.userCreated)),
+      SnackBar(content: Text(context.l10n.userUpdated)),
     );
   }
 
@@ -99,7 +100,7 @@ class _AddUserBodyState extends State<_AddUserBody> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: <Widget>[
               Text(
-                widget.fixedRole == 'driver' ? l10n.addDriver : l10n.addUser,
+                l10n.editUser,
                 style: Theme.of(context).textTheme.titleLarge?.copyWith(
                       fontWeight: FontWeight.w800,
                     ),
@@ -114,60 +115,33 @@ class _AddUserBodyState extends State<_AddUserBody> {
               ),
               const SizedBox(height: 12),
               TextFormField(
-                controller: _email,
-                textAlign: TextAlign.right,
-                keyboardType: TextInputType.emailAddress,
-                decoration: InputDecoration(labelText: l10n.newUserEmail),
-                validator: (String? v) {
-                  if (v == null || v.trim().isEmpty) {
-                    return l10n.fieldRequired;
-                  }
-                  if (!v.contains('@')) {
-                    return l10n.invalidEmail;
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 12),
-              TextFormField(
-                controller: _password,
-                textAlign: TextAlign.right,
-                obscureText: true,
-                decoration: InputDecoration(labelText: l10n.newUserPassword),
-                validator: (String? v) =>
-                    v == null || v.length < 6 ? l10n.passwordMinLength : null,
-              ),
-              const SizedBox(height: 12),
-              TextFormField(
                 controller: _phone,
                 textAlign: TextAlign.right,
                 keyboardType: TextInputType.phone,
                 decoration: InputDecoration(labelText: l10n.newUserPhone),
               ),
-              if (widget.fixedRole == null) ...<Widget>[
-                const SizedBox(height: 12),
-                DropdownButtonFormField<String>(
-                  value: _role,
-                  decoration: InputDecoration(labelText: l10n.userRoleLabel),
-                  items: <DropdownMenuItem<String>>[
-                    DropdownMenuItem<String>(
-                      value: 'admin',
-                      child: Text(l10n.userRoleAdminOption),
-                    ),
-                    DropdownMenuItem<String>(
-                      value: 'driver',
-                      child: Text(l10n.userRoleDriverOption),
-                    ),
-                  ],
-                  onChanged: _submitting
-                      ? null
-                      : (String? v) {
-                          if (v != null) {
-                            setState(() => _role = v);
-                          }
-                        },
-                ),
-              ],
+              const SizedBox(height: 12),
+              DropdownButtonFormField<String>(
+                value: _role,
+                decoration: InputDecoration(labelText: l10n.userRoleLabel),
+                items: <DropdownMenuItem<String>>[
+                  DropdownMenuItem<String>(
+                    value: 'admin',
+                    child: Text(l10n.userRoleAdminOption),
+                  ),
+                  DropdownMenuItem<String>(
+                    value: 'driver',
+                    child: Text(l10n.userRoleDriverOption),
+                  ),
+                ],
+                onChanged: _submitting
+                    ? null
+                    : (String? v) {
+                        if (v != null) {
+                          setState(() => _role = v);
+                        }
+                      },
+              ),
               const SizedBox(height: 24),
               FilledButton(
                 onPressed: _submitting ? null : _submit,

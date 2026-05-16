@@ -397,10 +397,44 @@ class AppLocalizationsAr extends AppLocalizations {
   String get daysWithSales => 'أيام المبيعات';
 
   @override
-  String get titleUsers => 'المستخدمون';
+  String get titleUsers => 'إدارة المستخدمين';
 
   @override
   String get addUser => 'إضافة مستخدم';
+
+  @override
+  String get editUser => 'تعديل المستخدم';
+
+  @override
+  String get resetPassword => 'إعادة تعيين كلمة المرور';
+
+  @override
+  String get passwordResetSent =>
+      'تم إرسال رابط إعادة تعيين كلمة المرور إلى البريد';
+
+  @override
+  String get userUpdated => 'تم تحديث المستخدم';
+
+  @override
+  String get userActivated => 'تم تفعيل المستخدم';
+
+  @override
+  String get userDeactivated => 'تم إيقاف المستخدم';
+
+  @override
+  String get activateUser => 'تفعيل';
+
+  @override
+  String get deactivateUser => 'إيقاف';
+
+  @override
+  String get fieldRequired => 'هذا الحقل مطلوب';
+
+  @override
+  String get invalidEmail => 'بريد إلكتروني غير صالح';
+
+  @override
+  String get passwordMinLength => 'كلمة المرور ٦ أحرف على الأقل';
 
   @override
   String get titleDrivers => 'السائقون';

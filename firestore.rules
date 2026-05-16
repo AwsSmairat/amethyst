@@ -35,10 +35,8 @@ service cloud.firestore {
     }
 
     match /users/{userId} {
-      allow read: if isActiveUser() && (isStaff() || request.auth.uid == userId);
-      allow create: if isSuperAdmin();
-      allow update: if isSuperAdmin() || (isAdmin() && resource.data.role != 'super_admin');
-      allow delete: if isSuperAdmin();
+      allow read: if isActiveUser() && (isSuperAdmin() || request.auth.uid == userId);
+      allow create, update, delete: if false;
     }
 
     match /products/{productId} {

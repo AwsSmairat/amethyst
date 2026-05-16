@@ -1,4 +1,5 @@
 import 'package:amethyst/core/network/api_exception.dart';
+import 'package:amethyst/core/prototype/ui_only.dart';
 
 /// يُستبدَل في الواجهة برسالة `stationSaleSubmitInsufficientStock`.
 const String kStationDebtInsufficientStockSubmitMarker =
@@ -9,6 +10,10 @@ const String kStationDebtApiRouteMissingMarker = 'STATION_DEBT_API_ROUTE_MISSING
 const String kStationDebtForbiddenMarker = 'STATION_DEBT_FORBIDDEN';
 
 String mapStationDebtApiException(ApiException e) {
+  final String? uiOnly = uiOnlyErrorMessage(e);
+  if (uiOnly != null) {
+    return uiOnly;
+  }
   if (e.code == 'INSUFFICIENT_STOCK') {
     return kStationDebtInsufficientStockSubmitMarker;
   }

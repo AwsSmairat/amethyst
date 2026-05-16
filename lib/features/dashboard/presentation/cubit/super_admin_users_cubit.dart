@@ -1,26 +1,19 @@
-import 'package:amethyst/core/data/amethyst_api.dart';
 import 'package:amethyst/core/presentation/list_load_state.dart';
+import 'package:amethyst/core/users/super_admin_users_port.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 final class SuperAdminUsersCubit extends Cubit<ListLoadState> {
-  SuperAdminUsersCubit(this._api) : super(const ListLoadInitial());
+  SuperAdminUsersCubit(this._service, {this.roleFilter})
+      : super(const ListLoadInitial());
 
-  final AmethystApi _api;
+  final SuperAdminUsersPort _service;
+  final String? roleFilter;
 
   Future<void> load() async {
     emit(const ListLoadLoading());
     try {
-      // Server validates `limit` with max 100 (see listQuerySchema).
-      final Map<String, dynamic> data = await _api.listUsers(limit: 100);
-      final raw = data['items'];
-      final items = <Map<String, dynamic>>[];
-      if (raw is List<dynamic>) {
-        for (final dynamic e in raw) {
-          if (e is Map<String, dynamic>) {
-            items.add(e);
-          }
-        }
-      }
+      final List<Map<String, dynamic>> items =
+          await _service.listUsers(roleFilter: roleFilter);
       emit(ListLoadLoaded(items));
     } on Object catch (e) {
       emit(ListLoadFailure(e.toString()));
@@ -31,29 +24,52 @@ final class SuperAdminUsersCubit extends Cubit<ListLoadState> {
     required String fullName,
     required String email,
     required String password,
+    String? phone,
     required String role,
   }) async {
-    try {
-      await _api.createUser(
-        fullName: fullName,
-        email: email,
-        password: password,
-        role: role,
-      );
+    final String? err = await _service.createUser(
+      fullName: fullName,
+      email: email,
+      password: password,
+      phone: phone,
+      role: role,
+    );
+    if (err == null) {
       await load();
-      return null;
-    } on Object catch (e) {
-      return e.toString();
     }
+    return err;
   }
 
-  Future<String?> deleteUser(String id) async {
-    try {
-      await _api.deleteUser(id);
+  Future<String?> setUserActive({
+    required String uid,
+    required bool isActive,
+  }) async {
+    final String? err = await _service.setUserActive(uid: uid, isActive: isActive);
+    if (err == null) {
       await load();
-      return null;
-    } on Object catch (e) {
-      return e.toString();
     }
+    return err;
+  }
+
+  Future<String?> updateUser({
+    required String uid,
+    required String fullName,
+    String? phone,
+    required String role,
+  }) async {
+    final String? err = await _service.updateUser(
+      uid: uid,
+      fullName: fullName,
+      phone: phone,
+      role: role,
+    );
+    if (err == null) {
+      await load();
+    }
+    return err;
+  }
+
+  Future<String?> sendPasswordReset({required String email}) async {
+    return _service.sendPasswordReset(email: email);
   }
 }

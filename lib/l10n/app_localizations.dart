@@ -835,7 +835,7 @@ abstract class AppLocalizations {
   /// No description provided for @titleUsers.
   ///
   /// In ar, this message translates to:
-  /// **'المستخدمون'**
+  /// **'إدارة المستخدمين'**
   String get titleUsers;
 
   /// No description provided for @addUser.
@@ -843,6 +843,72 @@ abstract class AppLocalizations {
   /// In ar, this message translates to:
   /// **'إضافة مستخدم'**
   String get addUser;
+
+  /// No description provided for @editUser.
+  ///
+  /// In ar, this message translates to:
+  /// **'تعديل المستخدم'**
+  String get editUser;
+
+  /// No description provided for @resetPassword.
+  ///
+  /// In ar, this message translates to:
+  /// **'إعادة تعيين كلمة المرور'**
+  String get resetPassword;
+
+  /// No description provided for @passwordResetSent.
+  ///
+  /// In ar, this message translates to:
+  /// **'تم إرسال رابط إعادة تعيين كلمة المرور إلى البريد'**
+  String get passwordResetSent;
+
+  /// No description provided for @userUpdated.
+  ///
+  /// In ar, this message translates to:
+  /// **'تم تحديث المستخدم'**
+  String get userUpdated;
+
+  /// No description provided for @userActivated.
+  ///
+  /// In ar, this message translates to:
+  /// **'تم تفعيل المستخدم'**
+  String get userActivated;
+
+  /// No description provided for @userDeactivated.
+  ///
+  /// In ar, this message translates to:
+  /// **'تم إيقاف المستخدم'**
+  String get userDeactivated;
+
+  /// No description provided for @activateUser.
+  ///
+  /// In ar, this message translates to:
+  /// **'تفعيل'**
+  String get activateUser;
+
+  /// No description provided for @deactivateUser.
+  ///
+  /// In ar, this message translates to:
+  /// **'إيقاف'**
+  String get deactivateUser;
+
+  /// No description provided for @fieldRequired.
+  ///
+  /// In ar, this message translates to:
+  /// **'هذا الحقل مطلوب'**
+  String get fieldRequired;
+
+  /// No description provided for @invalidEmail.
+  ///
+  /// In ar, this message translates to:
+  /// **'بريد إلكتروني غير صالح'**
+  String get invalidEmail;
+
+  /// No description provided for @passwordMinLength.
+  ///
+  /// In ar, this message translates to:
+  /// **'كلمة المرور ٦ أحرف على الأقل'**
+  String get passwordMinLength;
 
   /// No description provided for @titleDrivers.
   ///

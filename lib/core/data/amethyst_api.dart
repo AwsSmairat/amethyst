@@ -1,6 +1,5 @@
 import 'dart:typed_data';
 
-import 'package:amethyst/core/firebase/amethyst_firebase_backend.dart';
 import 'package:amethyst/core/network/api_exception.dart';
 
 Map<String, dynamic> flattenSuperAdminDashboard(Map<String, dynamic> root) {
@@ -47,18 +46,21 @@ Map<String, dynamic> flattenDriverDashboard(Map<String, dynamic> root) {
 final class AmethystApi {
   AmethystApi(this._backend);
 
-  final AmethystFirebaseBackend _backend;
+  /// [PrototypeAmethystBackend] — static sample data for UI preview.
+  final Object _backend;
+
+  dynamic get _b => _backend;
 
   Future<Map<String, dynamic>> login({
     required String email,
     required String password,
   }) =>
-      _backend.login(email: email, password: password);
+      _b.login(email: email, password: password);
 
-  Future<Map<String, dynamic>> me() => _backend.me();
+  Future<Map<String, dynamic>> me() => _b.me();
 
   Future<Map<String, dynamic>> getDashboardSuperAdmin() async {
-    final map = await _backend.getDashboardSuperAdmin();
+    final map = await _b.getDashboardSuperAdmin();
     return flattenSuperAdminDashboard(map);
   }
 
@@ -66,17 +68,17 @@ final class AmethystApi {
     int? year,
     int? month,
   }) =>
-      _backend.getSuperAdminCartonSummary(year: year, month: month);
+      _b.getSuperAdminCartonSummary(year: year, month: month);
 
-  Future<Map<String, dynamic>> getDashboardAdmin() => _backend.getDashboardAdmin();
+  Future<Map<String, dynamic>> getDashboardAdmin() => _b.getDashboardAdmin();
 
   Future<Map<String, dynamic>> getDashboardDriver() async {
-    final map = await _backend.getDashboardDriver();
+    final map = await _b.getDashboardDriver();
     return flattenDriverDashboard(map);
   }
 
   Future<Map<String, dynamic>> listProducts({int page = 1, int limit = 100}) =>
-      _backend.listProducts(page: page, limit: limit);
+      _b.listProducts(page: page, limit: limit);
 
   Future<Map<String, dynamic>> createProduct({
     required String name,
@@ -84,7 +86,7 @@ final class AmethystApi {
     required double price,
     int stationStock = 0,
   }) =>
-      _backend.createProduct(
+      _b.createProduct(
         name: name,
         unitType: unitType,
         price: price,
@@ -95,49 +97,34 @@ final class AmethystApi {
     required String id,
     required int stationStock,
   }) =>
-      _backend.patchProductStationStock(id: id, stationStock: stationStock);
+      _b.patchProductStationStock(id: id, stationStock: stationStock);
 
   Future<Map<String, dynamic>> updateProduct({
     required String id,
     double? price,
   }) =>
-      _backend.updateProduct(id: id, price: price);
+      _b.updateProduct(id: id, price: price);
 
-  Future<void> deleteProduct(String id) => _backend.deleteProduct(id);
+  Future<void> deleteProduct(String id) => _b.deleteProduct(id);
 
   Future<Map<String, dynamic>> listVehicles({int page = 1, int limit = 100}) =>
-      _backend.listVehicles(page: page, limit: limit);
+      _b.listVehicles(page: page, limit: limit);
 
   Future<Map<String, dynamic>> createVehicle({
     required String vehicleNumber,
     String? driverId,
     String? notes,
   }) =>
-      _backend.createVehicle(
+      _b.createVehicle(
         vehicleNumber: vehicleNumber,
         driverId: driverId,
         notes: notes,
       );
 
-  Future<void> deleteVehicle(String id) => _backend.deleteVehicle(id);
+  Future<void> deleteVehicle(String id) => _b.deleteVehicle(id);
 
   Future<Map<String, dynamic>> listUsers({int page = 1, int limit = 100}) =>
-      _backend.listUsers(page: page, limit: limit);
-
-  Future<Map<String, dynamic>> createUser({
-    required String fullName,
-    required String email,
-    required String password,
-    required String role,
-  }) =>
-      _backend.createUser(
-        fullName: fullName,
-        email: email,
-        password: password,
-        role: role,
-      );
-
-  Future<void> deleteUser(String id) => _backend.deleteUser(id);
+      _b.listUsers(page: page, limit: limit);
 
   Future<Map<String, dynamic>> listVehicleLoads({
     int page = 1,
@@ -148,7 +135,7 @@ final class AmethystApi {
     String? dateFrom,
     String? dateTo,
   }) =>
-      _backend.listVehicleLoads(
+      _b.listVehicleLoads(
         page: page,
         limit: limit,
         status: status,
@@ -158,7 +145,7 @@ final class AmethystApi {
         dateTo: dateTo,
       );
 
-  Future<Map<String, dynamic>> driverCurrentLoad() => _backend.driverCurrentLoad();
+  Future<Map<String, dynamic>> driverCurrentLoad() => _b.driverCurrentLoad();
 
   Future<Map<String, dynamic>> createVehicleLoad({
     required String vehicleId,
@@ -167,7 +154,7 @@ final class AmethystApi {
     required int quantityLoaded,
     required String loadDate,
   }) =>
-      _backend.createVehicleLoad(
+      _b.createVehicleLoad(
         vehicleId: vehicleId,
         driverId: driverId,
         productId: productId,
@@ -176,7 +163,7 @@ final class AmethystApi {
       );
 
   Future<Map<String, dynamic>> listStationSales({int page = 1, int limit = 100}) =>
-      _backend.listStationSales(page: page, limit: limit);
+      _b.listStationSales(page: page, limit: limit);
 
   Future<Map<String, dynamic>> createStationSale({
     required String productId,
@@ -186,7 +173,7 @@ final class AmethystApi {
     int? fillingLineSlot,
     String? note,
   }) =>
-      _backend.createStationSale(
+      _b.createStationSale(
         productId: productId,
         quantity: quantity,
         unitPrice: unitPrice,
@@ -199,21 +186,21 @@ final class AmethystApi {
     required String debtorName,
     required List<Map<String, dynamic>> lines,
   }) =>
-      _backend.createStationDebtEntries(debtorName: debtorName, lines: lines);
+      _b.createStationDebtEntries(debtorName: debtorName, lines: lines);
 
   Future<Map<String, dynamic>> listStationDebtEntries({
     int page = 1,
     int limit = 100,
   }) =>
-      _backend.listStationDebtEntries(page: page, limit: limit);
+      _b.listStationDebtEntries(page: page, limit: limit);
 
   Future<Map<String, dynamic>> repayStationDebt({required String debtorName}) =>
-      _backend.repayStationDebt(debtorName: debtorName);
+      _b.repayStationDebt(debtorName: debtorName);
 
   Future<Map<String, dynamic>> repayStationDebtFromVehicle({
     required String debtorName,
   }) =>
-      _backend.repayStationDebtFromVehicle(debtorName: debtorName);
+      _b.repayStationDebtFromVehicle(debtorName: debtorName);
 
   Future<Map<String, dynamic>> listVehicleSales({
     int page = 1,
@@ -223,7 +210,7 @@ final class AmethystApi {
     String? dateFrom,
     String? dateTo,
   }) =>
-      _backend.listVehicleSales(
+      _b.listVehicleSales(
         page: page,
         limit: limit,
         vehicleId: vehicleId,
@@ -239,7 +226,7 @@ final class AmethystApi {
     required double unitPrice,
     String saleDestination = 'home',
   }) =>
-      _backend.createVehicleSale(
+      _b.createVehicleSale(
         vehicleId: vehicleId,
         productId: productId,
         quantity: quantity,
@@ -253,7 +240,7 @@ final class AmethystApi {
     String? dateFrom,
     String? dateTo,
   }) =>
-      _backend.listExpenses(
+      _b.listExpenses(
         page: page,
         limit: limit,
         dateFrom: dateFrom,
@@ -267,7 +254,7 @@ final class AmethystApi {
     Uint8List? receiptBytes,
     String? receiptFilename,
   }) =>
-      _backend.createExpense(
+      _b.createExpense(
         vehicleId: vehicleId,
         amount: amount,
         note: note,
@@ -276,21 +263,21 @@ final class AmethystApi {
       );
 
   Future<Map<String, dynamic>> listReturns({int page = 1, int limit = 100}) =>
-      _backend.listReturns(page: page, limit: limit);
+      _b.listReturns(page: page, limit: limit);
 
   Future<Map<String, dynamic>> createReturn({
     required String vehicleLoadId,
     required int quantityReturned,
   }) =>
-      _backend.createReturn(
+      _b.createReturn(
         vehicleLoadId: vehicleLoadId,
         quantityReturned: quantityReturned,
       );
 
-  Future<Map<String, dynamic>> reportsInventory() => _backend.reportsInventory();
+  Future<Map<String, dynamic>> reportsInventory() => _b.reportsInventory();
 
   Future<Map<String, dynamic>> reportsSalesWorkingDays() =>
-      _backend.reportsSalesWorkingDays();
+      _b.reportsSalesWorkingDays();
 
   Future<Map<String, dynamic>> reportsProfitLoss({
     int page = 1,
@@ -298,7 +285,7 @@ final class AmethystApi {
     String? dateFrom,
     String? dateTo,
   }) =>
-      _backend.reportsProfitLoss(
+      _b.reportsProfitLoss(
         page: page,
         limit: limit,
         dateFrom: dateFrom,
@@ -309,7 +296,7 @@ final class AmethystApi {
     int? year,
     int? month,
   }) =>
-      _backend.reportsSalesMonthly(year: year, month: month);
+      _b.reportsSalesMonthly(year: year, month: month);
 }
 
 extension AmethystApiErrors on AmethystApi {

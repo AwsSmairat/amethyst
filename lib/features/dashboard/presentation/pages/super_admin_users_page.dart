@@ -1,4 +1,4 @@
-import 'package:amethyst/core/data/amethyst_api.dart';
+import 'package:amethyst/core/users/super_admin_users_port.dart';
 import 'package:amethyst/core/l10n/context_l10n.dart';
 import 'package:amethyst/core/presentation/list_load_state.dart';
 import 'package:amethyst/core/theme/app_colors.dart';
@@ -7,6 +7,7 @@ import 'package:amethyst/features/auth/presentation/cubit/auth_cubit.dart';
 import 'package:amethyst/features/auth/presentation/cubit/auth_state.dart';
 import 'package:amethyst/features/dashboard/presentation/cubit/super_admin_users_cubit.dart';
 import 'package:amethyst/features/dashboard/presentation/widgets/add_super_admin_user_sheet.dart';
+import 'package:amethyst/features/dashboard/presentation/widgets/edit_super_admin_user_sheet.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
@@ -16,7 +17,7 @@ class SuperAdminUsersPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
-      create: (_) => SuperAdminUsersCubit(sl<AmethystApi>())..load(),
+      create: (_) => SuperAdminUsersCubit(sl<SuperAdminUsersPort>())..load(),
       child: const _SuperAdminUsersBody(),
     );
   }
@@ -35,47 +36,26 @@ class _SuperAdminUsersBody extends StatelessWidget {
     };
   }
 
-  Future<void> _confirmDelete(
+  String? _selfId(BuildContext context) {
+    final AuthState state = context.read<AuthCubit>().state;
+    if (state is AuthAuthenticated) {
+      return state.user.id;
+    }
+    return null;
+  }
+
+  Future<void> _toggleActive(
     BuildContext context,
     SuperAdminUsersCubit cubit,
     Map<String, dynamic> user,
   ) async {
     final l10n = context.l10n;
     final String? id = user['id']?.toString();
-    final String name = user['fullName']?.toString() ?? id ?? '';
     if (id == null) {
       return;
     }
-    final String? selfId = context.read<AuthCubit>().state is AuthAuthenticated
-        ? (context.read<AuthCubit>().state as AuthAuthenticated).user.id
-        : null;
-    if (selfId != null && id == selfId) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(l10n.cannotDeleteSelf)),
-      );
-      return;
-    }
-    final bool? ok = await showDialog<bool>(
-      context: context,
-      builder: (BuildContext ctx) => AlertDialog(
-        title: Text(l10n.deleteUserConfirmTitle),
-        content: Text(l10n.deleteUserConfirmBody(name)),
-        actions: <Widget>[
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(false),
-            child: Text(l10n.cancel),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.of(ctx).pop(true),
-            child: Text(l10n.deleteUser),
-          ),
-        ],
-      ),
-    );
-    if (ok != true || !context.mounted) {
-      return;
-    }
-    final String? err = await cubit.deleteUser(id);
+    final bool isActive = user['isActive'] == true;
+    final String? err = await cubit.setUserActive(uid: id, isActive: !isActive);
     if (!context.mounted) {
       return;
     }
@@ -83,11 +63,38 @@ class _SuperAdminUsersBody extends StatelessWidget {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(err)),
       );
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(l10n.userDeleted)),
-      );
+      return;
     }
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(isActive ? l10n.userDeactivated : l10n.userActivated),
+      ),
+    );
+  }
+
+  Future<void> _sendPasswordReset(
+    BuildContext context,
+    SuperAdminUsersCubit cubit,
+    Map<String, dynamic> user,
+  ) async {
+    final l10n = context.l10n;
+    final String? email = user['email']?.toString();
+    if (email == null || email.isEmpty) {
+      return;
+    }
+    final String? err = await cubit.sendPasswordReset(email: email);
+    if (!context.mounted) {
+      return;
+    }
+    if (err != null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(err)),
+      );
+      return;
+    }
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(l10n.passwordResetSent)),
+    );
   }
 
   @override
@@ -137,18 +144,25 @@ class _SuperAdminUsersBody extends StatelessWidget {
           if (items.isEmpty) {
             return Center(child: Text(l10n.nothingHereYet));
           }
+          final String? selfId = _selfId(context);
           return ListView.separated(
             padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
             itemCount: items.length,
             separatorBuilder: (_, __) => const Divider(height: 1),
             itemBuilder: (BuildContext context, int i) {
               final Map<String, dynamic> u = items[i];
+              final String id = u['id']?.toString() ?? '';
               final String title =
                   u['fullName']?.toString() ?? u['email']?.toString() ?? '';
               final String role = _roleLabel(context, u['role']?.toString());
-              final String status =
-                  u['isActive'] == true ? l10n.active : l10n.inactive;
-              final String sub = '${u['email'] ?? ''}\n$role · $status';
+              final bool isActive = u['isActive'] == true;
+              final String status = isActive ? l10n.active : l10n.inactive;
+              final String phone = u['phone']?.toString() ?? '—';
+              final String sub = '${u['email'] ?? ''}\n$phone\n$role · $status';
+              final bool isSuperAdmin = u['role'] == 'super_admin';
+              final bool isSelf = selfId != null && id == selfId;
+              final SuperAdminUsersCubit cubit =
+                  context.read<SuperAdminUsersCubit>();
               return ListTile(
                 title: Text(
                   title,
@@ -161,18 +175,44 @@ class _SuperAdminUsersBody extends StatelessWidget {
                         color: AppColors.onSurfaceVariant,
                       ),
                 ),
-                trailing: IconButton(
-                  tooltip: l10n.deleteUser,
-                  icon: Icon(
-                    Icons.delete_outline,
-                    color: Theme.of(context).colorScheme.error,
-                  ),
-                  onPressed: () => _confirmDelete(
-                    context,
-                    context.read<SuperAdminUsersCubit>(),
-                    u,
-                  ),
-                ),
+                isThreeLine: true,
+                trailing: isSuperAdmin
+                    ? null
+                    : SizedBox(
+                        width: 132,
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.end,
+                          children: <Widget>[
+                            IconButton(
+                              tooltip: l10n.editUser,
+                              icon: const Icon(Icons.edit_outlined),
+                              onPressed: () =>
+                                  showEditSuperAdminUserSheet(context, u),
+                            ),
+                            IconButton(
+                              tooltip: l10n.resetPassword,
+                              icon: const Icon(Icons.mail_outline),
+                              onPressed: () =>
+                                  _sendPasswordReset(context, cubit, u),
+                            ),
+                            IconButton(
+                              tooltip:
+                                  isActive ? l10n.deactivateUser : l10n.activateUser,
+                              icon: Icon(
+                                isActive
+                                    ? Icons.block_outlined
+                                    : Icons.check_circle_outline,
+                                color: isActive
+                                    ? Theme.of(context).colorScheme.error
+                                    : Theme.of(context).colorScheme.primary,
+                              ),
+                              onPressed: isSelf
+                                  ? null
+                                  : () => _toggleActive(context, cubit, u),
+                            ),
+                          ],
+                        ),
+                      ),
               );
             },
           );

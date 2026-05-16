@@ -1,3 +1,4 @@
+import 'package:amethyst/core/prototype/ui_only.dart';
 import 'package:amethyst/features/record_operations/domain/usecases/record_operation_usecases.dart';
 import 'package:amethyst/features/record_operations/presentation/cubit/submit_state.dart';
 import 'dart:typed_data';
@@ -26,7 +27,7 @@ final class ExpenseSubmitCubit extends Cubit<SubmitState> {
       );
       emit(const SubmitSuccess());
     } on Object catch (e) {
-      emit(SubmitFailure(e.toString()));
+      emit(SubmitFailure(errorMessageFrom(e)));
     }
   }
 }
