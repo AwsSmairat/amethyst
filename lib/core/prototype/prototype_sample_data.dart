@@ -1,4 +1,6 @@
 import 'package:amethyst/core/prototype/prototype_session.dart';
+import 'package:amethyst/core/station_balance/station_balance_catalog.dart';
+import 'package:amethyst/core/vehicle_load/vehicle_load_catalog.dart';
 import 'package:amethyst/features/auth/domain/entities/user_entity.dart';
 
 /// Static sample maps for UI prototype lists and dashboards.
@@ -46,29 +48,82 @@ final class PrototypeSampleData {
         ),
       ];
 
-  static List<Map<String, dynamic>> get products => <Map<String, dynamic>>[
-        _product(
-          id: 'p_water',
-          name: 'مياه 19 لتر',
-          unitType: 'bottle',
-          price: 25,
-          stationStock: 420,
-        ),
-        _product(
-          id: 'p_carton',
-          name: 'كراتين مياه',
-          unitType: 'carton',
-          price: 180,
-          stationStock: 85,
-        ),
-        _product(
-          id: 'p_gallon',
-          name: 'جالون 5 لتر',
-          unitType: 'bottle',
-          price: 12,
-          stationStock: 30,
-        ),
-      ];
+  static final List<Map<String, dynamic>> _products = <Map<String, dynamic>>[
+    _product(
+      id: 'p_water',
+      name: 'قاروره ٢٠ لتر',
+      unitType: 'bottle',
+      price: 25,
+      stationStock: 420,
+    ),
+    _product(
+      id: 'p_mahdi_carton',
+      name: 'ك مهدي',
+      unitType: 'carton',
+      price: 180,
+      stationStock: 85,
+    ),
+    _product(
+      id: 'p_gallon',
+      name: 'جالون ٢٠ لتر',
+      unitType: 'bottle',
+      price: 12,
+      stationStock: 30,
+    ),
+    _product(
+      id: 'p_coupon50',
+      name: 'Coupon 3',
+      unitType: 'coupon',
+      price: 0,
+      stationStock: 0,
+    ),
+  ];
+
+  static List<Map<String, dynamic>> get products =>
+      List<Map<String, dynamic>>.from(_products);
+
+  static void addProduct(Map<String, dynamic> product) {
+    _products.add(product);
+  }
+
+  /// تحديث مخزون المحطة في الذاكرة (نموذج UI).
+  static bool setStationStock(String productId, int stationStock) {
+    for (final Map<String, dynamic> p in _products) {
+      if (p['id']?.toString() == productId) {
+        p['stationStock'] = stationStock;
+        p['stock'] = stationStock;
+        return true;
+      }
+    }
+    return false;
+  }
+
+  /// إنشاء أو تحديث منتج لصف رصيد المحطة (عرض فقط).
+  static void upsertStationBalanceRow({
+    required int rowIndex,
+    required int stationStock,
+  }) {
+    final List<Map<String, dynamic>> catalog = products;
+    final Map<String, dynamic>? existing = resolveStationBalanceProduct(
+      products: catalog,
+      rowIndex: rowIndex,
+    );
+    if (existing != null) {
+      setStationStock(existing['id']!.toString(), stationStock);
+      return;
+    }
+    final ({String name, String unitType}) spec =
+        stationBalanceSeedSpecForRow(rowIndex);
+    _products.add(
+      _product(
+        id: 'p_row_$rowIndex',
+        name: spec.name,
+        unitType: spec.unitType,
+        price: 1,
+        stationStock: stationStock,
+      ),
+    );
+  }
 
   static List<Map<String, dynamic>> get vehicles => <Map<String, dynamic>>[
         <String, dynamic>{
@@ -177,10 +232,21 @@ final class PrototypeSampleData {
     ];
   }
 
+  static final List<Map<String, dynamic>> _vehicleLoads =
+      <Map<String, dynamic>>[];
+
   static List<Map<String, dynamic>> get vehicleLoads {
+    _ensureInitialVehicleLoad();
+    return List<Map<String, dynamic>>.from(_vehicleLoads);
+  }
+
+  static void _ensureInitialVehicleLoad() {
+    if (_vehicleLoads.isNotEmpty) {
+      return;
+    }
     final Map<String, dynamic> vehicle = vehicleById('v1');
     final Map<String, dynamic> product = productById('p_water');
-    return <Map<String, dynamic>>[
+    _vehicleLoads.add(
       <String, dynamic>{
         'id': 'load1',
         'vehicleId': vehicle['id'],
@@ -197,13 +263,81 @@ final class PrototypeSampleData {
         'createdAt': _today,
         'createdBy': userBrief('proto_admin'),
       },
-    ];
+    );
   }
 
+  /// إنشاء سطر تحميل في الذاكرة (نموذج UI).
+  static Map<String, dynamic> addVehicleLoad({
+    required String vehicleId,
+    required String driverId,
+    required String productId,
+    required int quantityLoaded,
+    required String loadDate,
+  }) {
+    _ensureInitialVehicleLoad();
+    final Map<String, dynamic> vehicle = vehicleById(vehicleId);
+    final Map<String, dynamic> product = productById(productId);
+    final DateTime parsedDate = DateTime.tryParse(loadDate) ?? _today;
+    final Map<String, dynamic> row = <String, dynamic>{
+      'id': 'load_${_vehicleLoads.length + 1}',
+      'vehicleId': vehicle['id'],
+      'vehicle': vehicle,
+      'driverId': driverId,
+      'driver': userBrief(driverId),
+      'productId': product['id'],
+      'product': product,
+      'quantityLoaded': quantityLoaded,
+      'quantitySold': 0,
+      'quantityReturned': 0,
+      'status': 'open',
+      'loadDate': parsedDate,
+      'createdAt': _now,
+      'createdBy': userBrief(PrototypeSession.current?.id ?? 'proto_admin'),
+    };
+    _vehicleLoads.add(row);
+    return row;
+  }
+
+  /// يضمن وجود منتج لصف التحميل ويعيد معرّفه.
+  static String ensureVehicleLoadRowProductId(int rowIndex) {
+    final List<Map<String, dynamic>> catalog = products;
+    final Map<String, dynamic>? existing = resolveVehicleLoadRowProduct(
+      products: catalog,
+      rowIndex: rowIndex,
+    );
+    if (existing != null) {
+      return existing['id']!.toString();
+    }
+    final ({String name, String unitType}) spec =
+        vehicleLoadSeedSpecForRow(rowIndex);
+    final String id = 'p_vload_$rowIndex';
+    addProduct(
+      _product(
+        id: id,
+        name: spec.name,
+        unitType: spec.unitType,
+        price: 1,
+        stationStock: 0,
+      ),
+    );
+    return id;
+  }
+
+  static final List<Map<String, dynamic>> _vehicleSales =
+      <Map<String, dynamic>>[];
+
   static List<Map<String, dynamic>> get vehicleSales {
+    _ensureInitialVehicleSales();
+    return List<Map<String, dynamic>>.from(_vehicleSales);
+  }
+
+  static void _ensureInitialVehicleSales() {
+    if (_vehicleSales.isNotEmpty) {
+      return;
+    }
     final Map<String, dynamic> vehicle = vehicleById('v1');
     final Map<String, dynamic> product = productById('p_water');
-    return <Map<String, dynamic>>[
+    _vehicleSales.add(
       <String, dynamic>{
         'id': 'vs1',
         'vehicleId': vehicle['id'],
@@ -216,9 +350,102 @@ final class PrototypeSampleData {
         'unitPrice': 25.0,
         'totalAmount': 150.0,
         'saleDestination': 'home',
-        'createdAt': _today,
+        'createdAt': _today.toIso8601String(),
       },
-    ];
+    );
+  }
+
+  /// خصم الكمية من حمولة السيارة المفتوحة (يزيد `quantitySold`).
+  static void deductVehicleLoadForSale({
+    required String productId,
+    required int quantity,
+    String? driverId,
+    String? vehicleId,
+  }) {
+    _ensureInitialVehicleLoad();
+    if (quantity <= 0) {
+      return;
+    }
+    final Map<String, dynamic> soldProduct = productById(productId);
+    final String soldName = soldProduct['name']?.toString() ?? '';
+    var remaining = quantity;
+
+    bool lineMatches(Map<String, dynamic> load) {
+      if (load['status']?.toString() == 'closed') {
+        return false;
+      }
+      if (driverId != null &&
+          driverId.isNotEmpty &&
+          load['driverId']?.toString() != driverId) {
+        return false;
+      }
+      if (vehicleId != null &&
+          vehicleId.isNotEmpty &&
+          load['vehicleId']?.toString() != vehicleId) {
+        return false;
+      }
+      if (load['productId']?.toString() == productId) {
+        return true;
+      }
+      final String loadName =
+          (load['product'] as Map<String, dynamic>?)?['name']?.toString() ?? '';
+      if (loadName.isEmpty || soldName.isEmpty) {
+        return false;
+      }
+      return stationBalanceProductNamesMatch(loadName, soldName);
+    }
+
+    for (final Map<String, dynamic> load in _vehicleLoads) {
+      if (remaining <= 0) {
+        break;
+      }
+      if (!lineMatches(load)) {
+        continue;
+      }
+      final int onLoad = _remainingForLoad(load);
+      if (onLoad <= 0) {
+        continue;
+      }
+      final int take = remaining < onLoad ? remaining : onLoad;
+      load['quantitySold'] = _intField(load, 'quantitySold') + take;
+      load['product'] = productById(load['productId']?.toString());
+      remaining -= take;
+    }
+  }
+
+  static Map<String, dynamic> addVehicleSale({
+    required String vehicleId,
+    required String productId,
+    required int quantity,
+    required double unitPrice,
+    String saleDestination = 'home',
+  }) {
+    _ensureInitialVehicleSales();
+    final Map<String, dynamic> vehicle = vehicleById(vehicleId);
+    final String? driverId = vehicle['driverId']?.toString();
+    final Map<String, dynamic> product = productById(productId);
+    deductVehicleLoadForSale(
+      productId: productId,
+      quantity: quantity,
+      driverId: driverId,
+      vehicleId: vehicleId,
+    );
+    final Map<String, dynamic> row = <String, dynamic>{
+      'id': 'vs_${_vehicleSales.length + 1}',
+      'vehicleId': vehicle['id'],
+      'vehicle': vehicle,
+      'driverId': driverId,
+      'driver': userBrief(driverId),
+      'productId': product['id'],
+      'product': product,
+      'quantity': quantity,
+      'unitPrice': unitPrice,
+      'totalAmount': unitPrice * quantity,
+      'saleDestination': saleDestination,
+      'createdAt': _now.toIso8601String(),
+    };
+    _vehicleSales.add(row);
+    return row;
   }
 
   static List<Map<String, dynamic>> get expenses => <Map<String, dynamic>>[
@@ -327,55 +554,163 @@ final class PrototypeSampleData {
         'productsCount': products.length,
       };
 
+  static DateTime _dateOnly(DateTime value) =>
+      DateTime(value.year, value.month, value.day);
+
+  static DateTime _loadDateOnly(Map<String, dynamic> load) {
+    final Object? raw = load['loadDate'];
+    if (raw is DateTime) {
+      return _dateOnly(raw);
+    }
+    if (raw is String) {
+      final DateTime? parsed = DateTime.tryParse(raw);
+      if (parsed != null) {
+        return _dateOnly(parsed);
+      }
+    }
+    return _today;
+  }
+
+  static int _intField(Map<String, dynamic> map, String key) {
+    final Object? v = map[key];
+    if (v is int) {
+      return v;
+    }
+    if (v is num) {
+      return v.toInt();
+    }
+    return int.tryParse(v?.toString() ?? '') ?? 0;
+  }
+
+  static int _remainingForLoad(Map<String, dynamic> load) {
+    final int loaded = _intField(load, 'quantityLoaded');
+    final int sold = _intField(load, 'quantitySold');
+    final int returned = _intField(load, 'quantityReturned');
+    final int remaining = loaded - sold - returned;
+    return remaining < 0 ? 0 : remaining;
+  }
+
+  static Map<String, dynamic> _enrichLoadRow(Map<String, dynamic> load) {
+    final String? productId = load['productId']?.toString();
+    final Map<String, dynamic> product = productId != null
+        ? productById(productId)
+        : Map<String, dynamic>.from(
+            load['product'] as Map<String, dynamic>? ?? <String, dynamic>{},
+          );
+    return <String, dynamic>{
+      ...Map<String, dynamic>.from(load),
+      'product': product,
+      'remaining': _remainingForLoad(load),
+    };
+  }
+
+  static String _sessionDriverId() =>
+      PrototypeSession.current?.id ?? 'proto_driver';
+
+  static Map<String, dynamic>? _assignedVehicleForDriver(String driverId) {
+    for (final Map<String, dynamic> v in vehicles) {
+      if (v['driverId']?.toString() == driverId) {
+        return Map<String, dynamic>.from(v);
+      }
+    }
+    return null;
+  }
+
+  /// تحميلات مفتوحة للسائق؛ يُفضَّل تحميلات اليوم وإلا كل المفتوحة (نموذج عرض).
+  static List<Map<String, dynamic>> _openLoadsForDriver(String driverId) {
+    _ensureInitialVehicleLoad();
+    final DateTime today = _dateOnly(DateTime.now());
+    final List<Map<String, dynamic>> open = _vehicleLoads
+        .where((Map<String, dynamic> l) {
+          if (l['driverId']?.toString() != driverId) {
+            return false;
+          }
+          final String status = l['status']?.toString() ?? 'open';
+          return status != 'closed';
+        })
+        .map(_enrichLoadRow)
+        .toList(growable: false);
+    final List<Map<String, dynamic>> todayLoads = open
+        .where((Map<String, dynamic> l) => _loadDateOnly(l) == today)
+        .toList(growable: false);
+    return todayLoads.isNotEmpty ? todayLoads : open;
+  }
+
+  static Map<String, dynamic> driverCurrentLoad() {
+    final String driverId = _sessionDriverId();
+    final Map<String, dynamic>? vehicle = _assignedVehicleForDriver(driverId);
+    if (vehicle == null) {
+      return <String, dynamic>{
+        'vehicle': null,
+        'loads': <Map<String, dynamic>>[],
+      };
+    }
+    final List<Map<String, dynamic>> loads = _openLoadsForDriver(driverId);
+    return <String, dynamic>{
+      'vehicle': vehicle,
+      'loads': loads,
+    };
+  }
+
   static Map<String, dynamic> getDashboardDriver() {
-    final Map<String, dynamic> vehicle = vehicleById('v1');
-    final Map<String, dynamic> product = productById('p_water');
-    final List<Map<String, dynamic>> loadsToday = <Map<String, dynamic>>[
-      vehicleLoads.first,
+    final Map<String, dynamic> current = driverCurrentLoad();
+    final Map<String, dynamic>? vehicle =
+        current['vehicle'] as Map<String, dynamic>?;
+    final List<Map<String, dynamic>> loads =
+        (current['loads'] as List<dynamic>? ?? <dynamic>[])
+            .whereType<Map<String, dynamic>>()
+            .toList(growable: false);
+    final List<Map<String, dynamic>> remainingQuantities =
+        <Map<String, dynamic>>[
+      for (final Map<String, dynamic> l in loads)
+        <String, dynamic>{
+          'productId': l['productId'],
+          'productName':
+              (l['product'] as Map<String, dynamic>?)?['name']?.toString() ??
+                  '',
+          'remaining': l['remaining'],
+          'quantityReturned': _intField(l, 'quantityReturned'),
+          'quantitySold': _intField(l, 'quantitySold'),
+        },
     ];
-    final List<Map<String, dynamic>> remainingQuantities = <Map<String, dynamic>>[
-      <String, dynamic>{
-        'productId': product['id'],
-        'productName': product['name'],
-        'remaining': 30,
-        'quantityReturned': 2,
-        'quantitySold': 18,
-      },
-    ];
+    var remainingOnVehicle = 0;
+    var soldToday = 0;
+    var returnedToday = 0;
+    for (final Map<String, dynamic> l in loads) {
+      remainingOnVehicle += _intField(l, 'remaining');
+      soldToday += _intField(l, 'quantitySold');
+      returnedToday += _intField(l, 'quantityReturned');
+    }
+    final Map<String, dynamic> assignedVehicle =
+        vehicle ?? vehicleById('v1');
     return <String, dynamic>{
       'role': 'driver',
       'metrics': <String, dynamic>{
         'totalExpensesToday': 350.0,
         'vehicleSalesToday': 150.0,
-        'remainingOnVehicle': 30,
+        'remainingOnVehicle': remainingOnVehicle,
       },
       'details': <String, dynamic>{
-        'assignedVehicle': vehicle,
+        'assignedVehicle': assignedVehicle,
         'remainingQuantities': remainingQuantities,
         'notesSummary': <Map<String, dynamic>>[
           <String, dynamic>{'note': 'تسليم عينة — عرض فقط', 'at': _today},
         ],
-        'productsLoadedToday': loadsToday,
-        'soldQuantitiesToday': 6,
-        'returnedQuantitiesToday': 2,
+        'productsLoadedToday': loads,
+        'soldQuantitiesToday': soldToday,
+        'returnedQuantitiesToday': returnedToday,
       },
-      'assignedVehicle': vehicle,
-      'productsLoadedToday': loadsToday,
-      'soldQuantitiesToday': 6,
+      'assignedVehicle': assignedVehicle,
+      'productsLoadedToday': loads,
+      'soldQuantitiesToday': soldToday,
       'vehicleSalesAmountToday': 150.0,
       'remainingQuantities': remainingQuantities,
-      'remainingOnVehicle': 30,
-      'returnedQuantitiesToday': 2,
+      'remainingOnVehicle': remainingOnVehicle,
+      'returnedQuantitiesToday': returnedToday,
       'totalExpensesToday': 350.0,
       'notesSummary': <Map<String, dynamic>>[
         <String, dynamic>{'note': 'تسليم عينة — عرض فقط', 'at': _today},
       ],
-    };
-  }
-
-  static Map<String, dynamic> driverCurrentLoad() {
-    return <String, dynamic>{
-      'item': vehicleLoads.first,
     };
   }
 

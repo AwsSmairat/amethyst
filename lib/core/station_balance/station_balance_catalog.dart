@@ -163,6 +163,10 @@ String normalizeStationBalanceProductName(String raw) {
   return s.toLowerCase();
 }
 
+/// مطابقة مرنة بين اسم منتج في الكتالوج/الحمولة واسم قالب الواجهة.
+bool stationBalanceProductNamesMatch(String dbName, String candidate) =>
+    _stationBalanceNamesMatch(dbName, candidate);
+
 bool _stationBalanceNamesMatch(String dbName, String candidate) {
   final String a = normalizeStationBalanceProductName(dbName);
   final String b = normalizeStationBalanceProductName(candidate);
@@ -195,6 +199,27 @@ Map<String, dynamic>? _resolveStationBalanceProductFromPool({
     }
   }
   return null;
+}
+
+/// يعيد أول منتج نشط يطابق أحد الأسماء المرشّحة (أو منتج معطّل إن لم يوجد نشط).
+Map<String, dynamic>? resolveProductByNameCandidates({
+  required List<Map<String, dynamic>> products,
+  required List<String> candidates,
+}) {
+  final List<Map<String, dynamic>> active = products
+      .where((Map<String, dynamic> p) => p['isActive'] != false)
+      .toList(growable: false);
+  final Map<String, dynamic>? fromActive = _resolveStationBalanceProductFromPool(
+    pool: active,
+    candidates: candidates,
+  );
+  if (fromActive != null) {
+    return fromActive;
+  }
+  return _resolveStationBalanceProductFromPool(
+    pool: products,
+    candidates: candidates,
+  );
 }
 
 /// مجموع `stationStock` لكل منتجات نشطة تطابق مرشّحات صف الرصيد (بدون تكرار `id`).
@@ -264,6 +289,86 @@ Map<String, dynamic>? resolveStationBalanceProduct({
     pool: products,
     candidates: candidates,
   );
+}
+
+/// اسم بيع «متجر» للكرتون — يُخصم من مخزون «ك مهدي» وليس من منتج مستقل.
+const String kStoreMahdiProductApiName = 'مهدي متجر';
+
+/// أسماء مخزون الكرتون الكنسي (بدون «مهدي متجر»).
+const List<String> kMahdiCartonStockNameCandidates = <String>[
+  'Water Carton',
+  'Carton Mahdi',
+  'ك مهدي',
+  'مهدي (كرتون)',
+];
+
+bool isStoreMahdiProductName(String? name) {
+  if (name == null || name.trim().isEmpty) {
+    return false;
+  }
+  final String n = normalizeStationBalanceProductName(name);
+  if (n == normalizeStationBalanceProductName(kStoreMahdiProductApiName)) {
+    return true;
+  }
+  return n.contains('مهدي') && n.contains('متجر');
+}
+
+/// منتج مخزون «ك مهدي» الفعلي في الكتالوج (للخصم عند بيع «مهدي متجر»).
+Map<String, dynamic>? resolveMahdiCartonStockProduct({
+  required List<Map<String, dynamic>> products,
+}) {
+  final List<Map<String, dynamic>> active = products
+      .where((Map<String, dynamic> p) => p['isActive'] != false)
+      .toList(growable: false);
+  for (final String c in kMahdiCartonStockNameCandidates) {
+    final Map<String, dynamic>? match = _resolveStationBalanceProductFromPool(
+      pool: active,
+      candidates: <String>[c],
+    );
+    if (match != null && !isStoreMahdiProductName(match['name']?.toString())) {
+      return match;
+    }
+  }
+  for (final Map<String, dynamic> p in active) {
+    if (isStoreMahdiProductName(p['name']?.toString())) {
+      continue;
+    }
+    final String ut =
+        (p['unitType'] ?? p['type'])?.toString().trim().toLowerCase() ?? '';
+    if (ut == 'carton') {
+      final String raw = p['name']?.toString() ?? '';
+      if (raw.contains('مهدي') || raw.toLowerCase().contains('mahdi')) {
+        return p;
+      }
+    }
+  }
+  return resolveStationBalanceProduct(products: products, rowIndex: 0);
+}
+
+String? resolveMahdiCartonStockProductId({
+  required List<Map<String, dynamic>> products,
+}) =>
+    resolveMahdiCartonStockProduct(products: products)?['id']?.toString();
+
+/// عند البيع باسم «مهدي متجر» يُرسل معرّف مخزون «ك مهدي» للخصم من المحطة.
+String canonicalProductIdForMahdiStoreSale({
+  required String productId,
+  required List<Map<String, dynamic>> products,
+}) {
+  final String? canonical = resolveMahdiCartonStockProductId(products: products);
+  if (canonical == null || canonical.isEmpty) {
+    return productId;
+  }
+  for (final Map<String, dynamic> p in products) {
+    if (p['id']?.toString() != productId) {
+      continue;
+    }
+    if (isStoreMahdiProductName(p['name']?.toString())) {
+      return canonical;
+    }
+    break;
+  }
+  return productId;
 }
 
 int stationStockFromProductJson(Map<String, dynamic> item) {

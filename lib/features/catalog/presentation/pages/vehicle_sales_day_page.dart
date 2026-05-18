@@ -1,4 +1,5 @@
 import 'package:amethyst/core/data/amethyst_api.dart';
+import 'package:amethyst/core/utils/parse_api_datetime.dart';
 import 'package:amethyst/core/l10n/context_l10n.dart';
 import 'package:amethyst/core/theme/app_colors.dart';
 import 'package:amethyst/core/utils/parse_dynamic_double.dart';
@@ -387,12 +388,9 @@ class _VehicleSaleLineTile extends StatelessWidget {
     }
 
     String timePart = '';
-    final Object? createdRaw = item['createdAt'];
-    if (createdRaw is String) {
-      final DateTime? dt = DateTime.tryParse(createdRaw);
-      if (dt != null) {
-        timePart = DateFormat.jm(locale).format(dt.toLocal());
-      }
+    final DateTime? dt = parseApiDateTime(item['createdAt']);
+    if (dt != null) {
+      timePart = DateFormat.jm(locale).format(dt.toLocal());
     }
 
     return Material(

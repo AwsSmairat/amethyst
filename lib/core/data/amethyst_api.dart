@@ -99,6 +99,15 @@ final class AmethystApi {
   }) =>
       _b.patchProductStationStock(id: id, stationStock: stationStock);
 
+  Future<void> upsertStationBalanceRowStock({
+    required int rowIndex,
+    required int stationStock,
+  }) =>
+      _b.upsertStationBalanceRowStock(
+        rowIndex: rowIndex,
+        stationStock: stationStock,
+      );
+
   Future<Map<String, dynamic>> updateProduct({
     required String id,
     double? price,

@@ -1,4 +1,6 @@
 import 'package:amethyst/core/l10n/context_l10n.dart';
+import 'package:amethyst/core/station_balance/station_balance_catalog.dart';
+import 'package:amethyst/core/theme/app_colors.dart';
 import 'package:amethyst/features/dashboard/presentation/cubit/super_admin_product_prices_cubit.dart';
 import 'package:amethyst/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
@@ -206,7 +208,19 @@ class _AddProductBodyState extends State<_AddProductBody> {
                 decoration: InputDecoration(labelText: l10n.productNameLabel),
                 validator: (String? v) =>
                     v == null || v.trim().isEmpty ? ' ' : null,
+                onChanged: (_) => setState(() {}),
               ),
+              if (isStoreMahdiProductName(_name.text)) ...<Widget>[
+                const SizedBox(height: 8),
+                Text(
+                  'البيع يُخصم من مخزون «ك مهدي» في المحطة (نفس صف رصيد المحطة).',
+                  textAlign: TextAlign.right,
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: AppColors.primaryContainer,
+                        fontWeight: FontWeight.w600,
+                      ),
+                ),
+              ],
               const SizedBox(height: 12),
               DropdownButtonFormField<String>(
                 value: _unitType,

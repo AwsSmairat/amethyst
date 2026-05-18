@@ -10,21 +10,8 @@ final class SuperAdminProductPricesCubit extends Cubit<ListLoadState> {
 
   Future<void> load() async {
     emit(const ListLoadLoading());
-    try {
-      final Map<String, dynamic> data = await _api.listProducts(limit: 100);
-      final raw = data['items'];
-      final items = <Map<String, dynamic>>[];
-      if (raw is List<dynamic>) {
-        for (final dynamic e in raw) {
-          if (e is Map<String, dynamic>) {
-            items.add(e);
-          }
-        }
-      }
-      emit(ListLoadLoaded(items));
-    } on Object catch (e) {
-      emit(ListLoadFailure(e.toString()));
-    }
+    await Future<void>.delayed(Duration.zero);
+    emit(const ListLoadLoaded(<Map<String, dynamic>>[]));
   }
 
   Future<String?> updatePrice(String productId, double price) async {

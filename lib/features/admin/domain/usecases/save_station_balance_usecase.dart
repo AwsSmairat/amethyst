@@ -37,8 +37,6 @@ final class SaveStationBalanceUseCase {
       return const SaveStationBalanceFailure('Invalid form state');
     }
     try {
-      final List<Map<String, dynamic>> products =
-          await _repository.listProductItems();
       for (var i = 0; i <= kStationBalanceLastFixedRowIndex; i++) {
         final ParsedStationStockInput parsed =
             parseStationStockInput(rawValues[i]);
@@ -48,19 +46,8 @@ final class SaveStationBalanceUseCase {
           case ParsedStationStockInvalid():
             return const SaveStationBalanceInvalidQuantity();
           case final ParsedStationStockOk ok:
-            final Map<String, dynamic>? match = resolveStationBalanceProduct(
-              products: products,
+            await _repository.upsertStationBalanceRowStock(
               rowIndex: i,
-            );
-            if (match == null) {
-              return SaveStationBalanceUnlinkedRow(i);
-            }
-            final String? id = match['id'] as String?;
-            if (id == null || id.isEmpty) {
-              return SaveStationBalanceUnlinkedRow(i);
-            }
-            await _repository.patchProductStationStock(
-              productId: id,
               stationStock: ok.value,
             );
         }

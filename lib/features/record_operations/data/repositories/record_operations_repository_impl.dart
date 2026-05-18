@@ -44,6 +44,16 @@ final class RecordOperationsRepositoryImpl implements RecordOperationsRepository
       );
 
   @override
+  Future<void> upsertStationBalanceRowStock({
+    required int rowIndex,
+    required int stationStock,
+  }) =>
+      _api.upsertStationBalanceRowStock(
+        rowIndex: rowIndex,
+        stationStock: stationStock,
+      );
+
+  @override
   Future<void> createStationSale({
     required String productId,
     required int quantity,

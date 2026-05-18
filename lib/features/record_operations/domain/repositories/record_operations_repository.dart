@@ -10,6 +10,12 @@ abstract class RecordOperationsRepository {
     required int stationStock,
   });
 
+  /// حفظ رصيد صف في نموذج المحطة (إنشاء منتج إن لم يكن مربوطاً).
+  Future<void> upsertStationBalanceRowStock({
+    required int rowIndex,
+    required int stationStock,
+  });
+
   Future<void> createStationSale({
     required String productId,
     required int quantity,

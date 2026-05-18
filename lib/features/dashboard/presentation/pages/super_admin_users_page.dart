@@ -8,6 +8,7 @@ import 'package:amethyst/features/auth/presentation/cubit/auth_state.dart';
 import 'package:amethyst/features/dashboard/presentation/cubit/super_admin_users_cubit.dart';
 import 'package:amethyst/features/dashboard/presentation/widgets/add_super_admin_user_sheet.dart';
 import 'package:amethyst/features/dashboard/presentation/widgets/edit_super_admin_user_sheet.dart';
+import 'package:amethyst/features/dashboard/presentation/widgets/user_list_actions_row.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
@@ -164,55 +165,54 @@ class _SuperAdminUsersBody extends StatelessWidget {
               final SuperAdminUsersCubit cubit =
                   context.read<SuperAdminUsersCubit>();
               return ListTile(
-                title: Text(
-                  title,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
+                contentPadding: const EdgeInsetsDirectional.only(
+                  start: 8,
+                  end: 12,
                 ),
-                subtitle: Text(
-                  sub,
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: AppColors.onSurfaceVariant,
+                title: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: <Widget>[
+                          Text(
+                            title,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            textAlign: TextAlign.end,
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            sub,
+                            maxLines: 3,
+                            overflow: TextOverflow.ellipsis,
+                            textAlign: TextAlign.end,
+                            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                  color: AppColors.onSurfaceVariant,
+                                ),
+                          ),
+                        ],
                       ),
+                    ),
+                    if (!isSuperAdmin) ...<Widget>[
+                      const SizedBox(width: 4),
+                      UserListActionsRow(
+                        onEdit: () => showEditSuperAdminUserSheet(context, u),
+                        onResetPassword: () =>
+                            _sendPasswordReset(context, cubit, u),
+                        onToggleActive: isSelf
+                            ? null
+                            : () => _toggleActive(context, cubit, u),
+                        isActive: isActive,
+                        editTooltip: l10n.editUser,
+                        resetTooltip: l10n.resetPassword,
+                        toggleTooltip:
+                            isActive ? l10n.deactivateUser : l10n.activateUser,
+                      ),
+                    ],
+                  ],
                 ),
-                isThreeLine: true,
-                trailing: isSuperAdmin
-                    ? null
-                    : SizedBox(
-                        width: 132,
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.end,
-                          children: <Widget>[
-                            IconButton(
-                              tooltip: l10n.editUser,
-                              icon: const Icon(Icons.edit_outlined),
-                              onPressed: () =>
-                                  showEditSuperAdminUserSheet(context, u),
-                            ),
-                            IconButton(
-                              tooltip: l10n.resetPassword,
-                              icon: const Icon(Icons.mail_outline),
-                              onPressed: () =>
-                                  _sendPasswordReset(context, cubit, u),
-                            ),
-                            IconButton(
-                              tooltip:
-                                  isActive ? l10n.deactivateUser : l10n.activateUser,
-                              icon: Icon(
-                                isActive
-                                    ? Icons.block_outlined
-                                    : Icons.check_circle_outline,
-                                color: isActive
-                                    ? Theme.of(context).colorScheme.error
-                                    : Theme.of(context).colorScheme.primary,
-                              ),
-                              onPressed: isSelf
-                                  ? null
-                                  : () => _toggleActive(context, cubit, u),
-                            ),
-                          ],
-                        ),
-                      ),
               );
             },
           );

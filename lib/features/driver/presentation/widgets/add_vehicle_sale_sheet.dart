@@ -2,6 +2,7 @@ import 'package:amethyst/core/utils/parse_dynamic_double.dart';
 import 'package:amethyst/core/data/amethyst_api.dart';
 import 'package:amethyst/core/l10n/context_l10n.dart';
 import 'package:amethyst/core/station_balance/station_balance_catalog.dart';
+import 'package:amethyst/core/vehicle_load/vehicle_load_catalog.dart';
 import 'package:amethyst/core/theme/app_colors.dart';
 import 'package:amethyst/di/injection.dart';
 import 'package:amethyst/features/record_operations/domain/usecases/record_operation_usecases.dart';
@@ -74,9 +75,8 @@ class _AddVehicleSaleBodyState extends State<_AddVehicleSaleBody> {
   /// قائمة المنتجات من الـ API (بحث بالاسم مع تطبيع بسيط).
   List<Map<String, dynamic>> _productItems = <Map<String, dynamic>>[];
 
-  /// لقطة متبقي حمولة السائق الحالية (من `/vehicle-loads/driver/current`).
-  /// مفتاحها اسم المنتج بعد التطبيع (لأنه قد يختلف حسب قالب البيع "متجر").
-  Map<String, int> _vehicleLoadRemainingByNormalizedName = <String, int>{};
+  /// أسطر حمولة السائق الحالية (من `driverCurrentLoad`).
+  List<Map<String, dynamic>> _driverLoadLines = <Map<String, dynamic>>[];
 
   String? _vehicleId;
   bool _loadingCtx = true;
@@ -146,18 +146,7 @@ class _AddVehicleSaleBodyState extends State<_AddVehicleSaleBody> {
       setState(() {
         _vehicleId = vehicle?['id'] as String?;
         _productItems = items;
-        final Map<String, int> remainingByName = <String, int>{};
-        for (final Map<String, dynamic> l in loads) {
-          final String k = normalizeStationBalanceProductName(
-            (l['product'] as Map<String, dynamic>?)?['name']?.toString() ?? '',
-          );
-          if (k.trim().isEmpty) {
-            continue;
-          }
-          final int r = (l['remaining'] as int?) ?? 0;
-          remainingByName[k] = (remainingByName[k] ?? 0) + r;
-        }
-        _vehicleLoadRemainingByNormalizedName = remainingByName;
+        _driverLoadLines = loads;
         _loadingCtx = false;
         if (_selectedPlace != null) {
           _applyPlaceBindings(_selectedPlace!);
@@ -184,16 +173,37 @@ class _AddVehicleSaleBodyState extends State<_AddVehicleSaleBody> {
     _stationStocks = List<int>.filled(_columnCount, 0);
     for (var i = 0; i < _columnCount; i++) {
       final String name = names[i];
-      final match = _findProductByCatalogName(name);
-      _productIds[i] = match?['id']?.toString();
-      _productLabels[i] = match?['name']?.toString().trim() ?? name;
-      _unitPrices[i] = parseDynamicDouble(match?['price']);
+      Map<String, dynamic>? match;
+      if (i < kVehicleLoadFixedRowCount &&
+          (place == VehicleSalePlace.home ||
+              (place == VehicleSalePlace.store && i == 2))) {
+        match = resolveVehicleLoadRowProduct(
+          products: _productItems,
+          rowIndex: place == VehicleSalePlace.store && i == 2 ? 2 : i,
+        );
+      }
+      match ??= _findProductByCatalogName(name);
+      String? pid = match?['id']?.toString();
       if (place == VehicleSalePlace.store && i == 2) {
+        pid = resolveMahdiCartonStockProductId(products: _productItems) ?? pid;
         _stationStocks[i] = _storeMahdiStationStockFromCatalog();
+      } else if (place == VehicleSalePlace.home && i == 2) {
+        _stationStocks[i] = aggregateStationStockForBalanceRow(
+          products: _productItems,
+          rowIndex: 0,
+        );
+      } else if (place == VehicleSalePlace.home && i >= 3 && i <= 5) {
+        _stationStocks[i] = aggregateStationStockForBalanceRow(
+          products: _productItems,
+          rowIndex: 8 + i,
+        );
       } else {
         _stationStocks[i] =
             stationStockFromProductJson(match ?? <String, dynamic>{});
       }
+      _productIds[i] = pid;
+      _productLabels[i] = match?['name']?.toString().trim() ?? name;
+      _unitPrices[i] = parseDynamicDouble(match?['price']);
     }
   }
 
@@ -248,42 +258,70 @@ class _AddVehicleSaleBodyState extends State<_AddVehicleSaleBody> {
     };
   }
 
-  int _vehicleRemainingForColumn(int columnIndex) {
-    final place = _selectedPlace;
-    if (place == null) return 0;
-
-    // ربط أعمدة الشاشة باسم حمولة السيارة الحقيقي (driverCurrentLoad).
-    // - منزل: أول 3 أعمدة = Water Gallon/Bottle/Carton
-    // - متجر: الأعمدة 0..2 تستهلك من Water Gallon/Bottle/Carton
-    final String loadName = switch (place) {
-      VehicleSalePlace.home => switch (columnIndex) {
-          0 => 'Water Gallon',
-          1 => 'Water Bottle',
-          2 => 'Water Carton',
-          _ => '',
-        },
+  List<String> _loadNameCandidatesForColumn(int columnIndex) {
+    final VehicleSalePlace? place = _selectedPlace;
+    if (place == null) {
+      return <String>[];
+    }
+    return switch (place) {
+      VehicleSalePlace.home => columnIndex < kVehicleLoadFixedRowCount
+          ? <String>[
+              kVehicleLoadFixedApiNames[columnIndex],
+              ...vehicleLoadNameCandidatesForRow(columnIndex),
+            ]
+          : <String>[],
       VehicleSalePlace.store => switch (columnIndex) {
-          0 => 'Water Gallon',
-          1 => 'Water Bottle',
-          2 => 'Water Carton',
-          _ => '',
+          0 => vehicleLoadNameCandidatesForRow(0),
+          1 => vehicleLoadNameCandidatesForRow(1),
+          2 => <String>[
+            ...kMahdiCartonStockNameCandidates,
+            ..._kStoreMahdiCanonicalProductNames,
+            if (_kStoreProductNames.length > 2) _kStoreProductNames[2],
+          ],
+          _ => <String>[],
         },
     };
+  }
 
-    if (loadName.isEmpty) return 0;
-
-    // الكرتون قد يُحمَّل كـ Water Carton أو «ك مهدي» — نجمع المتبقي لكل المرشّحات.
-    if (columnIndex == 2) {
-      var sum = 0;
-      for (final String c in _kStoreMahdiCanonicalProductNames) {
-        final String k = normalizeStationBalanceProductName(c);
-        sum += _vehicleLoadRemainingByNormalizedName[k] ?? 0;
-      }
-      return sum;
+  int _vehicleRemainingForColumn(int columnIndex) {
+    if (_selectedPlace == null || _driverLoadLines.isEmpty) {
+      return 0;
     }
 
-    final String key = normalizeStationBalanceProductName(loadName);
-    return _vehicleLoadRemainingByNormalizedName[key] ?? 0;
+    final String? columnProductId = _productIds[columnIndex];
+    if (columnProductId != null && columnProductId.isNotEmpty) {
+      var fromProductId = 0;
+      for (final Map<String, dynamic> line in _driverLoadLines) {
+        if (line['productId']?.toString() == columnProductId) {
+          fromProductId += (line['remaining'] as int?) ?? 0;
+        }
+      }
+      if (fromProductId > 0) {
+        return fromProductId;
+      }
+    }
+
+    final List<String> candidates = _loadNameCandidatesForColumn(columnIndex);
+    if (candidates.isEmpty) {
+      return 0;
+    }
+
+    var sum = 0;
+    for (final Map<String, dynamic> line in _driverLoadLines) {
+      final String loadName =
+          (line['product'] as Map<String, dynamic>?)?['name']?.toString() ??
+              '';
+      if (loadName.isEmpty) {
+        continue;
+      }
+      for (final String candidate in candidates) {
+        if (stationBalanceProductNamesMatch(loadName, candidate)) {
+          sum += (line['remaining'] as int?) ?? 0;
+          break;
+        }
+      }
+    }
+    return sum;
   }
 
   /// يطابق اسم القالب مع `products.name` بعد `trim` (وتطابق حالة الأحرف للأسماء اللاتينية).
@@ -315,10 +353,56 @@ class _AddVehicleSaleBodyState extends State<_AddVehicleSaleBody> {
     return null;
   }
 
+  int _stationStockForColumn(int columnIndex) {
+    if (_selectedPlace == VehicleSalePlace.store && columnIndex == 2) {
+      return _storeMahdiStationStockFromCatalog();
+    }
+    if (_selectedPlace == VehicleSalePlace.home) {
+      if (columnIndex == 2) {
+        return aggregateStationStockForBalanceRow(
+          products: _productItems,
+          rowIndex: 0,
+        );
+      }
+      if (columnIndex >= 3 && columnIndex <= 5) {
+        return aggregateStationStockForBalanceRow(
+          products: _productItems,
+          rowIndex: 8 + columnIndex,
+        );
+      }
+    }
+    return columnIndex < _stationStocks.length ? _stationStocks[columnIndex] : 0;
+  }
+
+  /// أقصى كمية للبيع: الأقل بين متبقي السيارة ومخزون المحطة.
+  int _maxSellableQuantity(int columnIndex) {
+    final bool homeRows =
+        _selectedPlace == VehicleSalePlace.home &&
+            columnIndex >= 2 &&
+            columnIndex <= 5;
+    final bool storeMahdi =
+        _selectedPlace == VehicleSalePlace.store && columnIndex == 2;
+    if (!homeRows && !storeMahdi) {
+      return 999999;
+    }
+    final int onVehicle = _vehicleRemainingForColumn(columnIndex);
+    final int atStation = _stationStockForColumn(columnIndex);
+    return onVehicle < atStation ? onVehicle : atStation;
+  }
+
   void _adjustQuantity(int index, int delta) {
     setState(() {
-      final next = _quantities[index] + delta;
-      _quantities[index] = next < 0 ? 0 : next;
+      var next = _quantities[index] + delta;
+      if (next < 0) {
+        next = 0;
+      }
+      if (_maxSellableQuantity(index) < 999999) {
+        final int cap = _maxSellableQuantity(index);
+        if (next > cap) {
+          next = cap;
+        }
+      }
+      _quantities[index] = next;
     });
   }
 
@@ -357,20 +441,15 @@ class _AddVehicleSaleBodyState extends State<_AddVehicleSaleBody> {
           _selectedPlace == VehicleSalePlace.store && i == 2;
       final bool needsStationStockCheck =
           homeStationStockDeduct || storeStationStockDeduct;
-      final int available = storeStationStockDeduct
-          ? _storeMahdiStationStockFromCatalog()
-          : (i < _stationStocks.length ? _stationStocks[i] : 0);
-      if (needsStationStockCheck && q > available) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(l10n.stationSaleValidationInsufficientStock)),
-        );
-        return null;
-      }
+      final int stationAvailable = _stationStockForColumn(i);
+      final bool needsVehicleCheck =
+          (_selectedPlace == VehicleSalePlace.home && i >= 2 && i <= 5) ||
+          (_selectedPlace == VehicleSalePlace.store && i <= 2);
 
-      // تحقق من حمولة السيارة عند البيع للمتجر (الكرتون = مجموع أسماء الكنسي).
-      if (_selectedPlace == VehicleSalePlace.store && i >= 0 && i <= 2) {
-        final int rem = _vehicleRemainingForColumn(i);
-        if (q > rem) {
+      // أولاً: متبقي السيارة (منتج ٣ متجر = كرتون مهدي على الحمولة).
+      if (needsVehicleCheck) {
+        final int onVehicle = _vehicleRemainingForColumn(i);
+        if (q > onVehicle) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text(l10n.stationSaleValidationInsufficientStock)),
           );
@@ -378,18 +457,33 @@ class _AddVehicleSaleBodyState extends State<_AddVehicleSaleBody> {
         }
       }
 
+      // ثانياً: مخزون المحطة (مهدي متجر / منتجات ٣–٦ منزل).
+      if (needsStationStockCheck && q > stationAvailable) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(l10n.stationSaleValidationInsufficientStock)),
+        );
+        return null;
+      }
+
       final bool couponPriceZero =
           _selectedPlace == VehicleSalePlace.home &&
               ((i == 0 && _homeCouponLine1On) ||
                   (i == 1 && _homeCouponLine2On));
-      // بيع «متجر» للكرتون: السيرفر يخصم مخزون المحطة من المنتج الكنسي على الحمولة — لا نُرسل PATCH لصف «مهدي متجر».
+      // بيع «مهدي متجر»: معرّف الكرتون الكنسي للخصم من المحطة والحمولة.
+      final String saleProductId = storeStationStockDeduct
+          ? (canonicalProductIdForMahdiStoreSale(
+                productId: pid,
+                products: _productItems,
+              ))
+          : pid;
       lines.add(
         (
-          productId: pid,
+          productId: saleProductId,
           quantity: q,
           unitPrice: couponPriceZero ? 0.0 : unit,
-          deductStationStock: homeStationStockDeduct,
-          stationStockSnapshot: available,
+          deductStationStock:
+              homeStationStockDeduct || storeStationStockDeduct,
+          stationStockSnapshot: stationAvailable,
         ),
       );
     }
@@ -511,41 +605,31 @@ class _AddVehicleSaleBodyState extends State<_AddVehicleSaleBody> {
                         ),
                   ),
                   const SizedBox(height: 12),
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: <Widget>[
-                      for (var i = 0; i < _columnCount; i++)
-                        Expanded(
-                          child: Padding(
-                            padding: EdgeInsetsDirectional.only(
-                              start: i == 0 ? 0 : 4,
-                              end: i == _columnCount - 1 ? 0 : 4,
-                            ),
-                            child: _VehicleSaleColumn(
-                              index: i,
-                              productLabel: _columnTitle(context, i),
-                              vehicleRemaining: _vehicleRemainingForColumn(i),
-                              quantity: _quantities[i],
-                              onDecrement: () => _adjustQuantity(i, -1),
-                              onIncrement: () => _adjustQuantity(i, 1),
-                              busy: busy,
-                              showHomeCouponButton:
-                                  _selectedPlace == VehicleSalePlace.home &&
-                                      (i == 0 || i == 1),
-                              homeCouponActive: i == 0
-                                  ? _homeCouponLine1On
-                                  : i == 1
-                                      ? _homeCouponLine2On
-                                      : false,
-                              onHomeCouponToggle:
-                                  _selectedPlace == VehicleSalePlace.home &&
-                                          (i == 0 || i == 1)
-                                      ? () => _toggleHomeCouponLine(i)
-                                      : null,
-                            ),
-                          ),
-                        ),
-                    ],
+                  _VehicleSaleProductsGrid(
+                    columnCount: _columnCount,
+                    columnBuilder: (BuildContext context, int i) =>
+                        _VehicleSaleColumn(
+                      index: i,
+                      productLabel: _columnTitle(context, i),
+                      vehicleRemaining: _vehicleRemainingForColumn(i),
+                      quantity: _quantities[i],
+                      onDecrement: () => _adjustQuantity(i, -1),
+                      onIncrement: () => _adjustQuantity(i, 1),
+                      busy: busy,
+                      showHomeCouponButton:
+                          _selectedPlace == VehicleSalePlace.home &&
+                              (i == 0 || i == 1),
+                      homeCouponActive: i == 0
+                          ? _homeCouponLine1On
+                          : i == 1
+                              ? _homeCouponLine2On
+                              : false,
+                      onHomeCouponToggle:
+                          _selectedPlace == VehicleSalePlace.home &&
+                                  (i == 0 || i == 1)
+                              ? () => _toggleHomeCouponLine(i)
+                              : null,
+                    ),
                   ),
                   const SizedBox(height: 20),
                   FilledButton(
@@ -583,6 +667,65 @@ class _AddVehicleSaleBodyState extends State<_AddVehicleSaleBody> {
   }
 }
 
+class _VehicleSaleProductsGrid extends StatelessWidget {
+  const _VehicleSaleProductsGrid({
+    required this.columnCount,
+    required this.columnBuilder,
+  });
+
+  final int columnCount;
+  final Widget Function(BuildContext context, int index) columnBuilder;
+
+  static const int _kColumnsPerRow = 3;
+  static const double _kColumnGap = 8;
+
+  @override
+  Widget build(BuildContext context) {
+    if (columnCount <= 0) {
+      return const SizedBox.shrink();
+    }
+    final List<Widget> rows = <Widget>[];
+    for (var start = 0; start < columnCount; start += _kColumnsPerRow) {
+      final int end = start + _kColumnsPerRow > columnCount
+          ? columnCount
+          : start + _kColumnsPerRow;
+      if (rows.isNotEmpty) {
+        rows.add(const SizedBox(height: _kColumnGap));
+      }
+      rows.add(
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: <Widget>[
+            for (var i = start; i < end; i++)
+              Expanded(
+                child: Padding(
+                  padding: EdgeInsetsDirectional.only(
+                    start: i == start ? 0 : _kColumnGap / 2,
+                    end: i == end - 1 ? 0 : _kColumnGap / 2,
+                  ),
+                  child: columnBuilder(context, i),
+                ),
+              ),
+            for (var i = end; i < start + _kColumnsPerRow; i++)
+              Expanded(
+                child: Padding(
+                  padding: EdgeInsetsDirectional.only(
+                    start: _kColumnGap / 2,
+                  ),
+                  child: const SizedBox.shrink(),
+                ),
+              ),
+          ],
+        ),
+      );
+    }
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: rows,
+    );
+  }
+}
+
 class _VehicleSaleColumn extends StatelessWidget {
   const _VehicleSaleColumn({
     required this.index,
@@ -611,122 +754,191 @@ class _VehicleSaleColumn extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = context.l10n;
-    final theme = Theme.of(context);
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      mainAxisSize: MainAxisSize.min,
-      children: <Widget>[
-        Text(
-          l10n.productRow(index + 1),
-          textAlign: TextAlign.center,
-          style: theme.textTheme.labelSmall?.copyWith(
-                color: AppColors.onSurfaceVariant,
-                fontWeight: FontWeight.w600,
-              ),
-        ),
-        const SizedBox(height: 6),
-        Text(
-          productLabel,
-          textAlign: TextAlign.center,
-          maxLines: 2,
-          overflow: TextOverflow.ellipsis,
-          style: theme.textTheme.bodySmall?.copyWith(
-                fontWeight: FontWeight.w700,
-                color: AppColors.primaryText,
-              ),
-        ),
-        const SizedBox(height: 4),
-        Text(
-          'المتبقي: $vehicleRemaining',
-          textAlign: TextAlign.center,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-          style: theme.textTheme.labelSmall?.copyWith(
-                color: AppColors.onSurfaceVariant,
-                fontWeight: FontWeight.w600,
-              ),
-        ),
-        const SizedBox(height: 10),
-        Text(
-          l10n.quantity,
-          textAlign: TextAlign.center,
-          style: theme.textTheme.labelSmall?.copyWith(
-                color: AppColors.onSurfaceVariant,
-                fontWeight: FontWeight.w600,
-              ),
-        ),
-        const SizedBox(height: 6),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
+    final ThemeData theme = Theme.of(context);
+    final ColorScheme scheme = theme.colorScheme;
+    final bool hasStock = vehicleRemaining > 0;
+
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: AppColors.surfaceLowest,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppColors.outlineVariant),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(10),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          mainAxisSize: MainAxisSize.min,
           children: <Widget>[
-            IconButton.filledTonal(
-              onPressed: busy || quantity <= 0 ? null : onDecrement,
-              icon: const Icon(Icons.remove, size: 16),
-              iconSize: 16,
-              style: IconButton.styleFrom(
-                visualDensity: VisualDensity.compact,
-                padding: EdgeInsets.zero,
-                minimumSize: const Size(26, 26),
-                fixedSize: const Size(26, 26),
-                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            Center(
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  color: scheme.primary.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Padding(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  child: Text(
+                    l10n.productRow(index + 1),
+                    style: theme.textTheme.labelSmall?.copyWith(
+                          color: scheme.primary,
+                          fontWeight: FontWeight.w700,
+                        ),
+                  ),
+                ),
               ),
             ),
-            Expanded(
-              child: Text(
-                '$quantity',
-                textAlign: TextAlign.center,
-                style: theme.textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w800,
-                      color: AppColors.primaryText,
+            const SizedBox(height: 10),
+            Text(
+              productLabel.isNotEmpty ? productLabel : '—',
+              textAlign: TextAlign.center,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: theme.textTheme.titleSmall?.copyWith(
+                    fontWeight: FontWeight.w800,
+                    color: AppColors.primaryText,
+                    height: 1.2,
+                  ),
+            ),
+            const SizedBox(height: 8),
+            DecoratedBox(
+              decoration: BoxDecoration(
+                color: hasStock
+                    ? AppColors.success.withValues(alpha: 0.12)
+                    : scheme.surfaceContainerHighest,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Padding(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: <Widget>[
+                    Icon(
+                      Icons.local_shipping_outlined,
+                      size: 14,
+                      color: hasStock
+                          ? AppColors.success
+                          : AppColors.onSurfaceVariant,
                     ),
+                    const SizedBox(width: 4),
+                    Text(
+                      '${l10n.left}: $vehicleRemaining',
+                      textAlign: TextAlign.center,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.labelSmall?.copyWith(
+                            color: hasStock
+                                ? AppColors.success
+                                : AppColors.onSurfaceVariant,
+                            fontWeight: FontWeight.w700,
+                          ),
+                    ),
+                  ],
+                ),
               ),
             ),
-            IconButton.filledTonal(
-              onPressed: busy ? null : onIncrement,
-              icon: const Icon(Icons.add, size: 16),
-              iconSize: 16,
-              style: IconButton.styleFrom(
-                visualDensity: VisualDensity.compact,
-                padding: EdgeInsets.zero,
-                minimumSize: const Size(26, 26),
-                fixedSize: const Size(26, 26),
-                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            const SizedBox(height: 12),
+            Text(
+              l10n.quantity,
+              textAlign: TextAlign.center,
+              style: theme.textTheme.labelSmall?.copyWith(
+                    color: AppColors.onSurfaceVariant,
+                    fontWeight: FontWeight.w600,
+                  ),
+            ),
+            const SizedBox(height: 6),
+            DecoratedBox(
+              decoration: BoxDecoration(
+                color: scheme.surfaceContainerHighest,
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 2),
+                child: Row(
+                  children: <Widget>[
+                    _QuantityStepButton(
+                      icon: Icons.remove,
+                      onPressed: busy || quantity <= 0 ? null : onDecrement,
+                    ),
+                    Expanded(
+                      child: Text(
+                        '$quantity',
+                        textAlign: TextAlign.center,
+                        style: theme.textTheme.titleMedium?.copyWith(
+                              fontWeight: FontWeight.w800,
+                              color: AppColors.primaryText,
+                            ),
+                      ),
+                    ),
+                    _QuantityStepButton(
+                      icon: Icons.add,
+                      onPressed: busy ? null : onIncrement,
+                    ),
+                  ],
+                ),
               ),
             ),
+            if (showHomeCouponButton && onHomeCouponToggle != null) ...<Widget>[
+              const SizedBox(height: 8),
+              OutlinedButton(
+                onPressed: busy ? null : onHomeCouponToggle,
+                style: OutlinedButton.styleFrom(
+                  backgroundColor:
+                      homeCouponActive ? AppColors.success : Colors.transparent,
+                  foregroundColor: homeCouponActive
+                      ? Colors.white
+                      : scheme.primary,
+                  side: BorderSide(
+                    color: homeCouponActive
+                        ? AppColors.success
+                        : AppColors.outlineVariant,
+                    width: homeCouponActive ? 2 : 1,
+                  ),
+                  padding:
+                      const EdgeInsets.symmetric(vertical: 8, horizontal: 6),
+                  minimumSize: const Size(0, 34),
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                ),
+                child: Text(
+                  l10n.couponButton,
+                  textAlign: TextAlign.center,
+                  style: theme.textTheme.labelSmall?.copyWith(
+                        fontWeight: FontWeight.w800,
+                      ),
+                ),
+              ),
+            ],
           ],
         ),
-        if (showHomeCouponButton && onHomeCouponToggle != null) ...<Widget>[
-          const SizedBox(height: 6),
-          SizedBox(
-            width: double.infinity,
-            child: OutlinedButton(
-              onPressed: busy ? null : onHomeCouponToggle,
-              style: OutlinedButton.styleFrom(
-                backgroundColor:
-                    homeCouponActive ? AppColors.success : Colors.transparent,
-                foregroundColor: homeCouponActive
-                    ? Colors.white
-                    : theme.colorScheme.primary,
-                side: BorderSide(
-                  color: homeCouponActive
-                      ? AppColors.success
-                      : AppColors.outlineVariant,
-                  width: homeCouponActive ? 2 : 1,
-                ),
-                padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 4),
-                minimumSize: const Size(0, 30),
-                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-              ),
-              child: Text(
-                l10n.couponButton,
-                style: theme.textTheme.labelSmall?.copyWith(
-                      fontWeight: FontWeight.w800,
-                    ),
-              ),
-            ),
-          ),
-        ],
-      ],
+      ),
+    );
+  }
+}
+
+class _QuantityStepButton extends StatelessWidget {
+  const _QuantityStepButton({
+    required this.icon,
+    required this.onPressed,
+  });
+
+  final IconData icon;
+  final VoidCallback? onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return IconButton.filledTonal(
+      onPressed: onPressed,
+      icon: Icon(icon, size: 18),
+      iconSize: 18,
+      style: IconButton.styleFrom(
+        visualDensity: VisualDensity.compact,
+        padding: EdgeInsets.zero,
+        minimumSize: const Size(36, 36),
+        fixedSize: const Size(36, 36),
+        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+      ),
     );
   }
 }

@@ -2,6 +2,7 @@ import 'dart:typed_data';
 
 import 'package:amethyst/core/network/api_exception.dart';
 import 'package:amethyst/core/prototype/prototype_sample_data.dart';
+import 'package:amethyst/core/utils/parse_api_datetime.dart';
 import 'package:amethyst/core/prototype/prototype_session.dart';
 import 'package:amethyst/core/prototype/ui_only.dart';
 import 'package:amethyst/features/auth/domain/entities/user_entity.dart';
@@ -31,14 +32,38 @@ final class PrototypeAmethystBackend {
     required double price,
     int stationStock = 0,
   }) async {
-    throwUiOnlyWrite();
+    final String id = 'p_${DateTime.now().millisecondsSinceEpoch}';
+    final Map<String, dynamic> p = <String, dynamic>{
+      'id': id,
+      'name': name,
+      'unitType': unitType,
+      'type': unitType,
+      'price': price,
+      'stationStock': stationStock,
+      'stock': stationStock,
+      'isActive': true,
+    };
+    PrototypeSampleData.addProduct(p);
+    return Map<String, dynamic>.from(p);
   }
 
   Future<void> patchProductStationStock({
     required String id,
     required int stationStock,
   }) async {
-    throwUiOnlyWrite();
+    if (!PrototypeSampleData.setStationStock(id, stationStock)) {
+      throw ApiException('Product not found', code: 'NOT_FOUND');
+    }
+  }
+
+  Future<void> upsertStationBalanceRowStock({
+    required int rowIndex,
+    required int stationStock,
+  }) async {
+    PrototypeSampleData.upsertStationBalanceRow(
+      rowIndex: rowIndex,
+      stationStock: stationStock,
+    );
   }
 
   Future<Map<String, dynamic>> updateProduct({
@@ -103,7 +128,14 @@ final class PrototypeAmethystBackend {
     required int quantityLoaded,
     required String loadDate,
   }) async {
-    throwUiOnlyWrite();
+    final Map<String, dynamic> row = PrototypeSampleData.addVehicleLoad(
+      vehicleId: vehicleId,
+      driverId: driverId,
+      productId: productId,
+      quantityLoaded: quantityLoaded,
+      loadDate: loadDate,
+    );
+    return <String, dynamic>{'item': row};
   }
 
   Future<Map<String, dynamic>> listStationSales({int page = 1, int limit = 100}) async =>
@@ -157,6 +189,17 @@ final class PrototypeAmethystBackend {
           .where((Map<String, dynamic> s) => s['vehicleId'] == vehicleId)
           .toList(growable: false);
     }
+    if (dateFrom != null || dateTo != null) {
+      items = items
+          .where(
+            (Map<String, dynamic> s) => apiDateMatchesRange(
+              createdAt: s['createdAt'],
+              dateFrom: dateFrom,
+              dateTo: dateTo,
+            ),
+          )
+          .toList(growable: false);
+    }
     return _paginate(items, page: page, limit: limit);
   }
 
@@ -167,7 +210,14 @@ final class PrototypeAmethystBackend {
     required double unitPrice,
     String saleDestination = 'home',
   }) async {
-    throwUiOnlyWrite();
+    final Map<String, dynamic> row = PrototypeSampleData.addVehicleSale(
+      vehicleId: vehicleId,
+      productId: productId,
+      quantity: quantity,
+      unitPrice: unitPrice,
+      saleDestination: saleDestination,
+    );
+    return <String, dynamic>{'item': row};
   }
 
   Future<Map<String, dynamic>> listExpenses({

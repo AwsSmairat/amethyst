@@ -1,5 +1,6 @@
 import 'package:amethyst/core/data/amethyst_api.dart';
 import 'package:amethyst/core/l10n/context_l10n.dart';
+import 'package:amethyst/core/utils/parse_api_datetime.dart';
 import 'package:amethyst/core/theme/app_colors.dart';
 import 'package:amethyst/di/injection.dart';
 import 'package:amethyst/l10n/app_localizations.dart';
@@ -54,11 +55,11 @@ class _VehicleSalesVehicleDaysListPageState
               .toList(growable: false);
       final Set<DateTime> daySet = <DateTime>{};
       for (final Map<String, dynamic> item in items) {
-        final DateTime? d = _parseSaleDate(item['createdAt']);
+        final DateTime? d = parseApiDateOnly(item['createdAt']);
         if (d == null) {
           continue;
         }
-        daySet.add(DateTime(d.year, d.month, d.day));
+        daySet.add(d);
       }
       final List<DateTime> days = daySet.toList()
         ..sort((DateTime a, DateTime b) => b.compareTo(a));
@@ -78,16 +79,6 @@ class _VehicleSalesVehicleDaysListPageState
         _loading = false;
       });
     }
-  }
-
-  DateTime? _parseSaleDate(dynamic v) {
-    if (v == null) {
-      return null;
-    }
-    if (v is String) {
-      return DateTime.tryParse(v);
-    }
-    return null;
   }
 
   String _ymd(DateTime d) {

@@ -111,8 +111,9 @@ final class StationDebtRegistrationCubit extends Cubit<StationDebtRegistrationSt
         // "مهدي متجر" يجب أن يخصم/يتحقق من نفس منتج الكرتون الفعلي (Water Carton) على الخادم.
         // لذلك نربط العمود 2 في وضع "متجر" بـ ID الكرتون القانوني.
         final Map<String, dynamic>? canonicalCarton =
-            resolveStationBalanceProduct(products: items, rowIndex: 0);
-        _storeMahdiCanonicalProductId = canonicalCarton?['id']?.toString();
+            resolveMahdiCartonStockProduct(products: items);
+        _storeMahdiCanonicalProductId =
+            resolveMahdiCartonStockProductId(products: items);
         _storeMahdiCanonicalUnitPrice =
             parseDynamicDouble(canonicalCarton?['price']);
 
@@ -371,6 +372,7 @@ final class StationDebtRegistrationCubit extends Cubit<StationDebtRegistrationSt
       return;
     }
     final String debtor = debtorNameRaw.trim();
+    final List<Map<String, dynamic>> catalog = await _listProductItems();
     final List<Map<String, dynamic>> lines = <Map<String, dynamic>>[];
     final List<({int columnIndex, String productId, int quantity, double unitPrice})>
         vehicleLines = <({int columnIndex, String productId, int quantity, double unitPrice})>[];
@@ -380,9 +382,12 @@ final class StationDebtRegistrationCubit extends Cubit<StationDebtRegistrationSt
         continue;
       }
       // في "متجر" لعمود مهدي: نستخدم ID الكرتون القانوني إن توفر.
-      final String pid = (vehiclePlace == StationDebtVehiclePlace.store && i == 2)
-          ? (_storeMahdiCanonicalProductId ?? state.productIds[i]!)
-          : state.productIds[i]!;
+      final String pid = canonicalProductIdForMahdiStoreSale(
+        productId: (vehiclePlace == StationDebtVehiclePlace.store && i == 2)
+            ? (_storeMahdiCanonicalProductId ?? state.productIds[i]!)
+            : state.productIds[i]!,
+        products: catalog,
+      );
       final double price = state.unitPrices[i]!;
       lines.add(<String, dynamic>{
         'productId': pid,

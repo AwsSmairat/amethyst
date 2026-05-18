@@ -1,6 +1,7 @@
 import 'package:amethyst/core/data/amethyst_api.dart';
 import 'package:amethyst/core/l10n/context_l10n.dart';
 import 'package:amethyst/core/station_balance/station_balance_catalog.dart';
+import 'package:amethyst/core/vehicle_load/vehicle_load_catalog.dart';
 import 'package:amethyst/core/utils/parse_quantity_input.dart';
 import 'package:amethyst/core/theme/app_colors.dart';
 import 'package:amethyst/di/injection.dart';
@@ -52,15 +53,6 @@ class _AddVehicleLoadBodyState extends State<_AddVehicleLoadBody> {
     return productNameSuggestsFillingSkipStock(_productLabels[rowIndex]);
   }
 
-  static const List<String> _kFixedProductNames = <String>[
-    'Water Gallon',
-    'Water Bottle',
-    'Water Carton',
-    'Coupon',
-    'Coupon 2',
-    'Coupon 3',
-  ];
-
   final List<TextEditingController> _qtyCtrls =
       List<TextEditingController>.generate(
     _rowCount,
@@ -74,6 +66,7 @@ class _AddVehicleLoadBodyState extends State<_AddVehicleLoadBody> {
   String? _vehicleId;
   DateTime _date = DateTime.now();
   List<Map<String, dynamic>> _vehicles = <Map<String, dynamic>>[];
+  List<Map<String, dynamic>> _catalogProducts = <Map<String, dynamic>>[];
   bool _loading = true;
   String? _error;
 
@@ -81,37 +74,6 @@ class _AddVehicleLoadBodyState extends State<_AddVehicleLoadBody> {
   void initState() {
     super.initState();
     _load();
-  }
-
-  /// مطابقة اسم القالب مع `products.name` (trim + حالة الأحرف)، منتج نشط فقط.
-  static Map<String, dynamic>? _findProductByCatalogName(
-    List<Map<String, dynamic>> items,
-    String requestedName,
-  ) {
-    final String want = requestedName.trim();
-    if (want.isEmpty) {
-      return null;
-    }
-    for (final Map<String, dynamic> pr in items) {
-      if (pr['isActive'] == false) {
-        continue;
-      }
-      final String? n = pr['name']?.toString().trim();
-      if (n != null && n == want) {
-        return pr;
-      }
-    }
-    final String wantLower = want.toLowerCase();
-    for (final Map<String, dynamic> pr in items) {
-      if (pr['isActive'] == false) {
-        continue;
-      }
-      final String? n = pr['name']?.toString().trim();
-      if (n != null && n.toLowerCase() == wantLower) {
-        return pr;
-      }
-    }
-    return null;
   }
 
   /// جلب كل الصفحات — تجنّباً لفقدان تطابق أسماء القالب عندما يتجاوز عدد المنتجات [limit].
@@ -153,13 +115,16 @@ class _AddVehicleLoadBodyState extends State<_AddVehicleLoadBody> {
       if (!mounted) return;
       setState(() {
         _vehicles = vehicles;
+        _catalogProducts = products;
         _vehicleId = _pickInitialVehicleId(vehicles);
         for (var i = 0; i < _rowCount; i++) {
-          final String fixedName =
-              i < _kFixedProductNames.length ? _kFixedProductNames[i] : '';
-          final Map<String, dynamic>? match = fixedName.isNotEmpty
-              ? _findProductByCatalogName(products, fixedName)
-              : null;
+          final String fixedName = i < kVehicleLoadFixedApiNames.length
+              ? kVehicleLoadFixedApiNames[i]
+              : '';
+          final Map<String, dynamic>? match = resolveVehicleLoadRowProduct(
+            products: products,
+            rowIndex: i,
+          );
           _productIds[i] = match?['id'] as String?;
           _productLabels[i] =
               match?['name']?.toString().trim() ?? fixedName;
@@ -220,11 +185,24 @@ class _AddVehicleLoadBodyState extends State<_AddVehicleLoadBody> {
     };
   }
 
+  String? _productIdForRow(int rowIndex) {
+    final String? cached = _productIds[rowIndex];
+    if (cached != null) {
+      return cached;
+    }
+    if (_catalogProducts.isEmpty) {
+      return null;
+    }
+    return resolveVehicleLoadRowProduct(
+      products: _catalogProducts,
+      rowIndex: rowIndex,
+    )?['id']?.toString();
+  }
+
   List<({String productId, int quantityLoaded})>? _collectLines() {
     final l10n = context.l10n;
     final lines = <({String productId, int quantityLoaded})>[];
     for (var i = 0; i < _rowCount; i++) {
-      final String? pid = _productIds[i];
       final String raw = _qtyCtrls[i].text.trim();
       // صف غير مستخدم: فارغ أو ٠ — لا يُشترط تعبئة كل المنتجات.
       if (raw.isEmpty) {
@@ -240,11 +218,10 @@ class _AddVehicleLoadBodyState extends State<_AddVehicleLoadBody> {
       if (q <= 0) {
         continue;
       }
+      final String? pid = _productIdForRow(i);
       if (pid == null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(l10n.vehicleLoadInvalidRow)),
-        );
-        return null;
+        // كمية في صف بلا منتج في الكتالوج — نتجاهله (لا إلزام بتعبئة كل الصفوف).
+        continue;
       }
       // تأكيد الحمل لا يعتمد على مخزون المحطة؛ السيرفر لا يخصم عند إنشاء التحميل.
       lines.add((productId: pid, quantityLoaded: q));

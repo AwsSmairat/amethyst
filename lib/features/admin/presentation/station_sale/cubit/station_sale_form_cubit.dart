@@ -112,7 +112,7 @@ final class StationSaleFormCubit extends Cubit<StationSaleFormState> {
           List<int>.filled(state.colCount, 0, growable: false);
       for (var i = 0; i < state.colCount; i++) {
         Map<String, dynamic>? row;
-        final String? id = ids[i];
+        String? id = ids[i];
         if (id != null) {
           for (final Map<String, dynamic> pr in items) {
             if (pr['id']?.toString() == id) {
@@ -121,12 +121,35 @@ final class StationSaleFormCubit extends Cubit<StationSaleFormState> {
             }
           }
         }
-        stocks[i] = stationStockFromProductJson(row ?? <String, dynamic>{});
-        skipStock[i] = stationSaleColumnSkipsStationStock(
-          entryKind: state.entryKind,
-          columnIndex: i,
-          product: row,
-        );
+        if (state.entryKind == StationSaleEntryKind.filling && i == 2) {
+          final String? canonical =
+              resolveMahdiCartonStockProductId(products: items);
+          if (canonical != null && canonical.isNotEmpty) {
+            id = canonicalProductIdForMahdiStoreSale(
+              productId: id ?? canonical,
+              products: items,
+            );
+            ids[i] = id;
+            for (final Map<String, dynamic> pr in items) {
+              if (pr['id']?.toString() == id) {
+                row = pr;
+                break;
+              }
+            }
+          }
+          stocks[i] = aggregateStationStockForBalanceRow(
+            products: items,
+            rowIndex: 0,
+          );
+          skipStock[i] = false;
+        } else {
+          stocks[i] = stationStockFromProductJson(row ?? <String, dynamic>{});
+          skipStock[i] = stationSaleColumnSkipsStationStock(
+            entryKind: state.entryKind,
+            columnIndex: i,
+            product: row,
+          );
+        }
       }
       emit(
         state.copyWith(
@@ -281,12 +304,16 @@ final class StationSaleFormCubit extends Cubit<StationSaleFormState> {
           !fillingSale &&
           state.entryKind == StationSaleEntryKind.emptySale &&
           state.withFilling;
+      final List<Map<String, dynamic>> catalog = await _listProductItems();
       for (final StationSaleLine line in lines) {
         final double unitOut = addFillingSurcharge
             ? line.unitPrice + kEmptySaleWithFillingSurchargePerUnit
             : line.unitPrice;
         await _createStationSale(
-          productId: line.productId,
+          productId: canonicalProductIdForMahdiStoreSale(
+            productId: line.productId,
+            products: catalog,
+          ),
           quantity: line.quantity,
           unitPrice: unitOut,
           fillingSale: fillingSale,
