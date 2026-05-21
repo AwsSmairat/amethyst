@@ -9,6 +9,8 @@ typedef VehicleSaleLineInput = ({
   double unitPrice,
   bool deductStationStock,
   int stationStockSnapshot,
+  /// معرّف مخزون الحمولة/المحطة عند اختلافه عن [productId] (مهدي متجر ← ك مهدي).
+  String? stockProductId,
 });
 
 final class VehicleSaleSubmitCubit extends Cubit<SubmitState> {
@@ -82,11 +84,14 @@ final class VehicleSaleSubmitCubit extends Cubit<SubmitState> {
           quantity: line.quantity,
           unitPrice: line.unitPrice,
           saleDestination: saleDestination,
+          stockProductId: line.stockProductId,
         );
         if (line.deductStationStock) {
           final int next = (line.stationStockSnapshot - line.quantity);
+          final String stockId =
+              line.stockProductId ?? line.productId;
           await _patchStationStock(
-            productId: line.productId,
+            productId: stockId,
             stationStock: next < 0 ? 0 : next,
           );
         }

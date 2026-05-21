@@ -234,6 +234,10 @@ final class AmethystApi {
     required int quantity,
     required double unitPrice,
     String saleDestination = 'home',
+    String? stockProductId,
+    String? debtorName,
+    bool isDebt = false,
+    bool skipLoadDeduction = false,
   }) =>
       _b.createVehicleSale(
         vehicleId: vehicleId,
@@ -241,6 +245,10 @@ final class AmethystApi {
         quantity: quantity,
         unitPrice: unitPrice,
         saleDestination: saleDestination,
+        stockProductId: stockProductId,
+        debtorName: debtorName,
+        isDebt: isDebt,
+        skipLoadDeduction: skipLoadDeduction,
       );
 
   Future<Map<String, dynamic>> listExpenses({

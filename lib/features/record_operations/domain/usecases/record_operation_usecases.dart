@@ -76,6 +76,10 @@ final class CreateVehicleSaleUseCase {
     required int quantity,
     required double unitPrice,
     String saleDestination = 'home',
+    String? stockProductId,
+    String? debtorName,
+    bool isDebt = false,
+    bool skipLoadDeduction = false,
   }) =>
       _repository.createVehicleSale(
         vehicleId: vehicleId,
@@ -83,6 +87,10 @@ final class CreateVehicleSaleUseCase {
         quantity: quantity,
         unitPrice: unitPrice,
         saleDestination: saleDestination,
+        stockProductId: stockProductId,
+        debtorName: debtorName,
+        isDebt: isDebt,
+        skipLoadDeduction: skipLoadDeduction,
       );
 }
 

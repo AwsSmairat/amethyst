@@ -3,6 +3,7 @@ import 'package:amethyst/core/network/api_exception.dart';
 import 'package:amethyst/di/injection.dart';
 import 'package:amethyst/features/admin/presentation/station_debt/station_debt_api_error.dart';
 import 'package:amethyst/features/admin/presentation/station_debt/station_debt_formatting.dart';
+import 'package:amethyst/features/admin/presentation/station_debt/station_debt_kind.dart';
 import 'package:amethyst/l10n/app_localizations.dart';
 import 'package:amethyst/features/auth/presentation/cubit/auth_cubit.dart';
 import 'package:amethyst/features/auth/presentation/cubit/auth_state.dart';
@@ -29,32 +30,26 @@ class StationDebtorDetailPage extends StatefulWidget {
 class _StationDebtorDetailPageState extends State<StationDebtorDetailPage> {
   bool _submitting = false;
 
-  bool _allEntriesRecordedByUserId(List<Map<String, dynamic>> entries, String userId) {
-    if (userId.isEmpty) {
-      return false;
-    }
-    if (entries.isEmpty) {
-      return false;
-    }
-    for (final Map<String, dynamic> e in entries) {
-      final Object? rec0 = e['recordedBy'];
-      final Map<String, dynamic>? rec =
-          rec0 is Map<String, dynamic> ? rec0 : null;
-      final String rid = rec?['id']?.toString() ?? '';
-      if (rid.isEmpty || rid != userId) {
-        return false;
-      }
-    }
-    return true;
-  }
+  bool _hasStationDebt(List<Map<String, dynamic>> entries) =>
+      entries.any(isStationDebtEntry);
+
+  bool _hasVehicleDebt(List<Map<String, dynamic>> entries) =>
+      entries.any(isVehicleDebtEntry);
 
   Future<void> _onRepayPressed() async {
     final l10n = context.l10n;
+    final bool hasStation = _hasStationDebt(widget.entries);
+    final bool hasVehicle = _hasVehicleDebt(widget.entries);
+    final String confirmMessage = hasStation && hasVehicle
+        ? l10n.stationDebtRepayConfirmMessageMixed
+        : hasVehicle
+            ? l10n.stationDebtRepayConfirmMessageVehicle
+            : l10n.stationDebtRepayConfirmMessage;
     final bool? ok = await showDialog<bool>(
       context: context,
       builder: (BuildContext ctx) => AlertDialog(
         title: Text(l10n.stationDebtRepayConfirmTitle),
-        content: Text(l10n.stationDebtRepayConfirmMessage),
+        content: Text(confirmMessage),
         actions: <Widget>[
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(false),
@@ -72,27 +67,28 @@ class _StationDebtorDetailPageState extends State<StationDebtorDetailPage> {
     }
     setState(() => _submitting = true);
     try {
-      final AuthState authState = context.read<AuthCubit>().state;
-      final bool fromDriver = authState is AuthAuthenticated &&
-          authState.user.role == 'driver';
-      if (fromDriver) {
+      var vehicleRepaid = 0;
+      var stationRepaid = 0;
+      if (hasVehicle) {
         await sl<RepayStationDebtFromVehicleUseCase>().call(
           debtorName: widget.debtorName,
         );
-      } else {
+        vehicleRepaid = 1;
+      }
+      if (hasStation) {
         await sl<RepayStationDebtUseCase>().call(debtorName: widget.debtorName);
+        stationRepaid = 1;
       }
       if (!mounted) {
         return;
       }
+      final String successMessage = vehicleRepaid > 0 && stationRepaid > 0
+          ? l10n.stationDebtRepaySuccessMixed
+          : vehicleRepaid > 0
+              ? l10n.stationDebtRepaySuccessVehicle
+              : l10n.stationDebtRepaySuccess;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            fromDriver
-                ? l10n.stationDebtRepaySuccessVehicle
-                : l10n.stationDebtRepaySuccess,
-          ),
-        ),
+        SnackBar(content: Text(successMessage)),
       );
       Navigator.of(context).pop(true);
     } on ApiException catch (e) {
@@ -140,8 +136,8 @@ class _StationDebtorDetailPageState extends State<StationDebtorDetailPage> {
     final AuthState authState = context.watch<AuthCubit>().state;
     final bool repayAllowed = authState is AuthAuthenticated &&
         (authState.user.role == 'admin' ||
-            (authState.user.role == 'driver' &&
-                _allEntriesRecordedByUserId(sorted, authState.user.id)));
+            authState.user.role == 'super_admin' ||
+            authState.user.role == 'driver');
 
     return Scaffold(
       appBar: AppBar(
@@ -178,7 +174,11 @@ class _StationDebtorDetailPageState extends State<StationDebtorDetailPage> {
                               ? item['recordedBy'] as Map<String, dynamic>
                               : null;
                       final String rname = rec?['fullName']?.toString() ?? '';
+                      final String kindLabel = isStationDebtEntry(item)
+                          ? l10n.stationDebtKindStation
+                          : l10n.stationDebtKindVehicle;
                       final List<String> parts = <String>[
+                        kindLabel,
                         '${l10n.quantity}: $qty',
                         '${l10n.totalAmountLabel}: $total',
                         if (when != null) when,

@@ -47,6 +47,13 @@ abstract class RecordOperationsRepository {
     required double unitPrice,
     /// `store` = بيع من السيارة للمتاجر؛ `home` = للمنازل (الافتراضي).
     String saleDestination = 'home',
+    /// عند بيع «مهدي متجر»: خصم الحمولة/المخزون من هذا المعرّف (مثلاً ك مهدي).
+    String? stockProductId,
+    /// دين من المركبة: يُسجَّل كمبيع سيارة مع اسم المدين.
+    String? debtorName,
+    bool isDebt = false,
+    /// جالون/قاروره دين: لا يُخصم من حمولة السيارة.
+    bool skipLoadDeduction = false,
   });
 
   Future<void> createExpense({

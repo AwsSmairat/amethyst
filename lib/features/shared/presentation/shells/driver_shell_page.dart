@@ -2,6 +2,7 @@ import 'package:amethyst/core/l10n/context_l10n.dart';
 import 'package:amethyst/core/theme/app_colors.dart';
 import 'package:amethyst/core/widgets/brand_mark.dart';
 import 'package:amethyst/features/auth/presentation/cubit/auth_cubit.dart';
+import 'package:amethyst/features/driver/presentation/driver_sales_list_refresh.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
@@ -37,7 +38,12 @@ class DriverShellPage extends StatelessWidget {
         body: navigationShell,
         bottomNavigationBar: NavigationBar(
           selectedIndex: navigationShell.currentIndex,
-          onDestinationSelected: navigationShell.goBranch,
+          onDestinationSelected: (int index) {
+            navigationShell.goBranch(index);
+            if (index == 1) {
+              DriverSalesListRefresh.request();
+            }
+          },
           destinations: <NavigationDestination>[
             NavigationDestination(
               icon: const Icon(Icons.dashboard_outlined),

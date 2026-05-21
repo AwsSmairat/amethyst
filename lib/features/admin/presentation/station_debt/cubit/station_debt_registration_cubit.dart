@@ -1,5 +1,6 @@
 import 'package:amethyst/core/network/api_exception.dart';
 import 'package:amethyst/core/data/amethyst_api.dart';
+import 'package:amethyst/core/vehicle_sale/vehicle_product_columns.dart';
 import 'package:amethyst/features/admin/presentation/station_debt/station_debt_api_error.dart';
 import 'package:amethyst/core/station_balance/station_balance_catalog.dart';
 import 'package:amethyst/core/utils/parse_dynamic_double.dart';
@@ -15,28 +16,10 @@ const String kStationDebtNeedName = 'STATION_DEBT_NEED_NAME';
 const String kStationDebtNeedLine = 'STATION_DEBT_NEED_LINE';
 const String kStationDebtMissingProduct = 'STATION_DEBT_MISSING_PRODUCT';
 
-/// مطابقة [add_vehicle_sale_sheet.dart] — أسماء أعمدة الدين من المركبة.
-const List<String> _kVehicleDebtHomeCatalogNames = <String>[
-  'Water Gallon',
-  'Water Bottle',
-  'Water Carton',
-  'Coupon',
-];
-
-const List<String> _kVehicleDebtStoreCatalogNames = <String>[
-  'جالون متجر',
-  'قاروره متجر',
-  'مهدي متجر',
-];
-
-/// أسماء الكرتون التي قد تظهر في حمولة السائق أو مخزون المحطة لنفس صف "Water Carton".
-const List<String> _kMahdiCanonicalProductNames = <String>[
-  'Water Carton',
-  'Carton Mahdi',
-  'ك مهدي',
-  'مهدي (كرتون)',
-  'مهدي متجر',
-];
+VehicleProductColumnPlace _vehicleColumnPlace(StationDebtVehiclePlace place) =>
+    place == StationDebtVehiclePlace.home
+        ? VehicleProductColumnPlace.home
+        : VehicleProductColumnPlace.store;
 
 final class StationDebtRegistrationCubit extends Cubit<StationDebtRegistrationState> {
   StationDebtRegistrationCubit({
@@ -55,9 +38,9 @@ final class StationDebtRegistrationCubit extends Cubit<StationDebtRegistrationSt
           StationDebtRegistrationState.initial(
             columnCount: vehiclePlace == null
                 ? StationDebtRegistrationState.adminColumnCount
-                : vehiclePlace == StationDebtVehiclePlace.home
-                    ? _kVehicleDebtHomeCatalogNames.length
-                    : _kVehicleDebtStoreCatalogNames.length,
+                : vehicleProductColumnCount(
+                    _vehicleColumnPlace(vehiclePlace),
+                  ),
             useVehicleProductLabels: vehiclePlace != null,
           ),
         ) {
@@ -72,34 +55,30 @@ final class StationDebtRegistrationCubit extends Cubit<StationDebtRegistrationSt
   final PatchProductStationStockUseCase? _patchProductStationStock;
 
   String? _vehicleId;
-  Map<String, int> _vehicleRemainingByNormalizedName = <String, int>{};
-  String? _storeMahdiCanonicalProductId;
-  double? _storeMahdiCanonicalUnitPrice;
+  List<Map<String, dynamic>> _driverLoadLines = <Map<String, dynamic>>[];
+  List<String?> _stockProductIds = <String?>[];
 
   int _vehicleRemainingForDebtColumn({
     required StationDebtVehiclePlace place,
     required int columnIndex,
   }) {
-    final String loadName = _vehicleLoadNameForDebtColumn(
-      place: place,
-      columnIndex: columnIndex,
-    );
-    if (loadName.trim().isEmpty) {
+    if (_driverLoadLines.isEmpty) {
       return 0;
     }
-    // "متجر": عمود مهدي/كرتون يجمع كل أسماء الكرتون المحتملة.
-    if (place == StationDebtVehiclePlace.store && columnIndex == 2) {
-      var sum = 0;
-      for (final String c in _kMahdiCanonicalProductNames) {
-        sum += _vehicleRemainingByNormalizedName[
-                normalizeStationBalanceProductName(c)] ??
-            0;
-      }
-      return sum;
-    }
-    return _vehicleRemainingByNormalizedName[
-            normalizeStationBalanceProductName(loadName)] ??
-        0;
+    final VehicleProductColumnPlace columnPlace = _vehicleColumnPlace(place);
+    final String? stockId = columnIndex < _stockProductIds.length
+        ? _stockProductIds[columnIndex]
+        : null;
+    final String? saleId = columnIndex < state.productIds.length
+        ? state.productIds[columnIndex]
+        : null;
+    return vehicleRemainingFromDriverLoad(
+      loadLines: _driverLoadLines,
+      place: columnPlace,
+      columnIndex: columnIndex,
+      stockProductId: stockId,
+      saleProductId: saleId,
+    );
   }
 
   Future<void> _loadProducts() async {
@@ -108,97 +87,61 @@ final class StationDebtRegistrationCubit extends Cubit<StationDebtRegistrationSt
       final List<Map<String, dynamic>> items = await _listProductItems();
       final int n = state.columnCount;
       if (vehiclePlace != null) {
-        // "مهدي متجر" يجب أن يخصم/يتحقق من نفس منتج الكرتون الفعلي (Water Carton) على الخادم.
-        // لذلك نربط العمود 2 في وضع "متجر" بـ ID الكرتون القانوني.
-        final Map<String, dynamic>? canonicalCarton =
-            resolveMahdiCartonStockProduct(products: items);
-        _storeMahdiCanonicalProductId =
-            resolveMahdiCartonStockProductId(products: items);
-        _storeMahdiCanonicalUnitPrice =
-            parseDynamicDouble(canonicalCarton?['price']);
+        final VehicleProductColumnPlace columnPlace =
+            _vehicleColumnPlace(vehiclePlace!);
 
-        // لقطة حمولة السائق الحالية للتحقق/الخصم عند تسجيل دين من المركبة.
         final AmethystApi api = _api!;
         final Map<String, dynamic> currentLoad = await api.driverCurrentLoad();
         final Map<String, dynamic>? veh =
             currentLoad['vehicle'] as Map<String, dynamic>?;
-        final List<Map<String, dynamic>> loads =
+        _driverLoadLines =
             (currentLoad['loads'] as List<dynamic>? ?? <dynamic>[])
                 .whereType<Map<String, dynamic>>()
                 .toList(growable: false);
         _vehicleId = veh?['id']?.toString();
-        _vehicleRemainingByNormalizedName = <String, int>{
-          for (final Map<String, dynamic> l in loads)
-            normalizeStationBalanceProductName(
-              (l['product'] as Map<String, dynamic>?)?['name']?.toString() ??
-                  '',
-            ): (l['remaining'] as int?) ?? 0,
-        }..removeWhere((k, _) => k.trim().isEmpty);
 
-        final List<String> catalogNames = vehiclePlace == StationDebtVehiclePlace.home
-            ? _kVehicleDebtHomeCatalogNames
-            : _kVehicleDebtStoreCatalogNames;
         final List<String?> ids = List<String?>.filled(n, null, growable: false);
         final List<double?> prices =
             List<double?>.filled(n, null, growable: false);
         final List<String> namesOut =
             List<String>.filled(n, '', growable: false);
+        _stockProductIds = List<String?>.filled(n, null, growable: false);
+
         for (var i = 0; i < n; i++) {
-          final String name = catalogNames[i];
-          final Map<String, dynamic>? match =
-              _matchCatalogProduct(name, items);
-          ids[i] = match?['id'] as String?;
-          prices[i] = parseDynamicDouble(match?['price']);
-          final String? dn = match?['name']?.toString().trim();
-          namesOut[i] =
-              (dn != null && dn.isNotEmpty) ? dn : name;
+          final VehicleProductColumnBinding binding =
+              bindVehicleProductColumn(
+            place: columnPlace,
+            columnIndex: i,
+            products: items,
+          );
+          ids[i] = binding.saleProductId;
+          _stockProductIds[i] = binding.stockProductId;
+          prices[i] = binding.unitPrice;
+          namesOut[i] = binding.displayLabel;
         }
-        // ربط "مهدي متجر" على ID الكرتون القانوني (إن توفر) لتفادي رفض المخزون على الخادم.
-        if (vehiclePlace == StationDebtVehiclePlace.store && n >= 3) {
-          final String? canonicalId = _storeMahdiCanonicalProductId;
-          if (canonicalId != null && canonicalId.isNotEmpty) {
-            ids[2] = canonicalId;
-            prices[2] ??= _storeMahdiCanonicalUnitPrice;
-          }
-        }
-        final List<bool> skipStock =
-            List<bool>.filled(n, false, growable: false);
+
+        final List<bool> skipStock = List<bool>.generate(
+          n,
+          (int i) => vehicleProductColumnSkipsStationStock(columnPlace, i),
+          growable: false,
+        );
         final List<int> stocks = List<int>.filled(n, 0, growable: false);
         final List<int> vehicleRemaining =
             List<int>.filled(n, 0, growable: false);
         for (var i = 0; i < n; i++) {
-          Map<String, dynamic>? row;
-          final String? id = ids[i];
-          if (id != null) {
-            for (final Map<String, dynamic> pr in items) {
-              if (pr['id']?.toString() == id) {
-                row = pr;
-                break;
-              }
-            }
-          }
-          // عمود "مهدي متجر": نربطه بنفس صف Water Carton في رصيد المحطة (مجموع).
-          if (vehiclePlace == StationDebtVehiclePlace.store && i == 2) {
-            stocks[i] = aggregateStationStockForBalanceRow(
-              products: items,
-              rowIndex: 0,
-            );
-          } else {
-            stocks[i] =
-                stationStockFromProductJson(row ?? <String, dynamic>{});
-          }
-          skipStock[i] = stationSaleColumnSkipsStationStock(
-            entryKind: StationSaleEntryKind.filling,
+          final VehicleProductColumnBinding binding =
+              bindVehicleProductColumn(
+            place: columnPlace,
             columnIndex: i,
-            product: row,
+            products: items,
           );
-          // "مهدي متجر" يجب أن يُعامل كبند كرتون يخصم من مخزون المحطة أيضاً.
-          if (vehiclePlace == StationDebtVehiclePlace.store && i == 2) {
-            skipStock[i] = false;
-          }
-          vehicleRemaining[i] = _vehicleRemainingForDebtColumn(
-            place: vehiclePlace!,
+          stocks[i] = binding.stationStock;
+          vehicleRemaining[i] = vehicleRemainingFromDriverLoad(
+            loadLines: _driverLoadLines,
+            place: columnPlace,
             columnIndex: i,
+            stockProductId: _stockProductIds[i],
+            saleProductId: ids[i],
           );
         }
         emit(
@@ -307,13 +250,16 @@ final class StationDebtRegistrationCubit extends Cubit<StationDebtRegistrationSt
       return;
     }
     if (delta > 0) {
-      // وضع السائق: السقف يكون حسب المتبقي على المركبة، وبعض المنتجات أيضاً حسب مخزون المحطة.
-      if (vehiclePlace != null && index < state.columnVehicleRemaining.length) {
+      // وضع السائق: منتج ١ و ٢ بدون سقف مخزون؛ الباقي حسب الحمولة والمحطة.
+      if (vehiclePlace != null &&
+          !vehicleDebtColumnSkipsInventoryDeduction(index) &&
+          index < state.columnVehicleRemaining.length) {
         final int vehicleRem = state.columnVehicleRemaining[index];
         int cap = vehicleRem;
-        final bool deductStationStock = vehiclePlace == StationDebtVehiclePlace.home
-            ? index >= 2
-            : index == 2;
+        final bool deductStationStock = vehicleProductColumnDeductsStationStock(
+          _vehicleColumnPlace(vehiclePlace!),
+          index,
+        );
         if (deductStationStock &&
             index < state.columnStationStock.length &&
             index < state.columnSkipsStationStock.length &&
@@ -374,18 +320,27 @@ final class StationDebtRegistrationCubit extends Cubit<StationDebtRegistrationSt
     final String debtor = debtorNameRaw.trim();
     final List<Map<String, dynamic>> catalog = await _listProductItems();
     final List<Map<String, dynamic>> lines = <Map<String, dynamic>>[];
-    final List<({int columnIndex, String productId, int quantity, double unitPrice})>
-        vehicleLines = <({int columnIndex, String productId, int quantity, double unitPrice})>[];
+    final List<
+        ({
+          int columnIndex,
+          String productId,
+          String? stockProductId,
+          int quantity,
+          double unitPrice,
+        })> vehicleLines = <({
+      int columnIndex,
+      String productId,
+      String? stockProductId,
+      int quantity,
+      double unitPrice,
+    })>[];
     for (var i = 0; i < state.columnCount; i++) {
       final int q = state.quantities[i];
       if (q <= 0) {
         continue;
       }
-      // في "متجر" لعمود مهدي: نستخدم ID الكرتون القانوني إن توفر.
       final String pid = canonicalProductIdForMahdiStoreSale(
-        productId: (vehiclePlace == StationDebtVehiclePlace.store && i == 2)
-            ? (_storeMahdiCanonicalProductId ?? state.productIds[i]!)
-            : state.productIds[i]!,
+        productId: state.productIds[i]!,
         products: catalog,
       );
       final double price = state.unitPrices[i]!;
@@ -394,8 +349,20 @@ final class StationDebtRegistrationCubit extends Cubit<StationDebtRegistrationSt
         'quantity': q,
         'unitPrice': price,
       });
+      final String? stockId = i < _stockProductIds.length
+          ? _stockProductIds[i]
+          : null;
       vehicleLines.add(
-        (columnIndex: i, productId: pid, quantity: q, unitPrice: price),
+        (
+          columnIndex: i,
+          productId: pid,
+          stockProductId:
+              stockId != null && stockId.isNotEmpty && stockId != pid
+                  ? stockId
+                  : null,
+          quantity: q,
+          unitPrice: price,
+        ),
       );
     }
     emit(
@@ -410,6 +377,9 @@ final class StationDebtRegistrationCubit extends Cubit<StationDebtRegistrationSt
       if (vehiclePlace != null) {
         final StationDebtVehiclePlace place = vehiclePlace!;
         for (final line in vehicleLines) {
+          if (vehicleDebtColumnSkipsInventoryDeduction(line.columnIndex)) {
+            continue;
+          }
           final int rem = _vehicleRemainingForDebtColumn(
             place: place,
             columnIndex: line.columnIndex,
@@ -426,10 +396,8 @@ final class StationDebtRegistrationCubit extends Cubit<StationDebtRegistrationSt
         }
       }
 
-      await _createStationDebtEntries(debtorName: debtor, lines: lines);
-
-      // بعد تسجيل الدين: خصم من حمولة السيارة (وخصم من المحطة لبعض المنتجات).
       if (vehiclePlace != null) {
+        // دين المركبة = مبيعات سيارة (isDebt) وليس سجل دين محطة منفصل.
         final String? vehicleId = _vehicleId;
         if (vehicleId == null || vehicleId.trim().isEmpty) {
           throw StateError('missing vehicle id for vehicle debt');
@@ -443,30 +411,42 @@ final class StationDebtRegistrationCubit extends Cubit<StationDebtRegistrationSt
             _patchProductStationStock!;
 
         for (final line in vehicleLines) {
+          final bool skipInventory =
+              vehicleDebtColumnSkipsInventoryDeduction(line.columnIndex);
           await createVehicleSale(
             vehicleId: vehicleId,
             productId: line.productId,
             quantity: line.quantity,
             unitPrice: line.unitPrice,
             saleDestination: destination,
+            stockProductId: line.stockProductId,
+            debtorName: debtor,
+            isDebt: true,
+            skipLoadDeduction: skipInventory,
           );
 
-          // بيع "متجر": الخادم يخصم مخزون المحطة (خصوصاً الكرتون) ضمن منطق vehicle sale.
-          // لذلك لا نرسل PATCH إضافي هنا حتى لا يحدث تعارض/رفض (INSUFFICIENT_STOCK).
-          final bool deductStationStock = place == StationDebtVehiclePlace.home
-              ? line.columnIndex >= 2
-              : false;
+          if (skipInventory) {
+            continue;
+          }
+          final bool deductStationStock = vehicleProductColumnDeductsStationStock(
+            _vehicleColumnPlace(place),
+            line.columnIndex,
+          );
           if (deductStationStock) {
             final int snapshot = line.columnIndex < state.columnStationStock.length
                 ? state.columnStationStock[line.columnIndex]
                 : 0;
             final int next = snapshot - line.quantity;
+            final String stockPatchId =
+                line.stockProductId ?? line.productId;
             await patchStock(
-              productId: line.productId,
+              productId: stockPatchId,
               stationStock: next < 0 ? 0 : next,
             );
           }
         }
+      } else {
+        await _createStationDebtEntries(debtorName: debtor, lines: lines);
       }
 
       emit(
@@ -496,56 +476,6 @@ final class StationDebtRegistrationCubit extends Cubit<StationDebtRegistrationSt
   void clearSubmitSucceeded() {
     emit(state.copyWith(submitSucceeded: false));
   }
-}
-
-String _vehicleLoadNameForDebtColumn({
-  required StationDebtVehiclePlace place,
-  required int columnIndex,
-}) {
-  if (place == StationDebtVehiclePlace.home) {
-    // ٠..٣ مطابق للأسماء الثابتة في شاشة دين المركبة (منزل).
-    if (columnIndex >= 0 && columnIndex < _kVehicleDebtHomeCatalogNames.length) {
-      return _kVehicleDebtHomeCatalogNames[columnIndex];
-    }
-    return '';
-  }
-  // "متجر": 0/1/2 تستهلك من Water Gallon/Bottle/Carton في حمولة السيارة.
-  return switch (columnIndex) {
-    0 => 'Water Gallon',
-    1 => 'Water Bottle',
-    2 => 'Water Carton',
-    _ => '',
-  };
-}
-
-Map<String, dynamic>? _matchCatalogProduct(
-  String requestedName,
-  List<Map<String, dynamic>> items,
-) {
-  final String want = requestedName.trim();
-  if (want.isEmpty) {
-    return null;
-  }
-  for (final Map<String, dynamic> pr in items) {
-    if (pr['isActive'] == false) {
-      continue;
-    }
-    final String? n = pr['name']?.toString().trim();
-    if (n != null && n == want) {
-      return pr;
-    }
-  }
-  final String wantLower = want.toLowerCase();
-  for (final Map<String, dynamic> pr in items) {
-    if (pr['isActive'] == false) {
-      continue;
-    }
-    final String? n = pr['name']?.toString().trim();
-    if (n != null && n.toLowerCase() == wantLower) {
-      return pr;
-    }
-  }
-  return null;
 }
 
 String? _unitTypeFromProductJson(Map<String, dynamic> pr) {

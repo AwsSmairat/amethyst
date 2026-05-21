@@ -2,6 +2,7 @@ import 'package:amethyst/core/utils/parse_dynamic_double.dart';
 import 'package:amethyst/core/data/amethyst_api.dart';
 import 'package:amethyst/core/l10n/context_l10n.dart';
 import 'package:amethyst/core/station_balance/station_balance_catalog.dart';
+import 'package:amethyst/core/vehicle_sale/vehicle_product_columns.dart';
 import 'package:amethyst/core/vehicle_load/vehicle_load_catalog.dart';
 import 'package:amethyst/core/theme/app_colors.dart';
 import 'package:amethyst/di/injection.dart';
@@ -40,34 +41,18 @@ class _AddVehicleSaleBody extends StatefulWidget {
 }
 
 class _AddVehicleSaleBodyState extends State<_AddVehicleSaleBody> {
-  static const List<String> _kHomeProductNames = <String>[
-    'Water Gallon',
-    'Water Bottle',
-    'Water Carton',
-    'Coupon',
-    'Coupon 2',
-    'Coupon 3',
-  ];
+  static const List<String> _kHomeProductNames = kVehicleHomeProductApiNames;
 
   /// أسماء المنتجات في الـ API — مطابقة لقوالب السوبر أدمن وصف التحميل.
-  static const List<String> _kStoreProductNames = <String>[
-    'جالون متجر',
-    'قاروره متجر',
-    'مهدي متجر',
-  ];
+  static const List<String> _kStoreProductNames = kVehicleStoreProductApiNames;
 
-  static const List<String> _kStoreMahdiCanonicalProductNames = <String>[
-    'Water Carton',
-    'Carton Mahdi',
-    'ك مهدي',
-    'مهدي (كرتون)',
-    // أحياناً يكون اسم الحمولة/المنتج على الـ API مطابق لقالب البيع نفسه.
-    'مهدي متجر',
-  ];
+  static const List<String> _kStoreMahdiCanonicalProductNames =
+      kVehicleStoreMahdiStockNameCandidates;
 
   int _columnCount = 6;
   List<int> _quantities = List<int>.filled(6, 0);
   List<String?> _productIds = List<String?>.filled(6, null);
+  List<String?> _stockProductIds = List<String?>.filled(6, null);
   List<String> _productLabels = List<String>.filled(6, '');
   List<double?> _unitPrices = List<double?>.filled(6, null);
   List<int> _stationStocks = List<int>.filled(6, 0);
@@ -168,26 +153,36 @@ class _AddVehicleSaleBodyState extends State<_AddVehicleSaleBody> {
     _columnCount = names.length;
     _quantities = List<int>.filled(_columnCount, 0);
     _productIds = List<String?>.filled(_columnCount, null);
+    _stockProductIds = List<String?>.filled(_columnCount, null);
     _productLabels = List<String>.filled(_columnCount, '');
     _unitPrices = List<double?>.filled(_columnCount, null);
     _stationStocks = List<int>.filled(_columnCount, 0);
     for (var i = 0; i < _columnCount; i++) {
       final String name = names[i];
       Map<String, dynamic>? match;
-      if (i < kVehicleLoadFixedRowCount &&
-          (place == VehicleSalePlace.home ||
-              (place == VehicleSalePlace.store && i == 2))) {
+      if (place == VehicleSalePlace.store && i == 2) {
+        final Map<String, dynamic>? storeSale =
+            resolveStoreMahdiSaleProduct(products: _productItems) ??
+                _findProductByCatalogName(name);
+        final String? stockId =
+            resolveMahdiCartonStockProductId(products: _productItems);
+        _productIds[i] = storeSale?['id']?.toString();
+        _stockProductIds[i] = stockId;
+        _productLabels[i] = kStoreMahdiProductApiName;
+        _unitPrices[i] = parseDynamicDouble(storeSale?['price']);
+        _stationStocks[i] = _storeMahdiStationStockFromCatalog();
+        continue;
+      }
+      if (i < kVehicleLoadFixedRowCount && place == VehicleSalePlace.home) {
         match = resolveVehicleLoadRowProduct(
           products: _productItems,
-          rowIndex: place == VehicleSalePlace.store && i == 2 ? 2 : i,
+          rowIndex: i,
         );
       }
       match ??= _findProductByCatalogName(name);
-      String? pid = match?['id']?.toString();
-      if (place == VehicleSalePlace.store && i == 2) {
-        pid = resolveMahdiCartonStockProductId(products: _productItems) ?? pid;
-        _stationStocks[i] = _storeMahdiStationStockFromCatalog();
-      } else if (place == VehicleSalePlace.home && i == 2) {
+      final String? pid = match?['id']?.toString();
+      _stockProductIds[i] = pid;
+      if (place == VehicleSalePlace.home && i == 2) {
         _stationStocks[i] = aggregateStationStockForBalanceRow(
           products: _productItems,
           rowIndex: 0,
@@ -202,7 +197,9 @@ class _AddVehicleSaleBodyState extends State<_AddVehicleSaleBody> {
             stationStockFromProductJson(match ?? <String, dynamic>{});
       }
       _productIds[i] = pid;
-      _productLabels[i] = match?['name']?.toString().trim() ?? name;
+      _productLabels[i] = place == VehicleSalePlace.home
+          ? vehicleProductDisplayLabel(VehicleProductColumnPlace.home, i)
+          : (match?['name']?.toString().trim() ?? name);
       _unitPrices[i] = parseDynamicDouble(match?['price']);
     }
   }
@@ -244,20 +241,6 @@ class _AddVehicleSaleBodyState extends State<_AddVehicleSaleBody> {
     return sum;
   }
 
-  String _arabicLabelForCatalogName(String raw) {
-    final String name = raw.trim();
-    return switch (name) {
-      'Water Gallon' => 'جالون',
-      'Water Bottle' => 'قارورة',
-      'Water Carton' => 'كرتون',
-      'Coupon' => 'كوبون',
-      'Coupon 2' => 'كوبون 2',
-      'Coupon 3' => 'كوبون 3',
-      // "متجر" أصلاً عربية في القالب.
-      _ => name,
-    };
-  }
-
   List<String> _loadNameCandidatesForColumn(int columnIndex) {
     final VehicleSalePlace? place = _selectedPlace;
     if (place == null) {
@@ -288,7 +271,10 @@ class _AddVehicleSaleBodyState extends State<_AddVehicleSaleBody> {
       return 0;
     }
 
-    final String? columnProductId = _productIds[columnIndex];
+    final String? stockId = columnIndex < _stockProductIds.length
+        ? _stockProductIds[columnIndex]
+        : null;
+    final String? columnProductId = stockId ?? _productIds[columnIndex];
     if (columnProductId != null && columnProductId.isNotEmpty) {
       var fromProductId = 0;
       for (final Map<String, dynamic> line in _driverLoadLines) {
@@ -407,12 +393,19 @@ class _AddVehicleSaleBodyState extends State<_AddVehicleSaleBody> {
   }
 
   String _columnTitle(BuildContext context, int index) {
+    if (_selectedPlace == VehicleSalePlace.home) {
+      return vehicleProductDisplayLabel(VehicleProductColumnPlace.home, index);
+    }
     final label = _productLabels[index];
-    final String base = label.isNotEmpty ? label : '—';
-    // عرض اسم عربي ثابت لمنتجات المنزل، وباقي الحالات نترك اسم المنتج كما هو من الـ API.
-    return _selectedPlace == VehicleSalePlace.home
-        ? _arabicLabelForCatalogName(base)
-        : base;
+    return label.isNotEmpty ? label : '—';
+  }
+
+  String _badgeLabel(BuildContext context, int index) {
+    if (_selectedPlace == VehicleSalePlace.home) {
+      return vehicleProductBadgeLabel(VehicleProductColumnPlace.home, index) ??
+          context.l10n.productRow(index + 1);
+    }
+    return context.l10n.productRow(index + 1);
   }
 
   List<VehicleSaleLineInput>? _collectLines() {
@@ -469,21 +462,22 @@ class _AddVehicleSaleBodyState extends State<_AddVehicleSaleBody> {
           _selectedPlace == VehicleSalePlace.home &&
               ((i == 0 && _homeCouponLine1On) ||
                   (i == 1 && _homeCouponLine2On));
-      // بيع «مهدي متجر»: معرّف الكرتون الكنسي للخصم من المحطة والحمولة.
-      final String saleProductId = storeStationStockDeduct
-          ? (canonicalProductIdForMahdiStoreSale(
-                productId: pid,
-                products: _productItems,
-              ))
-          : pid;
+      final String? stockPid = i < _stockProductIds.length
+          ? _stockProductIds[i]
+          : null;
       lines.add(
         (
-          productId: saleProductId,
+          productId: pid,
           quantity: q,
           unitPrice: couponPriceZero ? 0.0 : unit,
           deductStationStock:
               homeStationStockDeduct || storeStationStockDeduct,
           stationStockSnapshot: stationAvailable,
+          stockProductId: storeStationStockDeduct && i == 2
+              ? stockPid
+              : (homeStationStockDeduct && i == 2
+                  ? stockPid
+                  : null),
         ),
       );
     }
@@ -610,6 +604,7 @@ class _AddVehicleSaleBodyState extends State<_AddVehicleSaleBody> {
                     columnBuilder: (BuildContext context, int i) =>
                         _VehicleSaleColumn(
                       index: i,
+                      badgeLabel: _badgeLabel(context, i),
                       productLabel: _columnTitle(context, i),
                       vehicleRemaining: _vehicleRemainingForColumn(i),
                       quantity: _quantities[i],
@@ -729,6 +724,7 @@ class _VehicleSaleProductsGrid extends StatelessWidget {
 class _VehicleSaleColumn extends StatelessWidget {
   const _VehicleSaleColumn({
     required this.index,
+    required this.badgeLabel,
     required this.productLabel,
     required this.vehicleRemaining,
     required this.quantity,
@@ -741,6 +737,7 @@ class _VehicleSaleColumn extends StatelessWidget {
   });
 
   final int index;
+  final String badgeLabel;
   final String productLabel;
   final int vehicleRemaining;
   final int quantity;
@@ -780,7 +777,7 @@ class _VehicleSaleColumn extends StatelessWidget {
                   padding:
                       const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                   child: Text(
-                    l10n.productRow(index + 1),
+                    badgeLabel,
                     style: theme.textTheme.labelSmall?.copyWith(
                           color: scheme.primary,
                           fontWeight: FontWeight.w700,

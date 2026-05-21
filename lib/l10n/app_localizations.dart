@@ -508,6 +508,12 @@ abstract class AppLocalizations {
   /// **'إضافة منتج'**
   String get addProduct;
 
+  /// No description provided for @linkProductToRow.
+  ///
+  /// In ar, this message translates to:
+  /// **'ربط المنتج في النظام'**
+  String get linkProductToRow;
+
   /// No description provided for @productNameLabel.
   ///
   /// In ar, this message translates to:
@@ -2438,6 +2444,54 @@ abstract class AppLocalizations {
   /// In ar, this message translates to:
   /// **'سيتم تسجيل هذه المبالغ كمبيعات محطة لهذا اليوم وتدخل في الإجمالي (المخزون سبق خصمه عند تسجيل الدين). هل تريد المتابعة؟'**
   String get stationDebtRepayConfirmMessage;
+
+  /// No description provided for @stationDebtRepayConfirmMessageVehicle.
+  ///
+  /// In ar, this message translates to:
+  /// **'سيُسجَّل السداد كمبيع سيارة لهذا اليوم (المخزون سبق خصمه عند تسجيل الدين). هل تريد المتابعة؟'**
+  String get stationDebtRepayConfirmMessageVehicle;
+
+  /// No description provided for @stationDebtRepayConfirmMessageMixed.
+  ///
+  /// In ar, this message translates to:
+  /// **'سيُسجَّل السداد: دين المحطة كمبيع محطة، ودين السيارة كمبيع سيارة — بدون خصم مخزون إضافي. هل تريد المتابعة؟'**
+  String get stationDebtRepayConfirmMessageMixed;
+
+  /// No description provided for @stationDebtRepaySuccessMixed.
+  ///
+  /// In ar, this message translates to:
+  /// **'تم تسجيل السداد في مبيعات المحطة والسيارة.'**
+  String get stationDebtRepaySuccessMixed;
+
+  /// No description provided for @stationDebtSectionStation.
+  ///
+  /// In ar, this message translates to:
+  /// **'دين المحطة'**
+  String get stationDebtSectionStation;
+
+  /// No description provided for @stationDebtSectionVehicle.
+  ///
+  /// In ar, this message translates to:
+  /// **'دين السيارة'**
+  String get stationDebtSectionVehicle;
+
+  /// No description provided for @stationDebtSectionMixed.
+  ///
+  /// In ar, this message translates to:
+  /// **'دين محطة و سيارة'**
+  String get stationDebtSectionMixed;
+
+  /// No description provided for @stationDebtKindStation.
+  ///
+  /// In ar, this message translates to:
+  /// **'دين محطة'**
+  String get stationDebtKindStation;
+
+  /// No description provided for @stationDebtKindVehicle.
+  ///
+  /// In ar, this message translates to:
+  /// **'دين سيارة'**
+  String get stationDebtKindVehicle;
 
   /// No description provided for @stationDebtRepaySuccess.
   ///

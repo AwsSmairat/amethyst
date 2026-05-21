@@ -100,6 +100,10 @@ final class RecordOperationsRepositoryImpl implements RecordOperationsRepository
     required int quantity,
     required double unitPrice,
     String saleDestination = 'home',
+    String? stockProductId,
+    String? debtorName,
+    bool isDebt = false,
+    bool skipLoadDeduction = false,
   }) =>
       _api.createVehicleSale(
         vehicleId: vehicleId,
@@ -107,6 +111,10 @@ final class RecordOperationsRepositoryImpl implements RecordOperationsRepository
         quantity: quantity,
         unitPrice: unitPrice,
         saleDestination: saleDestination,
+        stockProductId: stockProductId,
+        debtorName: debtorName,
+        isDebt: isDebt,
+        skipLoadDeduction: skipLoadDeduction,
       );
 
   @override

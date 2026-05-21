@@ -70,7 +70,10 @@ final class PrototypeAmethystBackend {
     required String id,
     double? price,
   }) async {
-    throwUiOnlyWrite();
+    if (price != null && !PrototypeSampleData.setProductPrice(id, price)) {
+      throw ApiException('Product not found', code: 'NOT_FOUND');
+    }
+    return PrototypeSampleData.productById(id);
   }
 
   Future<void> deleteProduct(String id) async {
@@ -156,23 +159,42 @@ final class PrototypeAmethystBackend {
     required String debtorName,
     required List<Map<String, dynamic>> lines,
   }) async {
-    throwUiOnlyWrite();
+    PrototypeSampleData.addStationDebtEntries(
+      debtorName: debtorName,
+      lines: lines,
+    );
   }
 
   Future<Map<String, dynamic>> listStationDebtEntries({
     int page = 1,
     int limit = 100,
   }) async =>
-      _paginate(PrototypeSampleData.stationDebtEntries, page: page, limit: limit);
+      _paginate(
+        PrototypeSampleData.openStationDebtEntries,
+        page: page,
+        limit: limit,
+      );
 
   Future<Map<String, dynamic>> repayStationDebt({required String debtorName}) async {
-    throwUiOnlyWrite();
+    final int n = PrototypeSampleData.repayStationDebtForDebtor(
+      debtorName: debtorName,
+    );
+    if (n <= 0) {
+      throw ApiException('No unpaid station debt', code: 'NOT_FOUND');
+    }
+    return <String, dynamic>{'repaidCount': n};
   }
 
   Future<Map<String, dynamic>> repayStationDebtFromVehicle({
     required String debtorName,
   }) async {
-    throwUiOnlyWrite();
+    final int n = PrototypeSampleData.repayVehicleDebtForDebtor(
+      debtorName: debtorName,
+    );
+    if (n <= 0) {
+      throw ApiException('No unpaid vehicle debt', code: 'NOT_FOUND');
+    }
+    return <String, dynamic>{'repaidCount': n};
   }
 
   Future<Map<String, dynamic>> listVehicleSales({
@@ -209,6 +231,10 @@ final class PrototypeAmethystBackend {
     required int quantity,
     required double unitPrice,
     String saleDestination = 'home',
+    String? stockProductId,
+    String? debtorName,
+    bool isDebt = false,
+    bool skipLoadDeduction = false,
   }) async {
     final Map<String, dynamic> row = PrototypeSampleData.addVehicleSale(
       vehicleId: vehicleId,
@@ -216,6 +242,10 @@ final class PrototypeAmethystBackend {
       quantity: quantity,
       unitPrice: unitPrice,
       saleDestination: saleDestination,
+      stockProductId: stockProductId,
+      debtorName: debtorName,
+      isDebt: isDebt,
+      skipLoadDeduction: skipLoadDeduction,
     );
     return <String, dynamic>{'item': row};
   }

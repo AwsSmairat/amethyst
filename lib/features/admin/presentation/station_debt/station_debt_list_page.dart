@@ -3,6 +3,8 @@ import 'package:amethyst/core/data/amethyst_api.dart';
 import 'package:amethyst/core/presentation/list_load_state.dart';
 import 'package:amethyst/di/injection.dart';
 import 'package:amethyst/features/admin/presentation/station_debt/station_debt_api_error.dart';
+import 'package:amethyst/features/admin/presentation/station_debt/station_debt_kind.dart';
+import 'package:amethyst/features/driver/presentation/driver_sales_list_refresh.dart';
 import 'package:amethyst/features/catalog/presentation/cubit/json_list_cubit.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -28,7 +30,11 @@ class StationDebtListPage extends StatelessWidget {
       )..load(),
       child: Scaffold(
         appBar: AppBar(
-          title: Text(l10n.titleStationDebtList),
+          title: Text(
+            shellBase.contains('/driver')
+                ? l10n.stationDebtSectionVehicle
+                : l10n.titleStationDebtList,
+          ),
           actions: <Widget>[
             IconButton(
               onPressed: () => context.read<JsonListCubit>().load(),
@@ -61,8 +67,12 @@ class StationDebtListPage extends StatelessWidget {
                 ),
               );
             }
-            final List<Map<String, dynamic>> items =
+            final bool driverView = shellBase.contains('/driver');
+            final List<Map<String, dynamic>> rawItems =
                 (state as ListLoadLoaded).items;
+            final List<Map<String, dynamic>> items = driverView
+                ? rawItems.where(isVehicleDebtEntry).toList(growable: false)
+                : rawItems;
             final List<_DebtorGroup> groups = _groupByDebtorName(items);
             if (groups.isEmpty) {
               return Center(child: Text(l10n.nothingHereYet));
@@ -120,7 +130,12 @@ class _DebtorTile extends StatelessWidget {
         maxLines: 2,
         overflow: TextOverflow.ellipsis,
       ),
-      subtitle: Text(l10n.stationDebtDebtorLineCount(entries.length)),
+      subtitle: Text(
+        shellBase.contains('/driver')
+            ? l10n.stationDebtDebtorLineCount(entries.length)
+            : '${stationDebtKindSummary(entries)} · '
+                '${l10n.stationDebtDebtorLineCount(entries.length)}',
+      ),
       trailing: const Icon(Icons.chevron_left),
       onTap: () async {
         final bool? done = await context.push<bool>(
@@ -135,6 +150,9 @@ class _DebtorTile extends StatelessWidget {
         }
         if (done == true) {
           context.read<JsonListCubit>().load();
+          if (shellBase.contains('/driver')) {
+            DriverSalesListRefresh.request();
+          }
         }
       },
     );

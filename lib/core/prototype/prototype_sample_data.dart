@@ -82,6 +82,53 @@ final class PrototypeSampleData {
   static List<Map<String, dynamic>> get products =>
       List<Map<String, dynamic>>.from(_products);
 
+  static bool _pricingCatalogEnsured = false;
+
+  /// يضمن وجود منتج في الكتالوج لكل صف تسعير سوبر أدمن (ربط بالأسماء المعيارية).
+  static void ensurePricingCatalogProducts() {
+    if (_pricingCatalogEnsured) {
+      return;
+    }
+    _pricingCatalogEnsured = true;
+    for (final int rowIndex in kStationPricingBalanceRowIndices) {
+      final Map<String, dynamic>? existing = resolveStationBalanceProduct(
+        products: _products,
+        rowIndex: rowIndex,
+      );
+      if (existing != null) {
+        continue;
+      }
+      upsertStationBalanceRow(rowIndex: rowIndex, stationStock: 0);
+    }
+    ensureStoreMahdiSaleProduct();
+  }
+
+  /// منتج «مهدي متجر» للتسعير والبيع — مخزون المحطة والسيارة من «ك مهدي».
+  static void ensureStoreMahdiSaleProduct() {
+    if (resolveStoreMahdiSaleProduct(products: _products) != null) {
+      return;
+    }
+    _products.add(
+      _product(
+        id: 'p_store_mahdi',
+        name: kStoreMahdiProductApiName,
+        unitType: 'carton',
+        price: 200,
+        stationStock: 0,
+      ),
+    );
+  }
+
+  static bool setProductPrice(String productId, double price) {
+    for (final Map<String, dynamic> p in _products) {
+      if (p['id']?.toString() == productId) {
+        p['price'] = price;
+        return true;
+      }
+    }
+    return false;
+  }
+
   static void addProduct(Map<String, dynamic> product) {
     _products.add(product);
   }
@@ -103,9 +150,8 @@ final class PrototypeSampleData {
     required int rowIndex,
     required int stationStock,
   }) {
-    final List<Map<String, dynamic>> catalog = products;
     final Map<String, dynamic>? existing = resolveStationBalanceProduct(
-      products: catalog,
+      products: _products,
       rowIndex: rowIndex,
     );
     if (existing != null) {
@@ -152,12 +198,12 @@ final class PrototypeSampleData {
   }
 
   static Map<String, dynamic> productById(String? id) {
-    for (final Map<String, dynamic> p in products) {
+    for (final Map<String, dynamic> p in _products) {
       if (p['id'] == id) {
         return Map<String, dynamic>.from(p);
       }
     }
-    return products.first;
+    return Map<String, dynamic>.from(_products.first);
   }
 
   static Map<String, dynamic> userBrief(String? id) {
@@ -177,10 +223,16 @@ final class PrototypeSampleData {
     };
   }
 
-  static List<Map<String, dynamic>> get stationSales {
+  static final List<Map<String, dynamic>> _stationSales =
+      <Map<String, dynamic>>[];
+
+  static void _ensureInitialStationSales() {
+    if (_stationSales.isNotEmpty) {
+      return;
+    }
     final Map<String, dynamic> water = productById('p_water');
-    final Map<String, dynamic> carton = productById('p_carton');
-    return <Map<String, dynamic>>[
+    final Map<String, dynamic> carton = productById('p_mahdi_carton');
+    _stationSales.addAll(<Map<String, dynamic>>[
       _stationSale(
         id: 'ss1',
         product: water,
@@ -195,12 +247,88 @@ final class PrototypeSampleData {
         unitPrice: 180,
         note: null,
       ),
-    ];
+    ]);
   }
 
-  static List<Map<String, dynamic>> get stationDebtEntries {
-    final Map<String, dynamic> carton = productById('p_carton');
-    return <Map<String, dynamic>>[
+  static List<Map<String, dynamic>> get stationSales {
+    _ensureInitialStationSales();
+    return List<Map<String, dynamic>>.from(_stationSales);
+  }
+
+  static Map<String, dynamic> addStationSale({
+    required String productId,
+    required int quantity,
+    required double unitPrice,
+    String? note,
+    String? settledFromDebtId,
+  }) {
+    _ensureInitialStationSales();
+    final Map<String, dynamic> product = productById(productId);
+    final String soldById =
+        PrototypeSession.current?.id ?? 'proto_admin';
+    final Map<String, dynamic> row = <String, dynamic>{
+      'id': 'ss_${_stationSales.length + 1}',
+      'productId': product['id'],
+      'product': product,
+      'quantity': quantity,
+      'unitPrice': unitPrice,
+      'totalAmount': unitPrice * quantity,
+      'soldById': soldById,
+      'soldBy': userBrief(soldById),
+      'note': note,
+      if (settledFromDebtId != null && settledFromDebtId.isNotEmpty)
+        'settledFromDebtId': settledFromDebtId,
+      'createdAt': _now,
+    };
+    _stationSales.add(row);
+    return row;
+  }
+
+  /// سداد دين المحطة: إغلاق السجل + مبيع محطة اليوم (بدون خصم مخزون مرة أخرى).
+  static int repayStationDebtForDebtor({required String debtorName}) {
+    _ensureInitialStationDebt();
+    final String want = debtorName.trim();
+    if (want.isEmpty) {
+      return 0;
+    }
+    var count = 0;
+    final DateTime now = _now;
+    final List<Map<String, dynamic>> toSettle = <Map<String, dynamic>>[];
+    for (final Map<String, dynamic> e in _stationDebtEntries) {
+      if (e['repaidAt'] != null) {
+        continue;
+      }
+      if (e['recordingSource']?.toString() != 'station') {
+        continue;
+      }
+      if (e['debtorName']?.toString().trim() != want) {
+        continue;
+      }
+      toSettle.add(e);
+    }
+    for (final Map<String, dynamic> debt in toSettle) {
+      debt['repaidAt'] = now;
+      addStationSale(
+        productId: debt['productId']?.toString() ?? '',
+        quantity: (debt['quantity'] as num?)?.toInt() ?? 0,
+        unitPrice: ((debt['unitPrice'] as num?) ?? 0).toDouble(),
+        note: 'سداد دين — $want',
+        settledFromDebtId: debt['id']?.toString(),
+      );
+      count++;
+    }
+    return count;
+  }
+
+  static final List<Map<String, dynamic>> _stationDebtEntries =
+      <Map<String, dynamic>>[];
+
+  static void _ensureInitialStationDebt() {
+    if (_stationDebtEntries.isNotEmpty) {
+      return;
+    }
+    final Map<String, dynamic> carton = productById('p_mahdi_carton');
+    _stationDebtEntries.addAll(<Map<String, dynamic>>[
       <String, dynamic>{
         'id': 'debt1',
         'debtorName': 'محل الأمل',
@@ -215,21 +343,87 @@ final class PrototypeSampleData {
         'repaidAt': null,
         'createdAt': _today,
       },
+    ]);
+  }
+
+  static List<Map<String, dynamic>> get stationDebtEntries {
+    _ensureInitialStationDebt();
+    return List<Map<String, dynamic>>.from(_stationDebtEntries);
+  }
+
+  /// ديون مفتوحة: سجلات محطة + مبيعات سيارة مسجّلة كدين.
+  static List<Map<String, dynamic>> get openStationDebtEntries {
+    _ensureInitialStationDebt();
+    _ensureInitialVehicleSales();
+    final List<Map<String, dynamic>> out = <Map<String, dynamic>>[];
+    for (final Map<String, dynamic> e in _stationDebtEntries) {
+      if (e['repaidAt'] == null) {
+        out.add(e);
+      }
+    }
+    for (final Map<String, dynamic> vs in _vehicleSales) {
+      if (vs['isDebt'] == true && vs['repaidAt'] == null) {
+        out.add(_vehicleSaleAsDebtEntry(vs));
+      }
+    }
+    return out;
+  }
+
+  static Map<String, dynamic> _vehicleSaleAsDebtEntry(
+    Map<String, dynamic> vs,
+  ) =>
       <String, dynamic>{
-        'id': 'debt2',
-        'debtorName': 'بقالة النور',
-        'productId': carton['id'],
-        'product': carton,
-        'quantity': 2,
-        'unitPrice': 180.0,
-        'totalAmount': 360.0,
-        'recordedById': 'proto_driver',
-        'recordedBy': userBrief('proto_driver'),
+        'id': vs['id'],
+        'debtorName': vs['debtorName'],
+        'productId': vs['productId'],
+        'product': vs['product'],
+        'quantity': vs['quantity'],
+        'unitPrice': vs['unitPrice'],
+        'totalAmount': vs['totalAmount'],
+        'recordedById': vs['driverId'],
+        'recordedBy': vs['driver'],
         'recordingSource': 'vehicle',
-        'repaidAt': null,
-        'createdAt': _today,
-      },
-    ];
+        'vehicleSaleId': vs['id'],
+        'repaidAt': vs['repaidAt'],
+        'createdAt': vs['createdAt'],
+      };
+
+  /// إضافة سجلات دين (نموذج UI) — تظهر في قائمة الدين.
+  static void addStationDebtEntries({
+    required String debtorName,
+    required List<Map<String, dynamic>> lines,
+  }) {
+    _ensureInitialStationDebt();
+    final String recordedById =
+        PrototypeSession.current?.id ?? 'proto_driver';
+    const String recordingSource = 'station';
+    final DateTime created = _now;
+    for (final Map<String, dynamic> line in lines) {
+      final String productId = line['productId']?.toString() ?? '';
+      final int quantity = (line['quantity'] as num?)?.toInt() ?? 0;
+      final double unitPrice =
+          ((line['unitPrice'] as num?) ?? 0).toDouble();
+      if (productId.isEmpty || quantity <= 0) {
+        continue;
+      }
+      final Map<String, dynamic> product = productById(productId);
+      _stationDebtEntries.add(
+        <String, dynamic>{
+          'id': 'debt_${_stationDebtEntries.length + 1}_${created.millisecondsSinceEpoch}',
+          'debtorName': debtorName.trim(),
+          'productId': product['id'],
+          'product': product,
+          'quantity': quantity,
+          'unitPrice': unitPrice,
+          'totalAmount': unitPrice * quantity,
+          'recordedById': recordedById,
+          'recordedBy': userBrief(recordedById),
+          'recordingSource': recordingSource,
+          'repaidAt': null,
+          'createdAt': created,
+        },
+      );
+    }
   }
 
   static final List<Map<String, dynamic>> _vehicleLoads =
@@ -300,9 +494,8 @@ final class PrototypeSampleData {
 
   /// يضمن وجود منتج لصف التحميل ويعيد معرّفه.
   static String ensureVehicleLoadRowProductId(int rowIndex) {
-    final List<Map<String, dynamic>> catalog = products;
     final Map<String, dynamic>? existing = resolveVehicleLoadRowProduct(
-      products: catalog,
+      products: _products,
       rowIndex: rowIndex,
     );
     if (existing != null) {
@@ -350,9 +543,67 @@ final class PrototypeSampleData {
         'unitPrice': 25.0,
         'totalAmount': 150.0,
         'saleDestination': 'home',
+        'isDebt': false,
         'createdAt': _today.toIso8601String(),
       },
     );
+    final Map<String, dynamic> water = productById('p_water');
+    _vehicleSales.add(
+      <String, dynamic>{
+        'id': 'vs_debt_sample',
+        'vehicleId': vehicle['id'],
+        'vehicle': vehicle,
+        'driverId': 'proto_driver',
+        'driver': userBrief('proto_driver'),
+        'productId': water['id'],
+        'product': water,
+        'quantity': 2,
+        'unitPrice': 180.0,
+        'totalAmount': 360.0,
+        'saleDestination': 'home',
+        'debtorName': 'بقالة النور',
+        'isDebt': true,
+        'repaidAt': null,
+        'createdAt': _today,
+      },
+    );
+  }
+
+  /// سداد ديون المركبة: إغلاق سجل الدين + تسجيل مبيع اليوم **بدون** خصم مخزون.
+  static int repayVehicleDebtForDebtor({required String debtorName}) {
+    _ensureInitialVehicleSales();
+    final String want = debtorName.trim();
+    if (want.isEmpty) {
+      return 0;
+    }
+    var count = 0;
+    final DateTime now = _now;
+    final List<Map<String, dynamic>> toSettle = <Map<String, dynamic>>[];
+    for (final Map<String, dynamic> vs in _vehicleSales) {
+      if (vs['isDebt'] != true || vs['repaidAt'] != null) {
+        continue;
+      }
+      if (vs['debtorName']?.toString().trim() != want) {
+        continue;
+      }
+      toSettle.add(vs);
+    }
+    for (final Map<String, dynamic> debt in toSettle) {
+      debt['repaidAt'] = now.toIso8601String();
+      addVehicleSale(
+        vehicleId: debt['vehicleId']?.toString() ?? 'v1',
+        productId: debt['productId']?.toString() ?? '',
+        quantity: (debt['quantity'] as num?)?.toInt() ?? 0,
+        unitPrice: ((debt['unitPrice'] as num?) ?? 0).toDouble(),
+        saleDestination: debt['saleDestination']?.toString() ?? 'home',
+        debtorName: debt['debtorName']?.toString(),
+        isDebt: false,
+        skipLoadDeduction: true,
+        settledFromDebtSaleId: debt['id']?.toString(),
+      );
+      count++;
+    }
+    return count;
   }
 
   /// خصم الكمية من حمولة السيارة المفتوحة (يزيد `quantitySold`).
@@ -419,17 +670,25 @@ final class PrototypeSampleData {
     required int quantity,
     required double unitPrice,
     String saleDestination = 'home',
+    String? stockProductId,
+    String? debtorName,
+    bool isDebt = false,
+    bool skipLoadDeduction = false,
+    String? settledFromDebtSaleId,
   }) {
     _ensureInitialVehicleSales();
     final Map<String, dynamic> vehicle = vehicleById(vehicleId);
     final String? driverId = vehicle['driverId']?.toString();
     final Map<String, dynamic> product = productById(productId);
-    deductVehicleLoadForSale(
-      productId: productId,
-      quantity: quantity,
-      driverId: driverId,
-      vehicleId: vehicleId,
-    );
+    if (!skipLoadDeduction) {
+      final String deductFrom = stockProductId ?? productId;
+      deductVehicleLoadForSale(
+        productId: deductFrom,
+        quantity: quantity,
+        driverId: driverId,
+        vehicleId: vehicleId,
+      );
+    }
     final Map<String, dynamic> row = <String, dynamic>{
       'id': 'vs_${_vehicleSales.length + 1}',
       'vehicleId': vehicle['id'],
@@ -442,6 +701,12 @@ final class PrototypeSampleData {
       'unitPrice': unitPrice,
       'totalAmount': unitPrice * quantity,
       'saleDestination': saleDestination,
+      'isDebt': isDebt,
+      if (debtorName != null && debtorName.trim().isNotEmpty)
+        'debtorName': debtorName.trim(),
+      if (settledFromDebtSaleId != null && settledFromDebtSaleId.isNotEmpty)
+        'settledFromDebtSaleId': settledFromDebtSaleId,
+      'repaidAt': null,
       'createdAt': _now.toIso8601String(),
     };
     _vehicleSales.add(row);

@@ -15,6 +15,7 @@ class StationSaleProductColumn extends StatelessWidget {
     this.couponActive = false,
     this.onCouponToggle,
     this.stationStockAvailable,
+    this.badgeLabel,
   });
 
   final int index;
@@ -28,6 +29,8 @@ class StationSaleProductColumn extends StatelessWidget {
   final VoidCallback? onCouponToggle;
   /// `null` = لا يُعرض (مثلاً تعبئة بدون خصم مخزون). غير ذلك يُظهر مخزون المحطة الحالي.
   final int? stationStockAvailable;
+  /// عند التعيين يُستخدم بدل [AppLocalizations.productRow] (مثلاً كوبون ١٢).
+  final String? badgeLabel;
 
   @override
   Widget build(BuildContext context) {
@@ -39,7 +42,7 @@ class StationSaleProductColumn extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       children: <Widget>[
         Text(
-          l10n.productRow(index + 1),
+          badgeLabel ?? l10n.productRow(index + 1),
           textAlign: TextAlign.center,
           style: theme.textTheme.labelSmall?.copyWith(
                 color: AppColors.onSurfaceVariant,

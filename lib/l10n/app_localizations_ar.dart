@@ -221,6 +221,9 @@ class AppLocalizationsAr extends AppLocalizations {
   String get addProduct => 'إضافة منتج';
 
   @override
+  String get linkProductToRow => 'ربط المنتج في النظام';
+
+  @override
   String get productNameLabel => 'اسم المنتج (كما في النظام)';
 
   @override
@@ -1254,6 +1257,33 @@ class AppLocalizationsAr extends AppLocalizations {
   @override
   String get stationDebtRepayConfirmMessage =>
       'سيتم تسجيل هذه المبالغ كمبيعات محطة لهذا اليوم وتدخل في الإجمالي (المخزون سبق خصمه عند تسجيل الدين). هل تريد المتابعة؟';
+
+  @override
+  String get stationDebtRepayConfirmMessageVehicle =>
+      'سيُسجَّل السداد كمبيع سيارة لهذا اليوم (المخزون سبق خصمه عند تسجيل الدين). هل تريد المتابعة؟';
+
+  @override
+  String get stationDebtRepayConfirmMessageMixed =>
+      'سيُسجَّل السداد: دين المحطة كمبيع محطة، ودين السيارة كمبيع سيارة — بدون خصم مخزون إضافي. هل تريد المتابعة؟';
+
+  @override
+  String get stationDebtRepaySuccessMixed =>
+      'تم تسجيل السداد في مبيعات المحطة والسيارة.';
+
+  @override
+  String get stationDebtSectionStation => 'دين المحطة';
+
+  @override
+  String get stationDebtSectionVehicle => 'دين السيارة';
+
+  @override
+  String get stationDebtSectionMixed => 'دين محطة و سيارة';
+
+  @override
+  String get stationDebtKindStation => 'دين محطة';
+
+  @override
+  String get stationDebtKindVehicle => 'دين سيارة';
 
   @override
   String get stationDebtRepaySuccess => 'تم تسجيل السداد في مبيعات المحطة.';

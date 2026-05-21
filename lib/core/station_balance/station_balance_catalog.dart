@@ -294,6 +294,9 @@ Map<String, dynamic>? resolveStationBalanceProduct({
 /// اسم بيع «متجر» للكرتون — يُخصم من مخزون «ك مهدي» وليس من منتج مستقل.
 const String kStoreMahdiProductApiName = 'مهدي متجر';
 
+/// صف تسعير إضافي في سوبر أدمن (ليس صف رصيد المحطة).
+const int kSuperAdminStoreMahdiPricingExtraSlot = -100;
+
 /// أسماء مخزون الكرتون الكنسي (بدون «مهدي متجر»).
 const List<String> kMahdiCartonStockNameCandidates = <String>[
   'Water Carton',
@@ -349,6 +352,29 @@ String? resolveMahdiCartonStockProductId({
   required List<Map<String, dynamic>> products,
 }) =>
     resolveMahdiCartonStockProduct(products: products)?['id']?.toString();
+
+/// منتج بيع «مهدي متجر» (سعر مستقل في التسعير؛ المخزون من «ك مهدي»).
+Map<String, dynamic>? resolveStoreMahdiSaleProduct({
+  required List<Map<String, dynamic>> products,
+}) {
+  final List<Map<String, dynamic>> active = products
+      .where((Map<String, dynamic> p) => p['isActive'] != false)
+      .toList(growable: false);
+  for (final Map<String, dynamic> p in active) {
+    if (isStoreMahdiProductName(p['name']?.toString())) {
+      return p;
+    }
+  }
+  return resolveProductByNameCandidates(
+    products: products,
+    candidates: <String>[kStoreMahdiProductApiName],
+  );
+}
+
+String? resolveStoreMahdiSaleProductId({
+  required List<Map<String, dynamic>> products,
+}) =>
+    resolveStoreMahdiSaleProduct(products: products)?['id']?.toString();
 
 /// عند البيع باسم «مهدي متجر» يُرسل معرّف مخزون «ك مهدي» للخصم من المحطة.
 String canonicalProductIdForMahdiStoreSale({

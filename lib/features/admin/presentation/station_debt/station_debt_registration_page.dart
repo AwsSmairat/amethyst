@@ -5,6 +5,7 @@ import 'package:amethyst/l10n/app_localizations.dart';
 import 'package:amethyst/features/admin/presentation/station_debt/station_debt_api_error.dart';
 import 'package:amethyst/features/admin/presentation/station_debt/cubit/station_debt_registration_cubit.dart';
 import 'package:amethyst/features/admin/presentation/station_debt/cubit/station_debt_registration_state.dart';
+import 'package:amethyst/core/vehicle_sale/vehicle_product_columns.dart';
 import 'package:amethyst/features/admin/presentation/station_debt/station_debt_vehicle_place.dart';
 import 'package:amethyst/features/admin/presentation/station_sale/station_sale_entry_kind.dart';
 import 'package:amethyst/features/admin/presentation/station_sale/station_sale_product_labels.dart';
@@ -157,14 +158,19 @@ class _StationDebtRegistrationPageState
                         ),
                   ),
                   const SizedBox(height: 12),
-                  for (var start = 0; start < state.columnCount; start += 2) ...<Widget>[
+                  for (var start = 0;
+                      start < state.columnCount;
+                      start += state.useVehicleProductLabels ? 3 : 2) ...<Widget>[
                     if (start > 0) const SizedBox(height: 12),
                     _productRow(
                       context,
                       state: state,
                       busy: busy,
                       start: start,
-                      end: math.min(start + 2, state.columnCount),
+                      end: math.min(
+                        start + (state.useVehicleProductLabels ? 3 : 2),
+                        state.columnCount,
+                      ),
                     ),
                   ],
                   const SizedBox(height: 24),
@@ -201,6 +207,7 @@ class _StationDebtRegistrationPageState
     required int end,
   }) {
     final cubit = context.read<StationDebtRegistrationCubit>();
+    final StationDebtVehiclePlace? vehiclePlace = cubit.vehiclePlace;
     final l10n = context.l10n;
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -214,6 +221,16 @@ class _StationDebtRegistrationPageState
               ),
               child: StationSaleProductColumn(
                 index: i,
+                badgeLabel: state.useVehicleProductLabels &&
+                        vehiclePlace != null
+                    ? (vehicleProductBadgeLabel(
+                          vehiclePlace == StationDebtVehiclePlace.home
+                              ? VehicleProductColumnPlace.home
+                              : VehicleProductColumnPlace.store,
+                          i,
+                        ) ??
+                        l10n.productRow(i + 1))
+                    : null,
                 productLabel: state.useVehicleProductLabels &&
                         i < state.columnProductNames.length &&
                         state.columnProductNames[i].isNotEmpty
@@ -229,7 +246,8 @@ class _StationDebtRegistrationPageState
                 busy: busy,
                 showCouponButton: false,
                 stationStockAvailable:
-                    state.useVehicleProductLabels
+                    state.useVehicleProductLabels &&
+                            !vehicleDebtColumnSkipsInventoryDeduction(i)
                         ? (i < state.columnVehicleRemaining.length
                             ? state.columnVehicleRemaining[i]
                             : null)
