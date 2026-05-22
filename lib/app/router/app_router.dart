@@ -173,6 +173,37 @@ GoRouter createAppRouter(AuthCubit authCubit) {
                 builder: (_, __) => const AdminStationBalancePage(),
               ),
               GoRoute(
+                path: 'station-debt-registration',
+                builder: (BuildContext context, GoRouterState state) {
+                  StationDebtVehiclePlace? place;
+                  final Object? extra = state.extra;
+                  if (extra is Map<String, dynamic>) {
+                    final String? raw = extra['vehiclePlace']?.toString();
+                    if (raw == 'store') {
+                      place = StationDebtVehiclePlace.store;
+                    } else if (raw == 'home') {
+                      place = StationDebtVehiclePlace.home;
+                    }
+                  }
+                  return BlocProvider<StationDebtRegistrationCubit>(
+                    create: (_) => StationDebtRegistrationCubit(
+                      listProductItems: sl<ListProductItemsUseCase>(),
+                      createStationDebtEntries:
+                          sl<CreateStationDebtEntriesUseCase>(),
+                      vehiclePlace: place,
+                      api: place != null ? sl<AmethystApi>() : null,
+                      createVehicleSale: place != null
+                          ? sl<CreateVehicleSaleUseCase>()
+                          : null,
+                      patchProductStationStock: place != null
+                          ? sl<PatchProductStationStockUseCase>()
+                          : null,
+                    ),
+                    child: const StationDebtRegistrationPage(),
+                  );
+                },
+              ),
+              GoRoute(
                 path: 'station-debt-list',
                 builder: (_, __) =>
                     const StationDebtListPage(shellBase: '/super-admin'),
@@ -348,15 +379,34 @@ GoRouter createAppRouter(AuthCubit authCubit) {
               ),
               GoRoute(
                 path: 'station-debt-registration',
-                builder: (_, __) => BlocProvider<StationDebtRegistrationCubit>(
-                  create: (_) => StationDebtRegistrationCubit(
-                    listProductItems: sl<ListProductItemsUseCase>(),
-                    createStationDebtEntries:
-                        sl<CreateStationDebtEntriesUseCase>(),
-                    vehiclePlace: null,
-                  ),
-                  child: const StationDebtRegistrationPage(),
-                ),
+                builder: (BuildContext context, GoRouterState state) {
+                  StationDebtVehiclePlace? place;
+                  final Object? extra = state.extra;
+                  if (extra is Map<String, dynamic>) {
+                    final String? raw = extra['vehiclePlace']?.toString();
+                    if (raw == 'store') {
+                      place = StationDebtVehiclePlace.store;
+                    } else if (raw == 'home') {
+                      place = StationDebtVehiclePlace.home;
+                    }
+                  }
+                  return BlocProvider<StationDebtRegistrationCubit>(
+                    create: (_) => StationDebtRegistrationCubit(
+                      listProductItems: sl<ListProductItemsUseCase>(),
+                      createStationDebtEntries:
+                          sl<CreateStationDebtEntriesUseCase>(),
+                      vehiclePlace: place,
+                      api: place != null ? sl<AmethystApi>() : null,
+                      createVehicleSale: place != null
+                          ? sl<CreateVehicleSaleUseCase>()
+                          : null,
+                      patchProductStationStock: place != null
+                          ? sl<PatchProductStationStockUseCase>()
+                          : null,
+                    ),
+                    child: const StationDebtRegistrationPage(),
+                  );
+                },
               ),
               GoRoute(
                 path: 'station-debt-list',

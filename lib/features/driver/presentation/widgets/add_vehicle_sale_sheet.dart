@@ -157,23 +157,28 @@ class _AddVehicleSaleBodyState extends State<_AddVehicleSaleBody> {
     _productLabels = List<String>.filled(_columnCount, '');
     _unitPrices = List<double?>.filled(_columnCount, null);
     _stationStocks = List<int>.filled(_columnCount, 0);
+    final VehicleProductColumnPlace columnPlace = place == VehicleSalePlace.store
+        ? VehicleProductColumnPlace.store
+        : VehicleProductColumnPlace.home;
     for (var i = 0; i < _columnCount; i++) {
-      final String name = names[i];
-      Map<String, dynamic>? match;
-      if (place == VehicleSalePlace.store && i == 2) {
-        final Map<String, dynamic>? storeSale =
-            resolveStoreMahdiSaleProduct(products: _productItems) ??
-                _findProductByCatalogName(name);
-        final String? stockId =
-            resolveMahdiCartonStockProductId(products: _productItems);
-        _productIds[i] = storeSale?['id']?.toString();
-        _stockProductIds[i] = stockId;
-        _productLabels[i] = kStoreMahdiProductApiName;
-        _unitPrices[i] = parseDynamicDouble(storeSale?['price']);
-        _stationStocks[i] = _storeMahdiStationStockFromCatalog();
+      if (place == VehicleSalePlace.store) {
+        final VehicleProductColumnBinding binding = bindVehicleProductColumn(
+          place: columnPlace,
+          columnIndex: i,
+          products: _productItems,
+        );
+        _productIds[i] = binding.saleProductId;
+        _stockProductIds[i] = binding.stockProductId;
+        _productLabels[i] = binding.displayLabel;
+        _unitPrices[i] = binding.unitPrice;
+        _stationStocks[i] = i == 2
+            ? _storeMahdiStationStockFromCatalog()
+            : 0;
         continue;
       }
-      if (i < kVehicleLoadFixedRowCount && place == VehicleSalePlace.home) {
+      final String name = names[i];
+      Map<String, dynamic>? match;
+      if (i < kVehicleLoadFixedRowCount) {
         match = resolveVehicleLoadRowProduct(
           products: _productItems,
           rowIndex: i,
@@ -182,12 +187,12 @@ class _AddVehicleSaleBodyState extends State<_AddVehicleSaleBody> {
       match ??= _findProductByCatalogName(name);
       final String? pid = match?['id']?.toString();
       _stockProductIds[i] = pid;
-      if (place == VehicleSalePlace.home && i == 2) {
+      if (i == 2) {
         _stationStocks[i] = aggregateStationStockForBalanceRow(
           products: _productItems,
           rowIndex: 0,
         );
-      } else if (place == VehicleSalePlace.home && i >= 3 && i <= 5) {
+      } else if (i >= 3 && i <= 5) {
         _stationStocks[i] = aggregateStationStockForBalanceRow(
           products: _productItems,
           rowIndex: 8 + i,
@@ -197,9 +202,8 @@ class _AddVehicleSaleBodyState extends State<_AddVehicleSaleBody> {
             stationStockFromProductJson(match ?? <String, dynamic>{});
       }
       _productIds[i] = pid;
-      _productLabels[i] = place == VehicleSalePlace.home
-          ? vehicleProductDisplayLabel(VehicleProductColumnPlace.home, i)
-          : (match?['name']?.toString().trim() ?? name);
+      _productLabels[i] =
+          vehicleProductDisplayLabel(VehicleProductColumnPlace.home, i);
       _unitPrices[i] = parseDynamicDouble(match?['price']);
     }
   }
@@ -360,8 +364,14 @@ class _AddVehicleSaleBodyState extends State<_AddVehicleSaleBody> {
     return columnIndex < _stationStocks.length ? _stationStocks[columnIndex] : 0;
   }
 
-  /// أقصى كمية للبيع: الأقل بين متبقي السيارة ومخزون المحطة.
+  /// أقصى كمية للبيع: جالون/قارورة من حمولة السيارة فقط؛ مهدي/كوبونات منزل أو مهدي متجر = أقل (حمولة + محطة).
   int _maxSellableQuantity(int columnIndex) {
+    final bool vehicleLoadOnly =
+        (_selectedPlace == VehicleSalePlace.home && columnIndex <= 1) ||
+        (_selectedPlace == VehicleSalePlace.store && columnIndex < 2);
+    if (vehicleLoadOnly) {
+      return _vehicleRemainingForColumn(columnIndex);
+    }
     final bool homeRows =
         _selectedPlace == VehicleSalePlace.home &&
             columnIndex >= 2 &&
@@ -436,7 +446,7 @@ class _AddVehicleSaleBodyState extends State<_AddVehicleSaleBody> {
           homeStationStockDeduct || storeStationStockDeduct;
       final int stationAvailable = _stationStockForColumn(i);
       final bool needsVehicleCheck =
-          (_selectedPlace == VehicleSalePlace.home && i >= 2 && i <= 5) ||
+          (_selectedPlace == VehicleSalePlace.home && i <= 5) ||
           (_selectedPlace == VehicleSalePlace.store && i <= 2);
 
       // أولاً: متبقي السيارة (منتج ٣ متجر = كرتون مهدي على الحمولة).
@@ -465,6 +475,21 @@ class _AddVehicleSaleBodyState extends State<_AddVehicleSaleBody> {
       final String? stockPid = i < _stockProductIds.length
           ? _stockProductIds[i]
           : null;
+      final bool deductFromVehicleLoad =
+          (_selectedPlace == VehicleSalePlace.home && i <= 5) ||
+          (_selectedPlace == VehicleSalePlace.store && i <= 2);
+      String? lineStockId;
+      if (deductFromVehicleLoad &&
+          stockPid != null &&
+          stockPid.isNotEmpty) {
+        lineStockId = stockPid;
+      } else if (stockPid != null && stockPid.isNotEmpty && stockPid != pid) {
+        lineStockId = stockPid;
+      } else if (storeStationStockDeduct && i == 2) {
+        lineStockId = stockPid;
+      } else if (homeStationStockDeduct && i == 2) {
+        lineStockId = stockPid;
+      }
       lines.add(
         (
           productId: pid,
@@ -473,11 +498,7 @@ class _AddVehicleSaleBodyState extends State<_AddVehicleSaleBody> {
           deductStationStock:
               homeStationStockDeduct || storeStationStockDeduct,
           stationStockSnapshot: stationAvailable,
-          stockProductId: storeStationStockDeduct && i == 2
-              ? stockPid
-              : (homeStationStockDeduct && i == 2
-                  ? stockPid
-                  : null),
+          stockProductId: lineStockId,
         ),
       );
     }

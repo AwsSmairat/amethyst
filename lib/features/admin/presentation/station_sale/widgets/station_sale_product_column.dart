@@ -15,6 +15,7 @@ class StationSaleProductColumn extends StatelessWidget {
     this.couponActive = false,
     this.onCouponToggle,
     this.stationStockAvailable,
+    this.stockSourceLabel,
     this.badgeLabel,
   });
 
@@ -29,6 +30,8 @@ class StationSaleProductColumn extends StatelessWidget {
   final VoidCallback? onCouponToggle;
   /// `null` = لا يُعرض (مثلاً تعبئة بدون خصم مخزون). غير ذلك يُظهر مخزون المحطة الحالي.
   final int? stationStockAvailable;
+  /// عند عرض متبقي الحمولة: مصدر الخصم (مثل جالون ٢٠ لتر).
+  final String? stockSourceLabel;
   /// عند التعيين يُستخدم بدل [AppLocalizations.productRow] (مثلاً كوبون ١٢).
   final String? badgeLabel;
 
@@ -111,6 +114,19 @@ class StationSaleProductColumn extends StatelessWidget {
         ),
         if (stationStockAvailable != null) ...<Widget>[
           const SizedBox(height: 6),
+          if (stockSourceLabel != null && stockSourceLabel!.isNotEmpty) ...<Widget>[
+            Text(
+              stockSourceLabel!,
+              textAlign: TextAlign.center,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: theme.textTheme.labelSmall?.copyWith(
+                    color: AppColors.onSurfaceVariant,
+                    fontWeight: FontWeight.w500,
+                  ),
+            ),
+            const SizedBox(height: 2),
+          ],
           Text(
             l10n.stationSaleStockAvailable(stationStockAvailable!),
             textAlign: TextAlign.center,

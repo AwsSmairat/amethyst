@@ -58,12 +58,12 @@ class _StationDebtRegistrationPageState
   Widget build(BuildContext context) {
     final l10n = context.l10n;
     final ColorScheme scheme = Theme.of(context).colorScheme;
-    final String routePath = GoRouterState.of(context).uri.path;
-    final bool fromDriverShell = routePath.startsWith('/driver');
+    final StationDebtVehiclePlace? routeVehiclePlace =
+        context.read<StationDebtRegistrationCubit>().vehiclePlace;
     return Scaffold(
       appBar: AppBar(
         title: Text(
-          fromDriverShell
+          routeVehiclePlace != null
               ? l10n.stationDebtVehicleRegistrationTitle
               : l10n.stationDebtRegistrationTitle,
         ),
@@ -137,7 +137,7 @@ class _StationDebtRegistrationPageState
                       border: const OutlineInputBorder(),
                     ),
                   ),
-                  if (fromDriverShell && vehiclePlace != null) ...<Widget>[
+                  if (vehiclePlace != null) ...<Widget>[
                     const SizedBox(height: 12),
                     Text(
                       vehiclePlace == StationDebtVehiclePlace.store
@@ -245,18 +245,42 @@ class _StationDebtRegistrationPageState
                 onIncrement: () => cubit.adjustQuantity(i, 1),
                 busy: busy,
                 showCouponButton: false,
-                stationStockAvailable:
-                    state.useVehicleProductLabels &&
-                            !vehicleDebtColumnSkipsInventoryDeduction(i)
-                        ? (i < state.columnVehicleRemaining.length
-                            ? state.columnVehicleRemaining[i]
-                            : null)
-                        : (i < state.columnSkipsStationStock.length &&
-                                !state.columnSkipsStationStock[i]
-                            ? (i < state.columnStationStock.length
-                                ? state.columnStationStock[i]
-                                : null)
-                            : null),
+                stationStockAvailable: () {
+                  if (!state.useVehicleProductLabels || vehiclePlace == null) {
+                    if (i < state.columnSkipsStationStock.length &&
+                        !state.columnSkipsStationStock[i]) {
+                      return i < state.columnStationStock.length
+                          ? state.columnStationStock[i]
+                          : null;
+                    }
+                    return null;
+                  }
+                  final VehicleProductColumnPlace columnPlace =
+                      vehiclePlace == StationDebtVehiclePlace.store
+                          ? VehicleProductColumnPlace.store
+                          : VehicleProductColumnPlace.home;
+                  if (vehicleDebtColumnUsesVehicleLoad(columnPlace, i)) {
+                    return i < state.columnVehicleRemaining.length
+                        ? state.columnVehicleRemaining[i]
+                        : null;
+                  }
+                  if (i < state.columnSkipsStationStock.length &&
+                      !state.columnSkipsStationStock[i]) {
+                    return i < state.columnStationStock.length
+                        ? state.columnStationStock[i]
+                        : null;
+                  }
+                  return null;
+                }(),
+                stockSourceLabel: state.useVehicleProductLabels &&
+                        vehiclePlace != null
+                    ? vehicleDebtLoadStockSourceLabel(
+                        vehiclePlace == StationDebtVehiclePlace.store
+                            ? VehicleProductColumnPlace.store
+                            : VehicleProductColumnPlace.home,
+                        i,
+                      )
+                    : null,
               ),
             ),
           ),

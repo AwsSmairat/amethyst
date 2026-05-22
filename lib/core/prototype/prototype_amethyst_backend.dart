@@ -23,8 +23,10 @@ final class PrototypeAmethystBackend {
     return PrototypeSampleData.meFromSession();
   }
 
-  Future<Map<String, dynamic>> listProducts({int page = 1, int limit = 100}) async =>
-      _paginate(PrototypeSampleData.products, page: page, limit: limit);
+  Future<Map<String, dynamic>> listProducts({int page = 1, int limit = 100}) async {
+    PrototypeSampleData.ensurePricingCatalogProducts();
+    return _paginate(PrototypeSampleData.products, page: page, limit: limit);
+  }
 
   Future<Map<String, dynamic>> createProduct({
     required String name,
@@ -152,7 +154,27 @@ final class PrototypeAmethystBackend {
     int? fillingLineSlot,
     String? note,
   }) async {
-    throwUiOnlyWrite();
+    final bool skipStock = fillingSale &&
+        fillingLineSlot != null &&
+        (fillingLineSlot == 0 || fillingLineSlot == 1);
+    try {
+      final Map<String, dynamic> row = PrototypeSampleData.addStationSale(
+        productId: productId,
+        quantity: quantity,
+        unitPrice: unitPrice,
+        note: note,
+        skipStockDeduction: skipStock,
+      );
+      return <String, dynamic>{'item': row};
+    } on StateError catch (e) {
+      if (e.message == 'INSUFFICIENT_STOCK') {
+        throw ApiException(
+          'Insufficient station stock',
+          code: 'INSUFFICIENT_STOCK',
+        );
+      }
+      rethrow;
+    }
   }
 
   Future<void> createStationDebtEntries({
@@ -265,7 +287,14 @@ final class PrototypeAmethystBackend {
     Uint8List? receiptBytes,
     String? receiptFilename,
   }) async {
-    throwUiOnlyWrite();
+    final Map<String, dynamic> row = PrototypeSampleData.addExpense(
+      vehicleId: vehicleId,
+      amount: amount,
+      note: note,
+      receiptFilename: receiptFilename,
+      hasReceipt: receiptBytes != null && receiptBytes.isNotEmpty,
+    );
+    return <String, dynamic>{'item': row};
   }
 
   Future<Map<String, dynamic>> listReturns({int page = 1, int limit = 100}) async =>
@@ -305,7 +334,7 @@ final class PrototypeAmethystBackend {
     int? year,
     int? month,
   }) async =>
-      PrototypeSampleData.getSuperAdminCartonSummary();
+      PrototypeSampleData.getSuperAdminCartonSummary(year: year, month: month);
 
   Future<Map<String, dynamic>> getDashboardAdmin() async =>
       PrototypeSampleData.getDashboardAdmin();

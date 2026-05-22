@@ -193,8 +193,10 @@ class _SuperAdminPricingRowCardState extends State<_SuperAdminPricingRowCard> {
   Widget build(BuildContext context) {
     final l10n = context.l10n;
     final ThemeData theme = Theme.of(context);
-    final String rowLabel = widget.rowIndex == kSuperAdminStoreMahdiPricingExtraSlot
-        ? kStoreMahdiProductApiName
+    final String storeExtraLabel =
+        superAdminStorePricingRowLabel(widget.rowIndex);
+    final String rowLabel = storeExtraLabel.isNotEmpty
+        ? storeExtraLabel
         : stationBalanceRowLabel(l10n, widget.rowIndex);
     final Map<String, dynamic>? product = widget.product;
     final String? apiName = product?['name']?.toString();
@@ -226,6 +228,26 @@ class _SuperAdminPricingRowCardState extends State<_SuperAdminPricingRowCard> {
                     fontWeight: FontWeight.w600,
                   ),
             ),
+            if (widget.rowIndex == kSuperAdminStoreGallonPricingExtraSlot) ...<Widget>[
+              const SizedBox(height: 4),
+              Text(
+                'سعر بيع متجر؛ الخصم من حمولة السيارة (جالون ٢٠ لتر).',
+                style: theme.textTheme.bodySmall?.copyWith(
+                      color: AppColors.onSurfaceVariant,
+                      fontStyle: FontStyle.italic,
+                    ),
+              ),
+            ],
+            if (widget.rowIndex == kSuperAdminStoreBottlePricingExtraSlot) ...<Widget>[
+              const SizedBox(height: 4),
+              Text(
+                'سعر بيع متجر؛ الخصم من حمولة السيارة (قارورة ٢٠ لتر).',
+                style: theme.textTheme.bodySmall?.copyWith(
+                      color: AppColors.onSurfaceVariant,
+                      fontStyle: FontStyle.italic,
+                    ),
+              ),
+            ],
             if (widget.rowIndex == kSuperAdminStoreMahdiPricingExtraSlot) ...<Widget>[
               const SizedBox(height: 4),
               Text(

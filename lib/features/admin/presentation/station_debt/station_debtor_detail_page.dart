@@ -3,6 +3,7 @@ import 'package:amethyst/core/network/api_exception.dart';
 import 'package:amethyst/di/injection.dart';
 import 'package:amethyst/features/admin/presentation/station_debt/station_debt_api_error.dart';
 import 'package:amethyst/features/admin/presentation/station_debt/station_debt_formatting.dart';
+import 'package:amethyst/features/admin/presentation/station_debt/station_debt_display.dart';
 import 'package:amethyst/features/admin/presentation/station_debt/station_debt_kind.dart';
 import 'package:amethyst/l10n/app_localizations.dart';
 import 'package:amethyst/features/auth/presentation/cubit/auth_cubit.dart';
@@ -159,11 +160,8 @@ class _StationDebtorDetailPageState extends State<StationDebtorDetailPage> {
                     separatorBuilder: (_, __) => const Divider(height: 1),
                     itemBuilder: (BuildContext context, int i) {
                       final Map<String, dynamic> item = sorted[i];
-                      final Map<String, dynamic>? product =
-                          item['product'] is Map<String, dynamic>
-                              ? item['product'] as Map<String, dynamic>
-                              : null;
-                      final String pname = product?['name']?.toString() ?? '—';
+                      final String pname =
+                          debtEntryProductDisplayLabel(item);
                       final String qty = item['quantity']?.toString() ?? '';
                       final String total =
                           formatStationDebtAmount(item['totalAmount']);
@@ -174,9 +172,11 @@ class _StationDebtorDetailPageState extends State<StationDebtorDetailPage> {
                               ? item['recordedBy'] as Map<String, dynamic>
                               : null;
                       final String rname = rec?['fullName']?.toString() ?? '';
+                      final String? placeLabel =
+                          debtEntryVehiclePlaceLabel(item, l10n);
                       final String kindLabel = isStationDebtEntry(item)
                           ? l10n.stationDebtKindStation
-                          : l10n.stationDebtKindVehicle;
+                          : (placeLabel ?? l10n.stationDebtKindVehicle);
                       final List<String> parts = <String>[
                         kindLabel,
                         '${l10n.quantity}: $qty',

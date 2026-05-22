@@ -3,7 +3,9 @@ import 'package:amethyst/core/data/amethyst_api.dart';
 import 'package:amethyst/core/presentation/list_load_state.dart';
 import 'package:amethyst/di/injection.dart';
 import 'package:amethyst/features/admin/presentation/station_debt/station_debt_api_error.dart';
+import 'package:amethyst/features/admin/presentation/station_debt/station_debt_display.dart';
 import 'package:amethyst/features/admin/presentation/station_debt/station_debt_kind.dart';
+import 'package:amethyst/features/admin/presentation/station_debt/station_debt_vehicle_place_picker.dart';
 import 'package:amethyst/features/driver/presentation/driver_sales_list_refresh.dart';
 import 'package:amethyst/features/catalog/presentation/cubit/json_list_cubit.dart';
 import 'package:flutter/material.dart';
@@ -42,6 +44,25 @@ class StationDebtListPage extends StatelessWidget {
             ),
           ],
         ),
+        floatingActionButton: shellBase.contains('/driver')
+            ? FloatingActionButton.extended(
+                onPressed: () => showVehicleDebtPlacePicker(
+                  context,
+                  registrationPath:
+                      '/driver/dashboard/station-debt-registration',
+                ),
+                icon: const Icon(Icons.add),
+                label: Text(l10n.stationDebtSubmit),
+              )
+            : FloatingActionButton.extended(
+                onPressed: () => showAdminDebtRegistrationPicker(
+                  context,
+                  stationDebtPath: '$shellBase/station-debt-registration',
+                  vehicleDebtPath: '$shellBase/station-debt-registration',
+                ),
+                icon: const Icon(Icons.add),
+                label: Text(l10n.stationDebtSubmit),
+              ),
         body: BlocBuilder<JsonListCubit, ListLoadState>(
           builder: (BuildContext context, ListLoadState state) {
             if (state is ListLoadLoading || state is ListLoadInitial) {
@@ -133,7 +154,7 @@ class _DebtorTile extends StatelessWidget {
       subtitle: Text(
         shellBase.contains('/driver')
             ? l10n.stationDebtDebtorLineCount(entries.length)
-            : '${stationDebtKindSummary(entries)} · '
+            : '${stationDebtKindSummary(entries, l10n: l10n)} · '
                 '${l10n.stationDebtDebtorLineCount(entries.length)}',
       ),
       trailing: const Icon(Icons.chevron_left),

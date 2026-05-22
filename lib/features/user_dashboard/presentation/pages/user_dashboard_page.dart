@@ -6,6 +6,7 @@ import 'package:amethyst/features/auth/presentation/cubit/auth_state.dart';
 import 'package:amethyst/features/user_dashboard/presentation/cubit/user_dashboard_cubit.dart';
 import 'package:amethyst/features/user_dashboard/presentation/cubit/user_dashboard_state.dart';
 import 'package:amethyst/features/user_dashboard/presentation/widgets/quick_action_button.dart';
+import 'package:amethyst/features/admin/presentation/station_debt/station_debt_vehicle_place_picker.dart';
 import 'package:amethyst/features/driver/presentation/widgets/add_vehicle_sale_sheet.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -133,52 +134,9 @@ class _DriverDebtActionsRow extends StatelessWidget {
   const _DriverDebtActionsRow();
 
   static void _showVehicleDebtPlacePicker(BuildContext context) {
-    final l10n = context.l10n;
-    showModalBottomSheet<void>(
-      context: context,
-      showDragHandle: true,
-      builder: (BuildContext sheetCtx) => SafeArea(
-        child: Padding(
-          padding: const EdgeInsetsDirectional.fromSTEB(8, 0, 8, 24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: <Widget>[
-              Padding(
-                padding: const EdgeInsetsDirectional.fromSTEB(16, 8, 16, 12),
-                child: Text(
-                  l10n.driverVehicleDebtSheetTitle,
-                  style: Theme.of(sheetCtx).textTheme.titleLarge?.copyWith(
-                        fontWeight: FontWeight.w800,
-                      ),
-                ),
-              ),
-              ListTile(
-                leading: const Icon(Icons.home_outlined),
-                title: Text(l10n.vehicleSalePlaceHome),
-                onTap: () {
-                  Navigator.of(sheetCtx).pop();
-                  context.push(
-                    '/driver/dashboard/station-debt-registration',
-                    extra: <String, dynamic>{'vehiclePlace': 'home'},
-                  );
-                },
-              ),
-              ListTile(
-                leading: const Icon(Icons.storefront_outlined),
-                title: Text(l10n.vehicleSalePlaceStore),
-                onTap: () {
-                  Navigator.of(sheetCtx).pop();
-                  context.push(
-                    '/driver/dashboard/station-debt-registration',
-                    extra: <String, dynamic>{'vehiclePlace': 'store'},
-                  );
-                },
-              ),
-            ],
-          ),
-        ),
-      ),
+    showVehicleDebtPlacePicker(
+      context,
+      registrationPath: '/driver/dashboard/station-debt-registration',
     );
   }
 

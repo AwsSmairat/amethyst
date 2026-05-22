@@ -30,10 +30,19 @@ final class SuperAdminProductPricesCubit extends Cubit<ListLoadState> {
               rowIndex: rowIndex,
             ),
           ),
-        (
-          rowIndex: kSuperAdminStoreMahdiPricingExtraSlot,
-          product: resolveStoreMahdiSaleProduct(products: catalog),
-        ),
+        for (final int slot in kSuperAdminStoreSalePricingExtraSlots)
+          (
+            rowIndex: slot,
+            product: switch (slot) {
+              kSuperAdminStoreGallonPricingExtraSlot =>
+                resolveStoreGallonSaleProduct(products: catalog),
+              kSuperAdminStoreBottlePricingExtraSlot =>
+                resolveStoreBottleSaleProduct(products: catalog),
+              kSuperAdminStoreMahdiPricingExtraSlot =>
+                resolveStoreMahdiSaleProduct(products: catalog),
+              _ => null,
+            },
+          ),
       ];
       emit(ListLoadLoaded(_rowsToItems(rows)));
     } on Object catch (e) {
@@ -79,13 +88,21 @@ final class SuperAdminProductPricesCubit extends Cubit<ListLoadState> {
 
   Future<String?> linkPricingRow(int rowIndex) async {
     try {
-      if (rowIndex == kSuperAdminStoreMahdiPricingExtraSlot) {
-        PrototypeSampleData.ensureStoreMahdiSaleProduct();
-      } else {
-        await _api.upsertStationBalanceRowStock(
-          rowIndex: rowIndex,
-          stationStock: 0,
-        );
+      switch (rowIndex) {
+        case kSuperAdminStoreGallonPricingExtraSlot:
+          PrototypeSampleData.ensureStoreGallonSaleProduct();
+          break;
+        case kSuperAdminStoreBottlePricingExtraSlot:
+          PrototypeSampleData.ensureStoreBottleSaleProduct();
+          break;
+        case kSuperAdminStoreMahdiPricingExtraSlot:
+          PrototypeSampleData.ensureStoreMahdiSaleProduct();
+          break;
+        default:
+          await _api.upsertStationBalanceRowStock(
+            rowIndex: rowIndex,
+            stationStock: 0,
+          );
       }
       await load();
       return null;

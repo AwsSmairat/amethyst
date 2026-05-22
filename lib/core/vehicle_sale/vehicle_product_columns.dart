@@ -7,8 +7,8 @@ import 'package:amethyst/core/vehicle_load/vehicle_load_catalog.dart';
 const List<String> kVehicleHomeProductApiNames = kVehicleLoadFixedApiNames;
 
 const List<String> kVehicleStoreProductApiNames = <String>[
-  'جالون متجر',
-  'قاروره متجر',
+  kStoreGallonProductApiName,
+  kStoreBottleProductApiName,
   kStoreMahdiProductApiName,
 ];
 
@@ -93,16 +93,15 @@ int vehicleRemainingFromDriverLoad({
   String? stockProductId,
   String? saleProductId,
 }) {
-  final String? columnProductId = stockProductId ?? saleProductId;
-  if (columnProductId != null && columnProductId.isNotEmpty) {
-    var fromProductId = 0;
+  if (stockProductId != null && stockProductId.isNotEmpty) {
+    var fromStockId = 0;
     for (final Map<String, dynamic> line in loadLines) {
-      if (line['productId']?.toString() == columnProductId) {
-        fromProductId += (line['remaining'] as int?) ?? 0;
+      if (line['productId']?.toString() == stockProductId) {
+        fromStockId += (line['remaining'] as int?) ?? 0;
       }
     }
-    if (fromProductId > 0) {
-      return fromProductId;
+    if (fromStockId > 0) {
+      return fromStockId;
     }
   }
 
@@ -121,6 +120,21 @@ int vehicleRemainingFromDriverLoad({
         sum += (line['remaining'] as int?) ?? 0;
         break;
       }
+    }
+  }
+  if (sum > 0) {
+    return sum;
+  }
+
+  if (saleProductId != null && saleProductId.isNotEmpty) {
+    var fromSaleId = 0;
+    for (final Map<String, dynamic> line in loadLines) {
+      if (line['productId']?.toString() == saleProductId) {
+        fromSaleId += (line['remaining'] as int?) ?? 0;
+      }
+    }
+    if (fromSaleId > 0) {
+      return fromSaleId;
     }
   }
   return sum;
@@ -189,6 +203,60 @@ VehicleProductColumnBinding bindVehicleProductColumn({
   final String displayLabel =
       vehicleProductDisplayLabel(place, columnIndex);
 
+  if (place == VehicleProductColumnPlace.home && columnIndex < 2) {
+    final Map<String, dynamic>? loadProduct =
+        resolveVehicleLoadRowProduct(
+          products: products,
+          rowIndex: columnIndex,
+        ) ??
+            resolveProductByNameCandidates(
+              products: products,
+              candidates: vehicleProductLoadNameCandidates(
+                VehicleProductColumnPlace.home,
+                columnIndex,
+              ),
+            );
+    return VehicleProductColumnBinding(
+      displayLabel: displayLabel,
+      saleProductId: loadProduct?['id']?.toString(),
+      stockProductId: loadProduct?['id']?.toString(),
+      unitPrice: parseDynamicDouble(loadProduct?['price']),
+      stationStock: 0,
+    );
+  }
+
+  if (place == VehicleProductColumnPlace.store && columnIndex < 2) {
+    final Map<String, dynamic>? loadProduct =
+        resolveVehicleLoadRowProduct(
+          products: products,
+          rowIndex: columnIndex,
+        ) ??
+            resolveProductByNameCandidates(
+              products: products,
+              candidates: vehicleProductLoadNameCandidates(
+                VehicleProductColumnPlace.home,
+                columnIndex,
+              ),
+            );
+    final Map<String, dynamic>? storeSale =
+        resolveProductByNameCandidates(
+          products: products,
+          candidates: <String>[kVehicleStoreProductApiNames[columnIndex]],
+        ) ??
+            (columnIndex == 0
+                ? resolveStoreGallonSaleProduct(products: products)
+                : resolveStoreBottleSaleProduct(products: products));
+    final Map<String, dynamic>? saleSource = storeSale ?? loadProduct;
+    return VehicleProductColumnBinding(
+      displayLabel: displayLabel,
+      saleProductId: saleSource?['id']?.toString(),
+      stockProductId: loadProduct?['id']?.toString(),
+      unitPrice: parseDynamicDouble(storeSale?['price']) ??
+          parseDynamicDouble(loadProduct?['price']),
+      stationStock: 0,
+    );
+  }
+
   if (place == VehicleProductColumnPlace.store && columnIndex == 2) {
     final Map<String, dynamic>? storeSale =
         resolveStoreMahdiSaleProduct(products: products) ??
@@ -196,13 +264,17 @@ VehicleProductColumnBinding bindVehicleProductColumn({
               products: products,
               candidates: <String>[kStoreMahdiProductApiName],
             );
-    final String? stockId =
+    final Map<String, dynamic>? stockProduct =
+        resolveMahdiCartonStockProduct(products: products);
+    final String? stockId = stockProduct?['id']?.toString() ??
         resolveMahdiCartonStockProductId(products: products);
+    final Map<String, dynamic>? saleSource = storeSale ?? stockProduct;
     return VehicleProductColumnBinding(
       displayLabel: kStoreMahdiProductApiName,
-      saleProductId: storeSale?['id']?.toString(),
+      saleProductId: saleSource?['id']?.toString(),
       stockProductId: stockId,
-      unitPrice: parseDynamicDouble(storeSale?['price']),
+      unitPrice: parseDynamicDouble(storeSale?['price']) ??
+          parseDynamicDouble(stockProduct?['price']),
       stationStock: aggregateStoreMahdiStationStock(products),
     );
   }
@@ -265,6 +337,29 @@ bool vehicleProductColumnSkipsStationStock(
 ) =>
     !vehicleProductColumnDeductsStationStock(place, columnIndex);
 
-/// جالون وقاروره (منتج ١ و ٢): يُسجَّل الدين دون خصم من الحمولة أو مخزون المحطة.
-bool vehicleDebtColumnSkipsInventoryDeduction(int columnIndex) =>
-    columnIndex < 2;
+/// أعمدة تُخصم من حمولة السيارة (جالون/قارورة ٢٠ لتر) — منزل ١–٢ ومتجر ١–٢.
+bool vehicleDebtColumnUsesVehicleLoad(
+  VehicleProductColumnPlace place,
+  int columnIndex,
+) {
+  return switch (place) {
+    VehicleProductColumnPlace.home => columnIndex < 2,
+    VehicleProductColumnPlace.store => columnIndex < 2,
+  };
+}
+
+/// تسمية مصدر الحمولة المعروضة تحت «المتبقي» (دين المركبة).
+String? vehicleDebtLoadStockSourceLabel(
+  VehicleProductColumnPlace place,
+  int columnIndex,
+) {
+  if (!vehicleDebtColumnUsesVehicleLoad(place, columnIndex)) {
+    return null;
+  }
+  return switch (columnIndex) {
+    0 => 'جالون ٢٠ لتر',
+    1 => 'قاروره ٢٠ لتر',
+    _ => null,
+  };
+}
+

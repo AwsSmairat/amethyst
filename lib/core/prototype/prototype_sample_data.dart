@@ -1,5 +1,6 @@
 import 'package:amethyst/core/prototype/prototype_session.dart';
 import 'package:amethyst/core/station_balance/station_balance_catalog.dart';
+import 'package:amethyst/core/utils/parse_dynamic_double.dart';
 import 'package:amethyst/core/vehicle_load/vehicle_load_catalog.dart';
 import 'package:amethyst/features/auth/domain/entities/user_entity.dart';
 
@@ -54,21 +55,21 @@ final class PrototypeSampleData {
       name: 'قاروره ٢٠ لتر',
       unitType: 'bottle',
       price: 25,
-      stationStock: 420,
+      stationStock: 0,
     ),
     _product(
       id: 'p_mahdi_carton',
       name: 'ك مهدي',
       unitType: 'carton',
       price: 180,
-      stationStock: 85,
+      stationStock: 0,
     ),
     _product(
       id: 'p_gallon',
       name: 'جالون ٢٠ لتر',
       unitType: 'bottle',
       price: 12,
-      stationStock: 30,
+      stationStock: 0,
     ),
     _product(
       id: 'p_coupon50',
@@ -100,7 +101,49 @@ final class PrototypeSampleData {
       }
       upsertStationBalanceRow(rowIndex: rowIndex, stationStock: 0);
     }
+    ensureStoreGallonSaleProduct();
+    ensureStoreBottleSaleProduct();
     ensureStoreMahdiSaleProduct();
+  }
+
+  /// منتج بيع «جالون متجر» — سعر مستقل؛ الخصم من حمولة جالون ٢٠ لتر.
+  static void ensureStoreGallonSaleProduct() {
+    if (resolveStoreGallonSaleProduct(products: _products) != null) {
+      return;
+    }
+    final Map<String, dynamic>? load = resolveVehicleLoadRowProduct(
+      products: _products,
+      rowIndex: 0,
+    );
+    _products.add(
+      _product(
+        id: 'p_store_gallon',
+        name: kStoreGallonProductApiName,
+        unitType: 'gallon',
+        price: parseDynamicDouble(load?['price']) ?? 12,
+        stationStock: 0,
+      ),
+    );
+  }
+
+  /// منتج بيع «قاروره متجر» — سعر مستقل؛ الخصم من حمولة قارورة ٢٠ لتر.
+  static void ensureStoreBottleSaleProduct() {
+    if (resolveStoreBottleSaleProduct(products: _products) != null) {
+      return;
+    }
+    final Map<String, dynamic>? load = resolveVehicleLoadRowProduct(
+      products: _products,
+      rowIndex: 1,
+    );
+    _products.add(
+      _product(
+        id: 'p_store_bottle',
+        name: kStoreBottleProductApiName,
+        unitType: 'bottle',
+        price: parseDynamicDouble(load?['price']) ?? 25,
+        stationStock: 0,
+      ),
+    );
   }
 
   /// منتج «مهدي متجر» للتسعير والبيع — مخزون المحطة والسيارة من «ك مهدي».
@@ -226,29 +269,7 @@ final class PrototypeSampleData {
   static final List<Map<String, dynamic>> _stationSales =
       <Map<String, dynamic>>[];
 
-  static void _ensureInitialStationSales() {
-    if (_stationSales.isNotEmpty) {
-      return;
-    }
-    final Map<String, dynamic> water = productById('p_water');
-    final Map<String, dynamic> carton = productById('p_mahdi_carton');
-    _stationSales.addAll(<Map<String, dynamic>>[
-      _stationSale(
-        id: 'ss1',
-        product: water,
-        quantity: 12,
-        unitPrice: 25,
-        note: 'بيع محطة — صباح',
-      ),
-      _stationSale(
-        id: 'ss2',
-        product: carton,
-        quantity: 4,
-        unitPrice: 180,
-        note: null,
-      ),
-    ]);
-  }
+  static void _ensureInitialStationSales() {}
 
   static List<Map<String, dynamic>> get stationSales {
     _ensureInitialStationSales();
@@ -261,15 +282,26 @@ final class PrototypeSampleData {
     required double unitPrice,
     String? note,
     String? settledFromDebtId,
+    bool skipStockDeduction = false,
   }) {
     _ensureInitialStationSales();
     final Map<String, dynamic> product = productById(productId);
+    final bool skipStock = skipStockDeduction ||
+        (settledFromDebtId != null && settledFromDebtId.isNotEmpty);
+    if (!skipStock && quantity > 0) {
+      final int current = _intField(product, 'stationStock');
+      if (quantity > current) {
+        throw StateError('INSUFFICIENT_STOCK');
+      }
+      setStationStock(productId, current - quantity);
+    }
+    final Map<String, dynamic> productAfter = productById(productId);
     final String soldById =
         PrototypeSession.current?.id ?? 'proto_admin';
     final Map<String, dynamic> row = <String, dynamic>{
       'id': 'ss_${_stationSales.length + 1}',
-      'productId': product['id'],
-      'product': product,
+      'productId': productAfter['id'],
+      'product': productAfter,
       'quantity': quantity,
       'unitPrice': unitPrice,
       'totalAmount': unitPrice * quantity,
@@ -323,28 +355,7 @@ final class PrototypeSampleData {
   static final List<Map<String, dynamic>> _stationDebtEntries =
       <Map<String, dynamic>>[];
 
-  static void _ensureInitialStationDebt() {
-    if (_stationDebtEntries.isNotEmpty) {
-      return;
-    }
-    final Map<String, dynamic> carton = productById('p_mahdi_carton');
-    _stationDebtEntries.addAll(<Map<String, dynamic>>[
-      <String, dynamic>{
-        'id': 'debt1',
-        'debtorName': 'محل الأمل',
-        'productId': carton['id'],
-        'product': carton,
-        'quantity': 3,
-        'unitPrice': 180.0,
-        'totalAmount': 540.0,
-        'recordedById': 'proto_admin',
-        'recordedBy': userBrief('proto_admin'),
-        'recordingSource': 'station',
-        'repaidAt': null,
-        'createdAt': _today,
-      },
-    ]);
-  }
+  static void _ensureInitialStationDebt() {}
 
   static List<Map<String, dynamic>> get stationDebtEntries {
     _ensureInitialStationDebt();
@@ -380,6 +391,7 @@ final class PrototypeSampleData {
         'quantity': vs['quantity'],
         'unitPrice': vs['unitPrice'],
         'totalAmount': vs['totalAmount'],
+        'saleDestination': vs['saleDestination']?.toString() ?? 'home',
         'recordedById': vs['driverId'],
         'recordedBy': vs['driver'],
         'recordingSource': 'vehicle',
@@ -434,31 +446,7 @@ final class PrototypeSampleData {
     return List<Map<String, dynamic>>.from(_vehicleLoads);
   }
 
-  static void _ensureInitialVehicleLoad() {
-    if (_vehicleLoads.isNotEmpty) {
-      return;
-    }
-    final Map<String, dynamic> vehicle = vehicleById('v1');
-    final Map<String, dynamic> product = productById('p_water');
-    _vehicleLoads.add(
-      <String, dynamic>{
-        'id': 'load1',
-        'vehicleId': vehicle['id'],
-        'vehicle': vehicle,
-        'driverId': 'proto_driver',
-        'driver': userBrief('proto_driver'),
-        'productId': product['id'],
-        'product': product,
-        'quantityLoaded': 50,
-        'quantitySold': 18,
-        'quantityReturned': 2,
-        'status': 'open',
-        'loadDate': _today,
-        'createdAt': _today,
-        'createdBy': userBrief('proto_admin'),
-      },
-    );
-  }
+  static void _ensureInitialVehicleLoad() {}
 
   /// إنشاء سطر تحميل في الذاكرة (نموذج UI).
   static Map<String, dynamic> addVehicleLoad({
@@ -524,50 +512,7 @@ final class PrototypeSampleData {
     return List<Map<String, dynamic>>.from(_vehicleSales);
   }
 
-  static void _ensureInitialVehicleSales() {
-    if (_vehicleSales.isNotEmpty) {
-      return;
-    }
-    final Map<String, dynamic> vehicle = vehicleById('v1');
-    final Map<String, dynamic> product = productById('p_water');
-    _vehicleSales.add(
-      <String, dynamic>{
-        'id': 'vs1',
-        'vehicleId': vehicle['id'],
-        'vehicle': vehicle,
-        'driverId': 'proto_driver',
-        'driver': userBrief('proto_driver'),
-        'productId': product['id'],
-        'product': product,
-        'quantity': 6,
-        'unitPrice': 25.0,
-        'totalAmount': 150.0,
-        'saleDestination': 'home',
-        'isDebt': false,
-        'createdAt': _today.toIso8601String(),
-      },
-    );
-    final Map<String, dynamic> water = productById('p_water');
-    _vehicleSales.add(
-      <String, dynamic>{
-        'id': 'vs_debt_sample',
-        'vehicleId': vehicle['id'],
-        'vehicle': vehicle,
-        'driverId': 'proto_driver',
-        'driver': userBrief('proto_driver'),
-        'productId': water['id'],
-        'product': water,
-        'quantity': 2,
-        'unitPrice': 180.0,
-        'totalAmount': 360.0,
-        'saleDestination': 'home',
-        'debtorName': 'بقالة النور',
-        'isDebt': true,
-        'repaidAt': null,
-        'createdAt': _today,
-      },
-    );
-  }
+  static void _ensureInitialVehicleSales() {}
 
   /// سداد ديون المركبة: إغلاق سجل الدين + تسجيل مبيع اليوم **بدون** خصم مخزون.
   static int repayVehicleDebtForDebtor({required String debtorName}) {
@@ -713,58 +658,73 @@ final class PrototypeSampleData {
     return row;
   }
 
-  static List<Map<String, dynamic>> get expenses => <Map<String, dynamic>>[
-        <String, dynamic>{
-          'id': 'ex1',
-          'amount': 350.0,
-          'note': 'صيانة مضخة',
-          'vehicleId': 'v1',
-          'driverId': 'proto_driver',
-          'createdAt': _today,
-        },
-        <String, dynamic>{
-          'id': 'ex2',
-          'amount': 1200.0,
-          'note': 'STATION_CARTON_WATER: شراء كراتين',
-          'vehicleId': null,
-          'driverId': null,
-          'createdAt': _today,
-        },
-      ];
+  static final List<Map<String, dynamic>> _expenses = <Map<String, dynamic>>[];
 
-  static List<Map<String, dynamic>> get returns => <Map<String, dynamic>>[
-        <String, dynamic>{
-          'id': 'ret1',
-          'vehicleLoadId': 'load1',
-          'quantityReturned': 2,
-          'createdAt': _today,
-          'load': vehicleLoads.first,
-        },
-      ];
+  static void _ensureInitialExpenses() {}
+
+  static List<Map<String, dynamic>> get expenses {
+    _ensureInitialExpenses();
+    return List<Map<String, dynamic>>.from(_expenses);
+  }
+
+  static double _expensesTotalForDriverToday(String? driverId) =>
+      _expensesAmountToday(driverId: driverId);
+
+  /// إضافة مصروف (نموذج UI).
+  static Map<String, dynamic> addExpense({
+    String? vehicleId,
+    required double amount,
+    String? note,
+    String? receiptFilename,
+    bool hasReceipt = false,
+  }) {
+    _ensureInitialExpenses();
+    final String? driverId = vehicleId != null && vehicleId.isNotEmpty
+        ? vehicleById(vehicleId)['driverId']?.toString()
+        : PrototypeSession.current?.id;
+    final Map<String, dynamic> row = <String, dynamic>{
+      'id': 'ex_${_expenses.length + 1}',
+      'amount': amount,
+      'note': note?.trim() ?? '',
+      'vehicleId': vehicleId,
+      'driverId': driverId,
+      'hasReceipt': hasReceipt,
+      if (receiptFilename != null && receiptFilename.isNotEmpty)
+        'receiptFilename': receiptFilename,
+      'createdAt': _now,
+    };
+    _expenses.add(row);
+    return row;
+  }
+
+  static List<Map<String, dynamic>> get returns =>
+      const <Map<String, dynamic>>[];
 
   static Map<String, dynamic> getDashboardSuperAdmin() {
-    final List<Map<String, dynamic>> debtPreview = <Map<String, dynamic>>[
-      <String, dynamic>{
-        'debtorName': 'محل الأمل',
-        'totalAmount': 540.0,
-        'entryCount': 1,
-      },
-      <String, dynamic>{
-        'debtorName': 'بقالة النور',
-        'totalAmount': 360.0,
-        'entryCount': 1,
-      },
-    ];
+    final double stationToday = _stationSalesAmountToday();
+    final double vehicleToday = _vehicleSalesAmountToday();
+    final double salesToday = stationToday + vehicleToday;
+    final double expensesToday = _expensesAmountToday();
+    final double expensesMonth = _expensesAmountThisMonth();
+    final double salesMonth =
+        _stationSalesAmountThisMonth() + _vehicleSalesAmountThisMonth();
+    final double profitToday = salesToday - expensesToday;
+    final double monthlyCarton = _stationSalesAmountThisMonthCarton() +
+        _vehicleSalesAmountThisMonth(cartonOnly: true);
+    final List<Map<String, dynamic>> debtPreview = _openDebtPreview();
+    final List<Map<String, dynamic>> lowStock = _lowStockProducts();
+    final int remainingStock = _totalStationStock();
+    final int remainingOnVehicles = _totalRemainingOnVehicles();
     return <String, dynamic>{
       'role': 'super_admin',
       'metrics': <String, dynamic>{
-        'totalSalesToday': 870.0,
-        'stationSalesToday': 720.0,
-        'vehicleSalesToday': 150.0,
-        'totalExpensesToday': 350.0,
-        'totalMonthlyExpenses': 1550.0,
-        'totalProfitToday': 520.0,
-        'totalMonthlySales': 24500.0,
+        'totalSalesToday': salesToday,
+        'stationSalesToday': stationToday,
+        'vehicleSalesToday': vehicleToday,
+        'totalExpensesToday': expensesToday,
+        'totalMonthlyExpenses': expensesMonth,
+        'totalProfitToday': profitToday,
+        'totalMonthlySales': salesMonth,
       },
       'details': <String, dynamic>{
         'counts': <String, dynamic>{
@@ -775,10 +735,10 @@ final class PrototypeSampleData {
           'products': products.length,
           'pricedProducts': 3,
         },
-        'lowStockProducts': <Map<String, dynamic>>[products.last],
+        'lowStockProducts': lowStock,
         'stationDebtOpenPreview': debtPreview,
-        'remainingStationStock': 535,
-        'remainingOnVehicles': 30,
+        'remainingStationStock': remainingStock,
+        'remainingOnVehicles': remainingOnVehicles,
       },
       'totalUsers': users.length,
       'totalAdmins': 2,
@@ -786,36 +746,36 @@ final class PrototypeSampleData {
       'totalVehicles': vehicles.length,
       'totalProducts': products.length,
       'productsWithPrice': 3,
-      'totalSalesToday': 870.0,
-      'stationSalesToday': 720.0,
-      'vehicleSalesToday': 150.0,
-      'totalExpensesToday': 350.0,
-      'totalMonthlyExpenses': 1550.0,
-      'totalProfitToday': 520.0,
-      'totalMonthlySales': 24500.0,
-      'totalMonthlyCartonSales': 12000.0,
-      'remainingStationStock': 535,
-      'remainingOnVehicles': 30,
-      'lowStockProducts': <Map<String, dynamic>>[products.last],
+      'totalSalesToday': salesToday,
+      'stationSalesToday': stationToday,
+      'vehicleSalesToday': vehicleToday,
+      'totalExpensesToday': expensesToday,
+      'totalMonthlyExpenses': expensesMonth,
+      'totalProfitToday': profitToday,
+      'totalMonthlySales': salesMonth,
+      'totalMonthlyCartonSales': monthlyCarton,
+      'remainingStationStock': remainingStock,
+      'remainingOnVehicles': remainingOnVehicles,
+      'lowStockProducts': lowStock,
       'stationDebtOpenPreview': debtPreview,
     };
   }
 
-  static Map<String, dynamic> getSuperAdminCartonSummary() => <String, dynamic>{
-        'cartonStock': 85,
-        'monthlyCartonExpensesTotalAmount': 1200.0,
-        'monthlyCartonSalesTotalAmount': 7200.0,
-        'monthlyCartonSalesHomeQty': 28,
-        'monthlyCartonSalesStoreQty': 12,
-        'cartonDebtUnpaidQuantity': 5,
-        'cartonDebtUnpaidTotalAmount': 900.0,
-      };
+  static Map<String, dynamic> getSuperAdminCartonSummary({
+    int? year,
+    int? month,
+  }) {
+    final DateTime now = DateTime.now();
+    final int y = year ?? now.year;
+    final int m = month ?? now.month;
+    return _cartonMonthlySummary(DateTime(y, m));
+  }
 
   static Map<String, dynamic> getDashboardAdmin() => <String, dynamic>{
         'role': 'admin',
-        'stationSalesToday': 720.0,
-        'vehicleLoadsToday': 1,
-        'openDebtCount': 2,
+        'stationSalesToday': _stationSalesAmountToday(),
+        'vehicleLoadsToday': _vehicleLoadsCountToday(),
+        'openDebtCount': openStationDebtEntries.length,
         'productsCount': products.length,
       };
 
@@ -853,6 +813,296 @@ final class PrototypeSampleData {
     final int returned = _intField(load, 'quantityReturned');
     final int remaining = loaded - sold - returned;
     return remaining < 0 ? 0 : remaining;
+  }
+
+  static DateTime? _rowDateOnly(Map<String, dynamic> row) {
+    final Object? raw = row['createdAt'] ?? row['loadDate'];
+    if (raw is DateTime) {
+      return _dateOnly(raw);
+    }
+    if (raw is String) {
+      final DateTime? parsed = DateTime.tryParse(raw);
+      if (parsed != null) {
+        return _dateOnly(parsed);
+      }
+    }
+    return null;
+  }
+
+  static bool _isSameCalendarDay(DateTime? dt, DateTime day) =>
+      dt != null &&
+      dt.year == day.year &&
+      dt.month == day.month &&
+      dt.day == day.day;
+
+  static bool _isSameCalendarMonth(DateTime? dt, DateTime ref) =>
+      dt != null && dt.year == ref.year && dt.month == ref.month;
+
+  static double _rowMoney(Map<String, dynamic> row) =>
+      (row['totalAmount'] as num?)?.toDouble() ??
+      (row['amount'] as num?)?.toDouble() ??
+      0;
+
+  static bool _isCashVehicleSale(Map<String, dynamic> vs) =>
+      vs['isDebt'] != true;
+
+  static bool _isCartonRow(Map<String, dynamic> row) {
+    final String? productId = row['productId']?.toString();
+    if (productId == 'p_mahdi_carton' || productId == 'p_store_mahdi') {
+      return true;
+    }
+    final Map<String, dynamic>? product = row['product'] is Map<String, dynamic>
+        ? row['product'] as Map<String, dynamic>
+        : null;
+    if (product != null) {
+      final String? id = product['id']?.toString();
+      if (id == 'p_mahdi_carton' || id == 'p_store_mahdi') {
+        return true;
+      }
+      final String? unit =
+          product['unitType']?.toString() ?? product['type']?.toString();
+      if (unit == 'carton') {
+        return true;
+      }
+      final String name = product['name']?.toString() ?? '';
+      if (isStoreMahdiProductName(name)) {
+        return true;
+      }
+      final String normalized = normalizeStationBalanceProductName(name);
+      for (final String c in kMahdiCartonStockNameCandidates) {
+        if (normalized == normalizeStationBalanceProductName(c)) {
+          return true;
+        }
+      }
+      if (name.contains('مهدي') || name.toLowerCase().contains('mahdi')) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  static bool _vehicleCartonSaleIsStore(Map<String, dynamic> vs) {
+    if (vs['saleDestination']?.toString() == 'store') {
+      return true;
+    }
+    final Map<String, dynamic>? product = vs['product'] is Map<String, dynamic>
+        ? vs['product'] as Map<String, dynamic>
+        : null;
+    return isStoreMahdiProductName(product?['name']?.toString());
+  }
+
+  static double _stationSalesAmountToday() {
+    var sum = 0.0;
+    for (final Map<String, dynamic> s in _stationSales) {
+      if (_isSameCalendarDay(_rowDateOnly(s), _today)) {
+        sum += _rowMoney(s);
+      }
+    }
+    return sum;
+  }
+
+  static double _stationSalesAmountThisMonth() {
+    var sum = 0.0;
+    for (final Map<String, dynamic> s in _stationSales) {
+      if (_isSameCalendarMonth(_rowDateOnly(s), _now)) {
+        sum += _rowMoney(s);
+      }
+    }
+    return sum;
+  }
+
+  static double _stationSalesAmountThisMonthCarton() {
+    var sum = 0.0;
+    for (final Map<String, dynamic> s in _stationSales) {
+      if (!_isCartonRow(s) || !_isSameCalendarMonth(_rowDateOnly(s), _now)) {
+        continue;
+      }
+      sum += _rowMoney(s);
+    }
+    return sum;
+  }
+
+  static double _vehicleSalesAmountToday({String? driverId}) {
+    var sum = 0.0;
+    for (final Map<String, dynamic> vs in _vehicleSales) {
+      if (!_isCashVehicleSale(vs)) {
+        continue;
+      }
+      if (driverId != null &&
+          driverId.isNotEmpty &&
+          vs['driverId']?.toString() != driverId) {
+        continue;
+      }
+      if (_isSameCalendarDay(_rowDateOnly(vs), _today)) {
+        sum += _rowMoney(vs);
+      }
+    }
+    return sum;
+  }
+
+  static double _vehicleSalesAmountThisMonth({bool cartonOnly = false}) {
+    var sum = 0.0;
+    for (final Map<String, dynamic> vs in _vehicleSales) {
+      if (!_isCashVehicleSale(vs)) {
+        continue;
+      }
+      if (cartonOnly && !_isCartonRow(vs)) {
+        continue;
+      }
+      if (_isSameCalendarMonth(_rowDateOnly(vs), _now)) {
+        sum += _rowMoney(vs);
+      }
+    }
+    return sum;
+  }
+
+  static double _expensesAmountToday({String? driverId}) {
+    var sum = 0.0;
+    for (final Map<String, dynamic> e in _expenses) {
+      if (driverId != null &&
+          driverId.isNotEmpty &&
+          e['driverId']?.toString() != driverId) {
+        continue;
+      }
+      if (_isSameCalendarDay(_rowDateOnly(e), _today)) {
+        sum += _rowMoney(e);
+      }
+    }
+    return sum;
+  }
+
+  static double _expensesAmountThisMonth({String? driverId}) {
+    var sum = 0.0;
+    for (final Map<String, dynamic> e in _expenses) {
+      if (driverId != null &&
+          driverId.isNotEmpty &&
+          e['driverId']?.toString() != driverId) {
+        continue;
+      }
+      if (_isSameCalendarMonth(_rowDateOnly(e), _now)) {
+        sum += _rowMoney(e);
+      }
+    }
+    return sum;
+  }
+
+  static int _totalStationStock() {
+    var sum = 0;
+    for (final Map<String, dynamic> p in _products) {
+      sum += _intField(p, 'stationStock');
+    }
+    return sum;
+  }
+
+  static int _totalRemainingOnVehicles() {
+    var sum = 0;
+    for (final Map<String, dynamic> load in _vehicleLoads) {
+      if (load['status']?.toString() == 'closed') {
+        continue;
+      }
+      sum += _remainingForLoad(load);
+    }
+    return sum;
+  }
+
+  static List<Map<String, dynamic>> _openDebtPreview() {
+    final Map<String, double> totals = <String, double>{};
+    final Map<String, int> counts = <String, int>{};
+    for (final Map<String, dynamic> e in openStationDebtEntries) {
+      final String name = e['debtorName']?.toString().trim() ?? '';
+      if (name.isEmpty) {
+        continue;
+      }
+      totals[name] = (totals[name] ?? 0) + _rowMoney(e);
+      counts[name] = (counts[name] ?? 0) + 1;
+    }
+    return totals.entries
+        .map(
+          (MapEntry<String, double> e) => <String, dynamic>{
+            'debtorName': e.key,
+            'totalAmount': e.value,
+            'entryCount': counts[e.key] ?? 0,
+          },
+        )
+        .toList(growable: false);
+  }
+
+  static List<Map<String, dynamic>> _lowStockProducts({int threshold = 20}) =>
+      _products
+          .where(
+            (Map<String, dynamic> p) => _intField(p, 'stationStock') < threshold,
+          )
+          .map((Map<String, dynamic> p) => Map<String, dynamic>.from(p))
+          .toList(growable: false);
+
+  static int _vehicleLoadsCountToday() {
+    var count = 0;
+    for (final Map<String, dynamic> load in _vehicleLoads) {
+      if (_isSameCalendarDay(_loadDateOnly(load), _today)) {
+        count++;
+      }
+    }
+    return count;
+  }
+
+  static Map<String, dynamic> _cartonMonthlySummary(DateTime monthRef) {
+    final Map<String, dynamic> carton = productById('p_mahdi_carton');
+    var cartonExpenses = 0.0;
+    var cartonSalesQtyHome = 0;
+    var cartonSalesQtyStore = 0;
+    var monthlyCartonSales = 0.0;
+    for (final Map<String, dynamic> e in _expenses) {
+      if (!_isSameCalendarMonth(_rowDateOnly(e), monthRef)) {
+        continue;
+      }
+      final String note = e['note']?.toString() ?? '';
+      if (note.contains('STATION_CARTON') ||
+          note.contains('كرتون') ||
+          note.toLowerCase().contains('carton')) {
+        cartonExpenses += _rowMoney(e);
+      }
+    }
+    for (final Map<String, dynamic> s in _stationSales) {
+      if (!_isCartonRow(s) ||
+          !_isSameCalendarMonth(_rowDateOnly(s), monthRef)) {
+        continue;
+      }
+      final int q = _intField(s, 'quantity');
+      cartonSalesQtyHome += q;
+      monthlyCartonSales += _rowMoney(s);
+    }
+    for (final Map<String, dynamic> vs in _vehicleSales) {
+      if (!_isCashVehicleSale(vs) ||
+          !_isCartonRow(vs) ||
+          !_isSameCalendarMonth(_rowDateOnly(vs), monthRef)) {
+        continue;
+      }
+      final int q = _intField(vs, 'quantity');
+      monthlyCartonSales += _rowMoney(vs);
+      if (_vehicleCartonSaleIsStore(vs)) {
+        cartonSalesQtyStore += q;
+      } else {
+        cartonSalesQtyHome += q;
+      }
+    }
+    var debtQty = 0;
+    var debtAmount = 0.0;
+    for (final Map<String, dynamic> e in openStationDebtEntries) {
+      if (!_isCartonRow(e)) {
+        continue;
+      }
+      debtQty += _intField(e, 'quantity');
+      debtAmount += _rowMoney(e);
+    }
+    return <String, dynamic>{
+      'cartonStock': _intField(carton, 'stationStock'),
+      'monthlyCartonExpensesTotalAmount': cartonExpenses,
+      'monthlyCartonSalesTotalAmount': monthlyCartonSales,
+      'monthlyCartonSalesHomeQty': cartonSalesQtyHome,
+      'monthlyCartonSalesStoreQty': cartonSalesQtyStore,
+      'cartonDebtUnpaidQuantity': debtQty,
+      'cartonDebtUnpaidTotalAmount': debtAmount,
+    };
   }
 
   static Map<String, dynamic> _enrichLoadRow(Map<String, dynamic> load) {
@@ -948,19 +1198,20 @@ final class PrototypeSampleData {
     }
     final Map<String, dynamic> assignedVehicle =
         vehicle ?? vehicleById('v1');
+    final String driverId = assignedVehicle['driverId']?.toString() ?? '';
+    final double expensesToday = _expensesTotalForDriverToday(driverId);
+    final double vehicleSalesToday = _vehicleSalesAmountToday(driverId: driverId);
     return <String, dynamic>{
       'role': 'driver',
       'metrics': <String, dynamic>{
-        'totalExpensesToday': 350.0,
-        'vehicleSalesToday': 150.0,
+        'totalExpensesToday': expensesToday,
+        'vehicleSalesToday': vehicleSalesToday,
         'remainingOnVehicle': remainingOnVehicle,
       },
       'details': <String, dynamic>{
         'assignedVehicle': assignedVehicle,
         'remainingQuantities': remainingQuantities,
-        'notesSummary': <Map<String, dynamic>>[
-          <String, dynamic>{'note': 'تسليم عينة — عرض فقط', 'at': _today},
-        ],
+        'notesSummary': const <Map<String, dynamic>>[],
         'productsLoadedToday': loads,
         'soldQuantitiesToday': soldToday,
         'returnedQuantitiesToday': returnedToday,
@@ -968,52 +1219,91 @@ final class PrototypeSampleData {
       'assignedVehicle': assignedVehicle,
       'productsLoadedToday': loads,
       'soldQuantitiesToday': soldToday,
-      'vehicleSalesAmountToday': 150.0,
+      'vehicleSalesAmountToday': vehicleSalesToday,
       'remainingQuantities': remainingQuantities,
       'remainingOnVehicle': remainingOnVehicle,
       'returnedQuantitiesToday': returnedToday,
-      'totalExpensesToday': 350.0,
-      'notesSummary': <Map<String, dynamic>>[
-        <String, dynamic>{'note': 'تسليم عينة — عرض فقط', 'at': _today},
-      ],
+      'totalExpensesToday': expensesToday,
+      'notesSummary': const <Map<String, dynamic>>[],
     };
   }
 
-  static Map<String, dynamic> reportsInventory() => <String, dynamic>{
-        'stationProducts': products,
-        'openLoadLines': 1,
-        'estimatedUnitsOnVehicles': 30,
-      };
+  static Map<String, dynamic> reportsInventory() {
+    var openLoadLines = 0;
+    for (final Map<String, dynamic> load in _vehicleLoads) {
+      if (load['status']?.toString() != 'closed') {
+        openLoadLines++;
+      }
+    }
+    return <String, dynamic>{
+      'stationProducts': products,
+      'openLoadLines': openLoadLines,
+      'estimatedUnitsOnVehicles': _totalRemainingOnVehicles(),
+    };
+  }
 
   static Map<String, dynamic> reportsSalesWorkingDays() {
-    final String key =
-        '${_today.year.toString().padLeft(4, '0')}-${_today.month.toString().padLeft(2, '0')}-${_today.day.toString().padLeft(2, '0')}';
+    final Map<String, double> byDate = <String, double>{};
+    void addSale(Map<String, dynamic> row) {
+      final DateTime? dt = _rowDateOnly(row);
+      if (dt == null) {
+        return;
+      }
+      final String key =
+          '${dt.year.toString().padLeft(4, '0')}-${dt.month.toString().padLeft(2, '0')}-${dt.day.toString().padLeft(2, '0')}';
+      byDate[key] = (byDate[key] ?? 0) + _rowMoney(row);
+    }
+
+    for (final Map<String, dynamic> s in _stationSales) {
+      addSale(s);
+    }
+    for (final Map<String, dynamic> vs in _vehicleSales) {
+      if (_isCashVehicleSale(vs)) {
+        addSale(vs);
+      }
+    }
+
+    final List<Map<String, dynamic>> days = byDate.entries
+        .map(
+          (MapEntry<String, double> e) => <String, dynamic>{
+            'date': e.key,
+            'combined': e.value,
+          },
+        )
+        .toList(growable: false)
+      ..sort(
+        (Map<String, dynamic> a, Map<String, dynamic> b) =>
+            (b['date'] as String).compareTo(a['date'] as String),
+      );
+    return <String, dynamic>{'days': days};
+  }
+
+  static Map<String, dynamic> reportsProfitLoss() {
+    final double revenue = _stationSalesAmountToday() + _vehicleSalesAmountToday();
+    final double expenses = _expensesAmountToday();
     return <String, dynamic>{
-      'days': <Map<String, dynamic>>[
-        <String, dynamic>{'date': key, 'combined': 870.0},
-        <String, dynamic>{'date': '2026-05-15', 'combined': 1200.0},
-      ],
+      'from': _today.toIso8601String(),
+      'to': _today.toIso8601String(),
+      'revenue': revenue,
+      'expenses': expenses,
+      'net': revenue - expenses,
     };
   }
 
-  static Map<String, dynamic> reportsProfitLoss() => <String, dynamic>{
-        'from': _today.toIso8601String(),
-        'to': _today.toIso8601String(),
-        'revenue': 870.0,
-        'expenses': 1550.0,
-        'net': -680.0,
-      };
-
-  static Map<String, dynamic> reportsSalesMonthly() => <String, dynamic>{
-        'year': _now.year,
-        'month': _now.month,
-        'stationSales': stationSales,
-        'vehicleSales': vehicleSales,
-        'totals': <String, dynamic>{
-          'stationAmount': 720.0,
-          'vehicleAmount': 150.0,
-        },
-      };
+  static Map<String, dynamic> reportsSalesMonthly() {
+    final double stationAmount = _stationSalesAmountThisMonth();
+    final double vehicleAmount = _vehicleSalesAmountThisMonth();
+    return <String, dynamic>{
+      'year': _now.year,
+      'month': _now.month,
+      'stationSales': stationSales,
+      'vehicleSales': vehicleSales,
+      'totals': <String, dynamic>{
+        'stationAmount': stationAmount,
+        'vehicleAmount': vehicleAmount,
+      },
+    };
+  }
 
   static Map<String, dynamic> meFromSession() {
     final UserEntity? u = PrototypeSession.current;
@@ -1067,23 +1357,4 @@ final class PrototypeSampleData {
         'isActive': true,
       };
 
-  static Map<String, dynamic> _stationSale({
-    required String id,
-    required Map<String, dynamic> product,
-    required int quantity,
-    required double unitPrice,
-    required String? note,
-  }) =>
-      <String, dynamic>{
-        'id': id,
-        'productId': product['id'],
-        'product': product,
-        'quantity': quantity,
-        'unitPrice': unitPrice,
-        'totalAmount': quantity * unitPrice,
-        'soldById': 'proto_admin',
-        'soldBy': userBrief('proto_admin'),
-        'note': note,
-        'createdAt': _today,
-      };
 }

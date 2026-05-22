@@ -294,8 +294,21 @@ Map<String, dynamic>? resolveStationBalanceProduct({
 /// اسم بيع «متجر» للكرتون — يُخصم من مخزون «ك مهدي» وليس من منتج مستقل.
 const String kStoreMahdiProductApiName = 'مهدي متجر';
 
-/// صف تسعير إضافي في سوبر أدمن (ليس صف رصيد المحطة).
+/// بيع متجر — سعر مستقل؛ الخصم من حمولة السيارة (جالون/قارورة ٢٠ لتر).
+const String kStoreGallonProductApiName = 'جالون متجر';
+const String kStoreBottleProductApiName = 'قاروره متجر';
+
+/// صفوف تسعير إضافية في سوبر أدمن (ليست صفوف رصيد المحطة).
 const int kSuperAdminStoreMahdiPricingExtraSlot = -100;
+const int kSuperAdminStoreGallonPricingExtraSlot = -101;
+const int kSuperAdminStoreBottlePricingExtraSlot = -102;
+
+/// ترتيب صفوف تسعير بيع المتجر في شاشة الأسعار.
+const List<int> kSuperAdminStoreSalePricingExtraSlots = <int>[
+  kSuperAdminStoreGallonPricingExtraSlot,
+  kSuperAdminStoreBottlePricingExtraSlot,
+  kSuperAdminStoreMahdiPricingExtraSlot,
+];
 
 /// أسماء مخزون الكرتون الكنسي (بدون «مهدي متجر»).
 const List<String> kMahdiCartonStockNameCandidates = <String>[
@@ -352,6 +365,31 @@ String? resolveMahdiCartonStockProductId({
   required List<Map<String, dynamic>> products,
 }) =>
     resolveMahdiCartonStockProduct(products: products)?['id']?.toString();
+
+Map<String, dynamic>? resolveStoreGallonSaleProduct({
+  required List<Map<String, dynamic>> products,
+}) =>
+    resolveProductByNameCandidates(
+      products: products,
+      candidates: <String>[kStoreGallonProductApiName],
+    );
+
+Map<String, dynamic>? resolveStoreBottleSaleProduct({
+  required List<Map<String, dynamic>> products,
+}) =>
+    resolveProductByNameCandidates(
+      products: products,
+      candidates: <String>[kStoreBottleProductApiName],
+    );
+
+String superAdminStorePricingRowLabel(int rowIndex) {
+  return switch (rowIndex) {
+    kSuperAdminStoreGallonPricingExtraSlot => kStoreGallonProductApiName,
+    kSuperAdminStoreBottlePricingExtraSlot => kStoreBottleProductApiName,
+    kSuperAdminStoreMahdiPricingExtraSlot => kStoreMahdiProductApiName,
+    _ => '',
+  };
+}
 
 /// منتج بيع «مهدي متجر» (سعر مستقل في التسعير؛ المخزون من «ك مهدي»).
 Map<String, dynamic>? resolveStoreMahdiSaleProduct({

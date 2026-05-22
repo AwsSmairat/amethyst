@@ -250,25 +250,27 @@ final class StationDebtRegistrationCubit extends Cubit<StationDebtRegistrationSt
       return;
     }
     if (delta > 0) {
-      // وضع السائق: منتج ١ و ٢ بدون سقف مخزون؛ الباقي حسب الحمولة والمحطة.
-      if (vehiclePlace != null &&
-          !vehicleDebtColumnSkipsInventoryDeduction(index) &&
-          index < state.columnVehicleRemaining.length) {
-        final int vehicleRem = state.columnVehicleRemaining[index];
-        int cap = vehicleRem;
-        final bool deductStationStock = vehicleProductColumnDeductsStationStock(
-          _vehicleColumnPlace(vehiclePlace!),
-          index,
-        );
-        if (deductStationStock &&
-            index < state.columnStationStock.length &&
-            index < state.columnSkipsStationStock.length &&
-            !state.columnSkipsStationStock[index]) {
-          final int station = state.columnStationStock[index];
-          cap = cap < station ? cap : station;
-        }
-        if (state.quantities[index] >= cap) {
-          return;
+      // دين المركبة: سقف الكمية من متبقي الحمولة (ومخزون المحطة إن وُجد).
+      if (vehiclePlace != null) {
+        final VehicleProductColumnPlace columnPlace =
+            _vehicleColumnPlace(vehiclePlace!);
+        final bool usesVehicleLoad =
+            vehicleDebtColumnUsesVehicleLoad(columnPlace, index);
+        final bool deductStationStock =
+            vehicleProductColumnDeductsStationStock(columnPlace, index);
+        if ((usesVehicleLoad || deductStationStock) &&
+            index < state.columnVehicleRemaining.length) {
+          int cap = state.columnVehicleRemaining[index];
+          if (deductStationStock &&
+              index < state.columnStationStock.length &&
+              index < state.columnSkipsStationStock.length &&
+              !state.columnSkipsStationStock[index]) {
+            final int station = state.columnStationStock[index];
+            cap = cap < station ? cap : station;
+          }
+          if (state.quantities[index] >= cap) {
+            return;
+          }
         }
       } else if (index < state.columnSkipsStationStock.length &&
           index < state.columnStationStock.length &&
@@ -304,7 +306,10 @@ final class StationDebtRegistrationCubit extends Cubit<StationDebtRegistrationSt
       if (q <= 0) {
         continue;
       }
-      if (state.productIds[i] == null || state.unitPrices[i] == null) {
+      if (state.productIds[i] == null || state.productIds[i]!.isEmpty) {
+        return kStationDebtMissingProduct;
+      }
+      if (state.unitPrices[i] == null) {
         return kStationDebtMissingProduct;
       }
     }
@@ -356,10 +361,11 @@ final class StationDebtRegistrationCubit extends Cubit<StationDebtRegistrationSt
         (
           columnIndex: i,
           productId: pid,
-          stockProductId:
-              stockId != null && stockId.isNotEmpty && stockId != pid
-                  ? stockId
-                  : null,
+          stockProductId: vehiclePlace != null &&
+                  stockId != null &&
+                  stockId.isNotEmpty
+              ? stockId
+              : null,
           quantity: q,
           unitPrice: price,
         ),
@@ -376,15 +382,33 @@ final class StationDebtRegistrationCubit extends Cubit<StationDebtRegistrationSt
       // تسجيل دين من المركبة: تحقق من حمولة السيارة قبل الإرسال.
       if (vehiclePlace != null) {
         final StationDebtVehiclePlace place = vehiclePlace!;
+        final VehicleProductColumnPlace columnPlace = _vehicleColumnPlace(place);
         for (final line in vehicleLines) {
-          if (vehicleDebtColumnSkipsInventoryDeduction(line.columnIndex)) {
+          if (!vehicleDebtColumnUsesVehicleLoad(
+                columnPlace,
+                line.columnIndex,
+              ) &&
+              !vehicleProductColumnDeductsStationStock(
+                columnPlace,
+                line.columnIndex,
+              )) {
             continue;
           }
-          final int rem = _vehicleRemainingForDebtColumn(
+          final int vehicleRem = _vehicleRemainingForDebtColumn(
             place: place,
             columnIndex: line.columnIndex,
           );
-          if (line.quantity > rem) {
+          var cap = vehicleRem;
+          if (vehicleProductColumnDeductsStationStock(
+            columnPlace,
+            line.columnIndex,
+          )) {
+            final int station = line.columnIndex < state.columnStationStock.length
+                ? state.columnStationStock[line.columnIndex]
+                : 0;
+            cap = cap < station ? cap : station;
+          }
+          if (line.quantity > cap) {
             emit(
               state.copyWith(
                 submitting: false,
@@ -410,9 +434,8 @@ final class StationDebtRegistrationCubit extends Cubit<StationDebtRegistrationSt
         final PatchProductStationStockUseCase patchStock =
             _patchProductStationStock!;
 
+        final VehicleProductColumnPlace columnPlace = _vehicleColumnPlace(place);
         for (final line in vehicleLines) {
-          final bool skipInventory =
-              vehicleDebtColumnSkipsInventoryDeduction(line.columnIndex);
           await createVehicleSale(
             vehicleId: vehicleId,
             productId: line.productId,
@@ -422,14 +445,10 @@ final class StationDebtRegistrationCubit extends Cubit<StationDebtRegistrationSt
             stockProductId: line.stockProductId,
             debtorName: debtor,
             isDebt: true,
-            skipLoadDeduction: skipInventory,
+            skipLoadDeduction: false,
           );
-
-          if (skipInventory) {
-            continue;
-          }
           final bool deductStationStock = vehicleProductColumnDeductsStationStock(
-            _vehicleColumnPlace(place),
+            columnPlace,
             line.columnIndex,
           );
           if (deductStationStock) {

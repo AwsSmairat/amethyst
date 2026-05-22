@@ -11,20 +11,3 @@ bool isVehicleDebtEntry(Map<String, dynamic> entry) {
   }
   return entry['recordingSource']?.toString() == 'vehicle';
 }
-
-String stationDebtKindSummary(List<Map<String, dynamic>> entries) {
-  if (entries.isEmpty) {
-    return '';
-  }
-  final int station =
-      entries.where(isStationDebtEntry).length;
-  final int vehicle =
-      entries.where(isVehicleDebtEntry).length;
-  if (station > 0 && vehicle > 0) {
-    return 'دين محطة ($station) · دين سيارة ($vehicle)';
-  }
-  if (station > 0) {
-    return 'دين محطة';
-  }
-  return 'دين سيارة';
-}
