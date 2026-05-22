@@ -1,5 +1,6 @@
 import 'package:amethyst/core/l10n/context_l10n.dart';
 import 'package:amethyst/core/theme/app_colors.dart';
+import 'package:amethyst/core/vehicle_load/vehicle_load_aggregates.dart';
 import 'package:flutter/material.dart';
 
 /// صف تحميل واحد (منتج + مركبة + كمية) — يُستخدَم في قوائم التحميل.
@@ -15,8 +16,8 @@ class VehicleLoadLineTile extends StatelessWidget {
     final String productTitle = _nestedString(item['product'], 'name');
     final String vehicleNo = _nestedString(item['vehicle'], 'vehicleNumber');
     final String driverName = _nestedString(item['driver'], 'fullName');
-    final String statusRaw = item['status']?.toString() ?? '';
-    final String statusAr = _statusLabel(context, statusRaw);
+    final String statusAr =
+        _statusLabel(context, vehicleLoadEffectiveStatus(item));
     final dynamic qty = item['quantityLoaded'];
 
     return Column(
@@ -44,7 +45,10 @@ class VehicleLoadLineTile extends StatelessWidget {
         const SizedBox(height: 10),
         Row(
           children: <Widget>[
-            _LoadStatusChip(label: statusAr),
+            _LoadStatusChip(
+              label: statusAr,
+              isClosed: vehicleLoadRemainingQty(item) <= 0,
+            ),
             const Spacer(),
             Text(
               '${l10n.quantity}: $qty',
@@ -60,16 +64,19 @@ class VehicleLoadLineTile extends StatelessWidget {
 }
 
 class _LoadStatusChip extends StatelessWidget {
-  const _LoadStatusChip({required this.label});
+  const _LoadStatusChip({required this.label, this.isClosed = false});
 
   final String label;
+  final bool isClosed;
 
   @override
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
-        color: AppColors.surfaceContainerHigh,
+        color: isClosed
+            ? AppColors.onSurfaceVariant.withValues(alpha: 0.2)
+            : AppColors.surfaceContainerHigh,
         borderRadius: BorderRadius.circular(20),
       ),
       child: Text(

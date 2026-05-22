@@ -443,7 +443,91 @@ final class PrototypeSampleData {
 
   static List<Map<String, dynamic>> get vehicleLoads {
     _ensureInitialVehicleLoad();
+    reconcileVehicleLoadStatuses();
     return List<Map<String, dynamic>>.from(_vehicleLoads);
+  }
+
+  /// ساعة إغلاق يوم العمل (محلي) — بعدها يُسجَّل إرجاع تلقائي لتحميلات **اليوم الحالي**.
+  static const int kVehicleLoadEndOfDayCloseHour = 23;
+
+  /// يطابق `status` مع الكميات ويُغلق تحميلات الأيام المنتهية.
+  static void reconcileVehicleLoadStatuses({DateTime? asOf}) {
+    closeEndedDayVehicleLoads(asOf: asOf);
+    for (final Map<String, dynamic> load in _vehicleLoads) {
+      _closeLoadLineIfSettled(load);
+    }
+  }
+
+  /// نهاية اليوم: إرجاع تلقائي للمتبقي على السيارة ثم إغلاق السطر.
+  static void closeEndedDayVehicleLoads({DateTime? asOf}) {
+    _ensureInitialVehicleLoad();
+    final DateTime now = asOf ?? DateTime.now();
+    final DateTime today = _dateOnly(now);
+    for (final Map<String, dynamic> load in _vehicleLoads) {
+      if (load['status']?.toString() == 'closed') {
+        continue;
+      }
+      final DateTime loadDay = _loadDateOnly(load);
+      if (loadDay.isAfter(today)) {
+        continue;
+      }
+      if (!_loadBusinessDayEnded(loadDay: loadDay, now: now)) {
+        continue;
+      }
+      _applyEndOfDayAutomaticReturn(load);
+    }
+  }
+
+  static bool _loadBusinessDayEnded({
+    required DateTime loadDay,
+    required DateTime now,
+  }) {
+    final DateTime today = _dateOnly(now);
+    if (loadDay.isBefore(today)) {
+      return true;
+    }
+    if (loadDay == today && now.hour >= kVehicleLoadEndOfDayCloseHour) {
+      return true;
+    }
+    return false;
+  }
+
+  /// نهاية اليوم: سجل إرجاعاً في قائمة المرتجعات (ليس تصفيراً صامتاً).
+  static void _applyEndOfDayAutomaticReturn(Map<String, dynamic> load) {
+    if (load['status']?.toString() == 'closed') {
+      return;
+    }
+    final String loadId = load['id']?.toString() ?? '';
+    if (loadId.isNotEmpty && _hasEndOfDayReturnForLoad(loadId)) {
+      _closeLoadLineIfSettled(load);
+      if (load['status']?.toString() != 'closed') {
+        load['status'] = 'closed';
+      }
+      return;
+    }
+    final int rem = _remainingForLoad(load);
+    if (rem > 0) {
+      _recordReturnForLoad(
+        load: load,
+        quantityReturned: rem,
+        automaticEndOfDay: true,
+      );
+      _closeLoadLineIfSettled(load);
+      return;
+    }
+    load['status'] = 'closed';
+  }
+
+  static bool _hasEndOfDayReturnForLoad(String vehicleLoadId) {
+    for (final Map<String, dynamic> r in _returns) {
+      if (r['vehicleLoadId']?.toString() != vehicleLoadId) {
+        continue;
+      }
+      if (r['automaticEndOfDay'] == true || r['source']?.toString() == 'end_of_day') {
+        return true;
+      }
+    }
+    return false;
   }
 
   static void _ensureInitialVehicleLoad() {}
@@ -600,11 +684,13 @@ final class PrototypeSampleData {
       }
       final int onLoad = _remainingForLoad(load);
       if (onLoad <= 0) {
+        _closeLoadLineIfSettled(load);
         continue;
       }
       final int take = remaining < onLoad ? remaining : onLoad;
       load['quantitySold'] = _intField(load, 'quantitySold') + take;
       load['product'] = productById(load['productId']?.toString());
+      _closeLoadLineIfSettled(load);
       remaining -= take;
     }
   }
@@ -697,8 +783,83 @@ final class PrototypeSampleData {
     return row;
   }
 
-  static List<Map<String, dynamic>> get returns =>
-      const <Map<String, dynamic>>[];
+  static final List<Map<String, dynamic>> _returns = <Map<String, dynamic>>[];
+
+  static void _ensureInitialReturns() {}
+
+  static List<Map<String, dynamic>> get returns {
+    _ensureInitialReturns();
+    return List<Map<String, dynamic>>.from(_returns);
+  }
+
+  /// تسجيل إرجاع من سطر تحميل مفتوح (سائق — يظهر في قائمة المرتجعات).
+  static Map<String, dynamic> addReturn({
+    required String vehicleLoadId,
+    required int quantityReturned,
+  }) {
+    _ensureInitialVehicleLoad();
+    _ensureInitialReturns();
+    if (quantityReturned <= 0) {
+      throw StateError('INVALID_QUANTITY');
+    }
+    Map<String, dynamic>? load;
+    for (final Map<String, dynamic> l in _vehicleLoads) {
+      if (l['id']?.toString() == vehicleLoadId) {
+        load = l;
+        break;
+      }
+    }
+    if (load == null) {
+      throw StateError('LOAD_NOT_FOUND');
+    }
+    if (load['status']?.toString() == 'closed') {
+      throw StateError('LOAD_CLOSED');
+    }
+    final String driverId = _sessionDriverId();
+    if (load['driverId']?.toString() != driverId) {
+      throw StateError('FORBIDDEN');
+    }
+    final int remaining = _remainingForLoad(load);
+    if (quantityReturned > remaining) {
+      throw StateError('INSUFFICIENT_REMAINING');
+    }
+    final Map<String, dynamic> row = _recordReturnForLoad(
+      load: load,
+      quantityReturned: quantityReturned,
+    );
+    _closeLoadLineIfSettled(load);
+    return row;
+  }
+
+  static Map<String, dynamic> _recordReturnForLoad({
+    required Map<String, dynamic> load,
+    required int quantityReturned,
+    bool automaticEndOfDay = false,
+  }) {
+    _ensureInitialReturns();
+    final String driverId = load['driverId']?.toString() ?? '';
+    load['quantityReturned'] =
+        _intField(load, 'quantityReturned') + quantityReturned;
+    load['product'] = productById(load['productId']?.toString());
+    load['vehicle'] = vehicleById(load['vehicleId']?.toString());
+
+    final Map<String, dynamic> row = <String, dynamic>{
+      'id': 'ret_${_returns.length + 1}',
+      'vehicleLoadId': load['id'],
+      'vehicleId': load['vehicleId'],
+      'vehicle': load['vehicle'],
+      'driverId': driverId,
+      'driver': userBrief(driverId),
+      'productId': load['productId'],
+      'product': load['product'],
+      'quantityReturned': quantityReturned,
+      'createdAt': _now.toIso8601String(),
+      if (automaticEndOfDay) 'automaticEndOfDay': true,
+      if (automaticEndOfDay) 'source': 'end_of_day',
+    };
+    _returns.add(row);
+    return row;
+  }
 
   static Map<String, dynamic> getDashboardSuperAdmin() {
     final double stationToday = _stationSalesAmountToday();
@@ -813,6 +974,13 @@ final class PrototypeSampleData {
     final int returned = _intField(load, 'quantityReturned');
     final int remaining = loaded - sold - returned;
     return remaining < 0 ? 0 : remaining;
+  }
+
+  /// يغلق سطر التحميل عندما لا يبقى شيء على السيارة (مبيع + مرتجع = المحمّل).
+  static void _closeLoadLineIfSettled(Map<String, dynamic> load) {
+    if (_remainingForLoad(load) <= 0) {
+      load['status'] = 'closed';
+    }
   }
 
   static DateTime? _rowDateOnly(Map<String, dynamic> row) {
@@ -995,6 +1163,7 @@ final class PrototypeSampleData {
   }
 
   static int _totalRemainingOnVehicles() {
+    reconcileVehicleLoadStatuses();
     var sum = 0;
     for (final Map<String, dynamic> load in _vehicleLoads) {
       if (load['status']?.toString() == 'closed') {
@@ -1135,13 +1304,16 @@ final class PrototypeSampleData {
   static List<Map<String, dynamic>> _openLoadsForDriver(String driverId) {
     _ensureInitialVehicleLoad();
     final DateTime today = _dateOnly(DateTime.now());
+    reconcileVehicleLoadStatuses();
     final List<Map<String, dynamic>> open = _vehicleLoads
         .where((Map<String, dynamic> l) {
           if (l['driverId']?.toString() != driverId) {
             return false;
           }
-          final String status = l['status']?.toString() ?? 'open';
-          return status != 'closed';
+          if (l['status']?.toString() == 'closed') {
+            return false;
+          }
+          return _remainingForLoad(l) > 0;
         })
         .map(_enrichLoadRow)
         .toList(growable: false);
@@ -1152,6 +1324,7 @@ final class PrototypeSampleData {
   }
 
   static Map<String, dynamic> driverCurrentLoad() {
+    reconcileVehicleLoadStatuses();
     final String driverId = _sessionDriverId();
     final Map<String, dynamic>? vehicle = _assignedVehicleForDriver(driverId);
     if (vehicle == null) {

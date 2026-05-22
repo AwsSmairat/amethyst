@@ -51,10 +51,15 @@ class _AmethystBootstrapState extends State<AmethystBootstrap> {
     if (_readyApp != null) {
       return _readyApp!;
     }
+    // أثناء انتظار الجلسة: امتص مسار الويب (مثلاً /admin/dashboard) حتى لا يفشل
+    // MaterialApp عند Hot Restart بينما الـ URL ما زال على مسار GoRouter.
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light(),
       home: const AppSplashScreen(),
+      onGenerateRoute: (_) => MaterialPageRoute<void>(
+        builder: (_) => const AppSplashScreen(),
+      ),
     );
   }
 }

@@ -1,6 +1,7 @@
 import 'package:amethyst/core/l10n/context_l10n.dart';
 import 'package:amethyst/core/presentation/list_load_state.dart';
 import 'package:amethyst/core/theme/app_colors.dart';
+import 'package:amethyst/core/utils/parse_api_datetime.dart';
 import 'package:amethyst/core/utils/vehicle_loads_export.dart';
 import 'package:amethyst/features/catalog/presentation/cubit/json_list_cubit.dart';
 import 'package:amethyst/features/catalog/presentation/widgets/vehicle_load_line_tile.dart';
@@ -101,7 +102,7 @@ List<_DayGroup> _groupByLoadDay(List<Map<String, dynamic>> items) {
   final List<Map<String, dynamic>> unknown = <Map<String, dynamic>>[];
 
   for (final Map<String, dynamic> item in items) {
-    final DateTime? d = _parseDate(item['loadDate']);
+    final DateTime? d = parseApiDateOnly(item['loadDate']);
     if (d == null) {
       unknown.add(item);
       continue;
@@ -241,12 +242,6 @@ List<Widget> _interleavedLines(
     }
   }
   return w;
-}
-
-DateTime? _parseDate(dynamic v) {
-  if (v == null) return null;
-  if (v is String) return DateTime.tryParse(v);
-  return null;
 }
 
 bool _isSameDay(DateTime a, DateTime b) =>

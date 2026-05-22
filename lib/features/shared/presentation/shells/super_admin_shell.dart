@@ -57,11 +57,6 @@ class SuperAdminShell extends StatelessWidget {
                 ],
               ),
             IconButton(
-              tooltip: context.l10n.profileTooltip,
-              onPressed: () => context.go('/super-admin/profile'),
-              icon: const Icon(Icons.person_outline),
-            ),
-            IconButton(
               tooltip: context.l10n.signOutTooltip,
               onPressed: () => context.read<AuthCubit>().logout(),
               icon: const Icon(Icons.logout),

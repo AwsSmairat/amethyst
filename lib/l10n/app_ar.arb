@@ -109,6 +109,19 @@
   "salesToday": "مبيعات اليوم",
   "profitToday": "ربح اليوم",
   "expensesToday": "مصاريف اليوم",
+  "expensesGrandTotal": "مجموع المصاريف",
+  "expenseCategoryTodayLine": "اليوم: {amount}",
+  "@expenseCategoryTodayLine": {
+    "placeholders": {
+      "amount": {"type": "String"}
+    }
+  },
+  "expenseCategoryMonthLine": "الشهر: {amount}",
+  "@expenseCategoryMonthLine": {
+    "placeholders": {
+      "amount": {"type": "String"}
+    }
+  },
   "monthlyExpenses": "المصاريف الشهرية",
   "monthlySales": "المبيعات الشهرية",
   "cartonSalesMonthly": "مبيع الكراتين",
@@ -227,6 +240,24 @@
   },
   "vehicleSalesPickDay": "اختر اليوم",
   "vehicleLoadsChooseVehicleHint": "اختر مركبة لعرض تحميلاتها بحسب اليوم.",
+  "vehicleLoadTodayQtyLine": "محمّل اليوم: {count}",
+  "@vehicleLoadTodayQtyLine": {
+    "placeholders": {
+      "count": {"type": "String"}
+    }
+  },
+  "vehicleLoadMonthQtyLine": "محمّل الشهر: {count}",
+  "@vehicleLoadMonthQtyLine": {
+    "placeholders": {
+      "count": {"type": "String"}
+    }
+  },
+  "vehicleLoadRemainingQtyLine": "المتبقي على السيارة: {count}",
+  "@vehicleLoadRemainingQtyLine": {
+    "placeholders": {
+      "count": {"type": "String"}
+    }
+  },
   "vehicleLoadsDaysListTitle": "أيام التحميل · {vehicle}",
   "@vehicleLoadsDaysListTitle": {
     "placeholders": {
@@ -472,6 +503,7 @@
     }
   },
   "logReturnSheetTitle": "تسجيل إرجاع",
+  "returnAutomaticEndOfDay": "إرجاع تلقائي (نهاية اليوم)",
   "expensesSectionUpper": "المصاريف",
   "dailyNotesUpper": "ملاحظات اليوم",
   "noCriticalUpdatesToday": "لا تحديثات مهمة لليوم بعد...",
@@ -564,6 +596,14 @@
   "vehicleLoadNeedOneLine": "أضف منتجاً واحداً على الأقل مع كمية محمّلة.",
   "vehicleLoadCatalogGapHint": "بعض البنود غير مربوطة بمنتج في النظام. من «أسعار المنتجات» أنشئ منتجاً لكل اسم إنجليزي يظهر أدناه بنفس الحرفية.",
   "vehicleLoadNoStationStockForRow": "لا يُتحقق من مخزون المحطة ولا يُخصم عند التحميل لهذا البند.",
+  "vehicleLoadInsufficientStationStock": "الكمية تتجاوز مخزون المحطة لـ {product} (المتاح: {available}).",
+  "@vehicleLoadInsufficientStationStock": {
+    "placeholders": {
+      "product": {"type": "String"},
+      "available": {"type": "String"}
+    }
+  },
+  "vehicleLoadStationStockHint": "يُتحقق من مخزون المحطة قبل التحميل ولا يُخصم منه.",
   "loadsRecorded": "تم تسجيل التحميلات",
   "couponProduct": "دفتر كوبون",
   "vehicleSalesRecorded": "تم تسجيل مبيعات المركبة",

@@ -1,15 +1,14 @@
 import 'package:amethyst/core/data/amethyst_api.dart';
 import 'package:amethyst/core/l10n/context_l10n.dart';
-import 'package:amethyst/core/presentation/list_load_state.dart';
+import 'package:amethyst/core/prototype/ui_only.dart';
 import 'package:amethyst/core/theme/app_colors.dart';
+import 'package:amethyst/core/vehicle_sale/vehicle_sales_aggregates.dart';
 import 'package:amethyst/di/injection.dart';
-import 'package:amethyst/features/catalog/presentation/cubit/json_list_cubit.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 
-/// قائمة المركبات؛ الضغط يفتح مبيعات اليوم (أو يوم آخر) لكل مركبة.
-class VehicleSalesHubPage extends StatelessWidget {
+/// قائمة المركبات مع مبيعات اليوم والشهر؛ الضغط يفتح التفاصيل بحسب اليوم.
+class VehicleSalesHubPage extends StatefulWidget {
   const VehicleSalesHubPage({
     super.key,
     required this.shellBase,
@@ -19,19 +18,79 @@ class VehicleSalesHubPage extends StatelessWidget {
   final String shellBase;
 
   @override
-  Widget build(BuildContext context) {
-    return BlocProvider(
-      create: (_) =>
-          JsonListCubit(() => sl<AmethystApi>().listVehicles())..load(),
-      child: _VehicleSalesHubBody(shellBase: shellBase),
-    );
-  }
+  State<VehicleSalesHubPage> createState() => _VehicleSalesHubPageState();
 }
 
-class _VehicleSalesHubBody extends StatelessWidget {
-  const _VehicleSalesHubBody({required this.shellBase});
+class _VehicleSalesHubPageState extends State<VehicleSalesHubPage> {
+  bool _loading = true;
+  String? _error;
+  List<Map<String, dynamic>> _vehicles = <Map<String, dynamic>>[];
+  Map<String, VehicleSalesTotals> _salesByVehicle =
+      <String, VehicleSalesTotals>{};
+  bool _didScheduleInitialLoad = false;
+  int _loadGeneration = 0;
 
-  final String shellBase;
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_didScheduleInitialLoad) {
+      return;
+    }
+    _didScheduleInitialLoad = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        _load();
+      }
+    });
+  }
+
+  Future<void> _load() async {
+    final int generation = ++_loadGeneration;
+    if (!mounted) {
+      return;
+    }
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
+
+    try {
+      final AmethystApi api = sl<AmethystApi>();
+      final List<Object> results = await Future.wait<Object>(<Future<Object>>[
+        fetchAllVehicleRows(api),
+        fetchAllVehicleSaleRows(api),
+      ]);
+      if (!mounted || generation != _loadGeneration) {
+        return;
+      }
+      final List<Map<String, dynamic>> vehicles =
+          results[0] as List<Map<String, dynamic>>;
+      final List<Map<String, dynamic>> sales =
+          results[1] as List<Map<String, dynamic>>;
+
+      setState(() {
+        _vehicles = vehicles;
+        _salesByVehicle = summarizeVehicleSalesByVehicleId(sales);
+        _loading = false;
+        _error = null;
+      });
+    } on Object catch (e) {
+      if (!mounted || generation != _loadGeneration) {
+        return;
+      }
+      setState(() {
+        _error = errorMessageFrom(e);
+        _loading = false;
+      });
+    }
+  }
+
+  String _formatAmount(double value) {
+    if (value == value.roundToDouble()) {
+      return value.round().toString();
+    }
+    return value.toStringAsFixed(2);
+  }
 
   String? _driverSubtitle(BuildContext context, Map<String, dynamic> v) {
     final l10n = context.l10n;
@@ -53,87 +112,135 @@ class _VehicleSalesHubBody extends StatelessWidget {
         title: Text(l10n.titleVehicleSales),
         actions: <Widget>[
           IconButton(
-            onPressed: () => context.read<JsonListCubit>().load(),
+            onPressed: _loading ? null : _load,
             icon: const Icon(Icons.refresh),
           ),
         ],
       ),
-      body: BlocBuilder<JsonListCubit, ListLoadState>(
-        builder: (BuildContext context, ListLoadState state) {
-          if (state is ListLoadLoading || state is ListLoadInitial) {
-            return const Center(child: CircularProgressIndicator());
-          }
-          if (state is ListLoadFailure) {
-            return Center(
-              child: Padding(
-                padding: const EdgeInsets.all(24),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: <Widget>[
-                    Text(state.message, textAlign: TextAlign.center),
-                    const SizedBox(height: 16),
-                    FilledButton(
-                      onPressed: () => context.read<JsonListCubit>().load(),
-                      child: Text(l10n.retry),
+      body: _loading
+          ? const Center(child: CircularProgressIndicator())
+          : _error != null
+              ? Center(
+                  child: Padding(
+                    padding: const EdgeInsets.all(24),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: <Widget>[
+                        Text(_error!, textAlign: TextAlign.center),
+                        const SizedBox(height: 16),
+                        FilledButton(
+                          onPressed: _load,
+                          child: Text(l10n.retry),
+                        ),
+                      ],
                     ),
-                  ],
-                ),
-              ),
-            );
-          }
-          final List<Map<String, dynamic>> items =
-              (state as ListLoadLoaded).items;
-          if (items.isEmpty) {
-            return Center(child: Text(l10n.nothingHereYet));
-          }
-          return ListView(
-            padding: const EdgeInsets.fromLTRB(8, 8, 8, 24),
-            children: <Widget>[
-              Padding(
-                padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
-                child: Text(
-                  l10n.vehicleSalesChooseVehicleHint,
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: Theme.of(context).colorScheme.onSurfaceVariant,
-                      ),
-                ),
-              ),
-              ...List<Widget>.generate(items.length, (int i) {
-                final Map<String, dynamic> v = items[i];
-                final String id = v['id']?.toString() ?? '';
-                final String title =
-                    v['vehicleNumber']?.toString().trim().isNotEmpty == true
-                        ? v['vehicleNumber'].toString().trim()
-                        : id;
-                final String? sub = _driverSubtitle(context, v);
-                return Card(
-                  margin: const EdgeInsets.only(bottom: 10),
-                  child: ListTile(
-                    leading: const Icon(
-                      Icons.local_shipping_outlined,
-                      color: AppColors.primary,
-                    ),
-                    title: Text(
-                      title,
-                      style: const TextStyle(fontWeight: FontWeight.w700),
-                    ),
-                    subtitle: sub != null && sub.isNotEmpty
-                        ? Text(sub)
-                        : null,
-                    trailing: const Icon(Icons.chevron_left),
-                    onTap: () {
-                      if (id.isEmpty) {
-                        return;
-                      }
-                      context.push('$shellBase/vehicle-sales/$id', extra: v);
-                    },
                   ),
-                );
-              }),
-            ],
-          );
-        },
-      ),
+                )
+              : _vehicles.isEmpty
+                  ? Center(child: Text(l10n.nothingHereYet))
+                  : ListView(
+                      padding: const EdgeInsets.fromLTRB(8, 8, 8, 24),
+                      children: <Widget>[
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+                          child: Text(
+                            l10n.vehicleSalesChooseVehicleHint,
+                            style: Theme.of(context)
+                                .textTheme
+                                .bodySmall
+                                ?.copyWith(
+                                  color: Theme.of(context)
+                                      .colorScheme
+                                      .onSurfaceVariant,
+                                ),
+                          ),
+                        ),
+                        ...List<Widget>.generate(_vehicles.length, (int i) {
+                          final Map<String, dynamic> v = _vehicles[i];
+                          final String id = v['id']?.toString() ?? '';
+                          final String title =
+                              v['vehicleNumber']?.toString().trim().isNotEmpty ==
+                                      true
+                                  ? v['vehicleNumber'].toString().trim()
+                                  : id;
+                          final String? driverLine =
+                              _driverSubtitle(context, v);
+                          final VehicleSalesTotals totals =
+                              _salesByVehicle[id] ??
+                                  const VehicleSalesTotals();
+
+                          return Card(
+                            margin: const EdgeInsets.only(bottom: 10),
+                            child: ListTile(
+                              leading: const Icon(
+                                Icons.local_shipping_outlined,
+                                color: AppColors.primary,
+                              ),
+                              title: Text(
+                                title,
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w800,
+                                ),
+                              ),
+                              subtitle: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: <Widget>[
+                                  if (driverLine != null &&
+                                      driverLine.isNotEmpty) ...<Widget>[
+                                    const SizedBox(height: 4),
+                                    Text(driverLine),
+                                  ],
+                                  const SizedBox(height: 6),
+                                  Text(
+                                    l10n.expenseCategoryTodayLine(
+                                      l10n.amountDinars(
+                                        _formatAmount(totals.today),
+                                      ),
+                                    ),
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .bodySmall
+                                        ?.copyWith(
+                                          fontWeight: FontWeight.w700,
+                                          color: AppColors.brandPrimary,
+                                        ),
+                                  ),
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    l10n.expenseCategoryMonthLine(
+                                      l10n.amountDinars(
+                                        _formatAmount(totals.month),
+                                      ),
+                                    ),
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .bodySmall
+                                        ?.copyWith(
+                                          color: AppColors.onSurfaceVariant,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                  ),
+                                ],
+                              ),
+                              isThreeLine: true,
+                              trailing: const Icon(Icons.chevron_left),
+                              onTap: () async {
+                                if (id.isEmpty) {
+                                  return;
+                                }
+                                await context.push(
+                                  '${widget.shellBase}/vehicle-sales/$id',
+                                  extra: v,
+                                );
+                                if (mounted) {
+                                  await _load();
+                                }
+                              },
+                            ),
+                          );
+                        }),
+                      ],
+                    ),
     );
   }
 }

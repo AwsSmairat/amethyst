@@ -70,11 +70,6 @@ class DriverShellPage extends StatelessWidget {
               selectedIcon: const Icon(Icons.notes),
               label: context.l10n.navNotes,
             ),
-            NavigationDestination(
-              icon: const Icon(Icons.person_outline),
-              selectedIcon: const Icon(Icons.person),
-              label: context.l10n.profile,
-            ),
           ],
           indicatorColor: AppColors.softSkyBlue.withValues(alpha: 0.42),
         ),

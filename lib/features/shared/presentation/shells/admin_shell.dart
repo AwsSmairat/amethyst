@@ -30,11 +30,6 @@ class AdminShell extends StatelessWidget {
           ),
           actions: <Widget>[
             IconButton(
-              tooltip: context.l10n.profileTooltip,
-              onPressed: () => context.go('/admin/profile'),
-              icon: const Icon(Icons.person_outline),
-            ),
-            IconButton(
               tooltip: context.l10n.signOutTooltip,
               onPressed: () => context.read<AuthCubit>().logout(),
               icon: const Icon(Icons.logout),

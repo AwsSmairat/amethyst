@@ -120,6 +120,17 @@ final class PrototypeAmethystBackend {
           .where((Map<String, dynamic> l) => l['driverId'] == driverId)
           .toList(growable: false);
     }
+    if (dateFrom != null || dateTo != null) {
+      items = items
+          .where(
+            (Map<String, dynamic> l) => apiDateMatchesRange(
+              createdAt: l['loadDate'] ?? l['createdAt'],
+              dateFrom: dateFrom,
+              dateTo: dateTo,
+            ),
+          )
+          .toList(growable: false);
+    }
     return _paginate(items, page: page, limit: limit);
   }
 
@@ -304,7 +315,31 @@ final class PrototypeAmethystBackend {
     required String vehicleLoadId,
     required int quantityReturned,
   }) async {
-    throwUiOnlyWrite();
+    try {
+      final Map<String, dynamic> row = PrototypeSampleData.addReturn(
+        vehicleLoadId: vehicleLoadId,
+        quantityReturned: quantityReturned,
+      );
+      return <String, dynamic>{'item': row};
+    } on StateError catch (e) {
+      switch (e.message) {
+        case 'LOAD_NOT_FOUND':
+          throw ApiException('Vehicle load not found', code: 'NOT_FOUND');
+        case 'LOAD_CLOSED':
+          throw ApiException('Load is closed', code: 'LOAD_CLOSED');
+        case 'FORBIDDEN':
+          throw ApiException('Forbidden', code: 'FORBIDDEN');
+        case 'INSUFFICIENT_REMAINING':
+          throw ApiException(
+            'Returned quantity exceeds remaining on load',
+            code: 'INSUFFICIENT_STOCK',
+          );
+        case 'INVALID_QUANTITY':
+          throw ApiException('Invalid quantity', code: 'VALIDATION');
+        default:
+          rethrow;
+      }
+    }
   }
 
   Future<Map<String, dynamic>> reportsInventory() async =>

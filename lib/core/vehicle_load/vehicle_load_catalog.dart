@@ -67,6 +67,37 @@ Map<String, dynamic>? resolveVehicleLoadRowProduct({
   );
 }
 
+/// جالون/قارورة: لا فحص مخزون المحطة عند التحميل.
+bool vehicleLoadRowSkipsStationStockCheck(int rowIndex) =>
+    rowIndex == 0 || rowIndex == 1;
+
+/// ك مهدي والكوبونات: يُعرض مخزون المحطة ويُرفض التحميل إن تجاوز المتاح (بدون خصم).
+bool vehicleLoadRowChecksStationStock(int rowIndex) =>
+    rowIndex >= 2 && rowIndex < kVehicleLoadFixedRowCount;
+
+/// مخزون المحطة المعروض لصف التحميل (مجمّع لصفوف رصيد المحطة).
+int stationStockForVehicleLoadRow({
+  required List<Map<String, dynamic>> products,
+  required int rowIndex,
+}) {
+  if (!vehicleLoadRowChecksStationStock(rowIndex)) {
+    return 0;
+  }
+  if (rowIndex == 2) {
+    return aggregateStationStockForBalanceRow(
+      products: products,
+      rowIndex: 0,
+    );
+  }
+  if (rowIndex >= 3 && rowIndex <= 5) {
+    return aggregateStationStockForBalanceRow(
+      products: products,
+      rowIndex: 8 + rowIndex,
+    );
+  }
+  return 0;
+}
+
 /// مواصفات إنشاء منتج عند غيابه في نموذج العرض.
 ({String name, String unitType}) vehicleLoadSeedSpecForRow(int rowIndex) {
   switch (rowIndex) {

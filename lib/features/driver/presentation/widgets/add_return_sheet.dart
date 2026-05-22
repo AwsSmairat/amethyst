@@ -152,6 +152,27 @@ class _AddReturnBodyState extends State<_AddReturnBody> {
                           );
                           return;
                         }
+                        Map<String, dynamic>? selected;
+                        for (final Map<String, dynamic> line in _loads) {
+                          if (line['id']?.toString() == _loadId) {
+                            selected = line;
+                            break;
+                          }
+                        }
+                        final Object? remRaw = selected?['remaining'];
+                        final int remaining = remRaw is int
+                            ? remRaw
+                            : int.tryParse('$remRaw') ?? 0;
+                        if (q > remaining) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(
+                                context.l10n.stationSaleSubmitInsufficientStock,
+                              ),
+                            ),
+                          );
+                          return;
+                        }
                         context.read<ReturnSubmitCubit>().submit(
                               vehicleLoadId: _loadId!,
                               quantityReturned: q,

@@ -1,11 +1,9 @@
 import 'package:amethyst/core/data/amethyst_api.dart';
 import 'package:amethyst/core/l10n/context_l10n.dart';
-import 'package:amethyst/core/station_balance/station_balance_catalog.dart';
 import 'package:amethyst/core/vehicle_load/vehicle_load_catalog.dart';
 import 'package:amethyst/core/utils/parse_quantity_input.dart';
 import 'package:amethyst/core/theme/app_colors.dart';
 import 'package:amethyst/di/injection.dart';
-import 'package:amethyst/features/admin/presentation/station_sale/station_sale_stock_rules.dart';
 import 'package:amethyst/features/record_operations/domain/usecases/record_operation_usecases.dart';
 import 'package:amethyst/features/record_operations/presentation/cubit/submit_state.dart';
 import 'package:amethyst/features/record_operations/presentation/cubit/vehicle_load_submit_cubit.dart';
@@ -39,20 +37,6 @@ class _AddVehicleLoadBodyState extends State<_AddVehicleLoadBody> {
   /// ترتيب ثابت لأسماء المنتجات (كما في الخادم) — بدون قوائم اختيار.
   /// ثلاثة أصناف كوبون (١٢ / ٢٤ / ٥٠): أنشئ منتجات `Coupon` و `Coupon 2` و `Coupon 3`.
   /// بيع «متجر» من السيارة يستهلك نفس الحمل (جالون/قارورة/كرتون) بأسعار منفصلة في الخادم.
-  /// جالون / قارورة (الصفّان ٠ و١): لا تحقق من مخزون المحطة ولا خصم عند التحميل.
-  /// يُكمَّل بالتحقق من `unitType` واسم المنتج ليطابق الخادم إن تغيّر ترتيب العرض أو الاسم في الـ API.
-  bool _lineSkipsStationStock(int rowIndex) {
-    if (rowIndex == 0 || rowIndex == 1) {
-      return true;
-    }
-    final String unit =
-        (_unitTypes[rowIndex] ?? '').toString().trim().toLowerCase();
-    if (unit == 'gallon' || unit == 'bottle') {
-      return true;
-    }
-    return productNameSuggestsFillingSkipStock(_productLabels[rowIndex]);
-  }
-
   final List<TextEditingController> _qtyCtrls =
       List<TextEditingController>.generate(
     _rowCount,
@@ -60,7 +44,6 @@ class _AddVehicleLoadBodyState extends State<_AddVehicleLoadBody> {
   );
   final List<String?> _productIds = List<String?>.filled(_rowCount, null);
   final List<String> _productLabels = List<String>.filled(_rowCount, '');
-  final List<String?> _unitTypes = List<String?>.filled(_rowCount, null);
   final List<int> _stationStocks = List<int>.filled(_rowCount, 0);
 
   String? _vehicleId;
@@ -128,8 +111,10 @@ class _AddVehicleLoadBodyState extends State<_AddVehicleLoadBody> {
           _productIds[i] = match?['id'] as String?;
           _productLabels[i] =
               match?['name']?.toString().trim() ?? fixedName;
-          _unitTypes[i] = match?['unitType']?.toString() ?? match?['type']?.toString();
-          _stationStocks[i] = stationStockFromProductJson(match ?? <String, dynamic>{});
+          _stationStocks[i] = stationStockForVehicleLoadRow(
+            products: products,
+            rowIndex: i,
+          );
         }
         _loading = false;
       });
@@ -223,7 +208,23 @@ class _AddVehicleLoadBodyState extends State<_AddVehicleLoadBody> {
         // كمية في صف بلا منتج في الكتالوج — نتجاهله (لا إلزام بتعبئة كل الصفوف).
         continue;
       }
-      // تأكيد الحمل لا يعتمد على مخزون المحطة؛ السيرفر لا يخصم عند إنشاء التحميل.
+      if (vehicleLoadRowChecksStationStock(i)) {
+        final int available = i < _stationStocks.length ? _stationStocks[i] : 0;
+        if (q > available) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                l10n.vehicleLoadInsufficientStationStock(
+                  _productRowTitle(context, i),
+                  '$available',
+                ),
+              ),
+            ),
+          );
+          return null;
+        }
+      }
+      // التحميل لا يخصم مخزون المحطة (التحقق للعرض فقط).
       lines.add((productId: pid, quantityLoaded: q));
     }
     if (lines.isEmpty) {
@@ -334,6 +335,14 @@ class _AddVehicleLoadBodyState extends State<_AddVehicleLoadBody> {
                         color: Theme.of(context).colorScheme.primary,
                       ),
                 ),
+                const SizedBox(height: 6),
+                Text(
+                  l10n.vehicleLoadStationStockHint,
+                  textAlign: TextAlign.right,
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: AppColors.onSurfaceVariant,
+                      ),
+                ),
                 if (_productIds.any((String? id) => id == null)) ...<Widget>[
                   const SizedBox(height: 12),
                   Text(
@@ -369,7 +378,7 @@ class _AddVehicleLoadBodyState extends State<_AddVehicleLoadBody> {
                           ),
                           const SizedBox(height: 6),
                           Text(
-                            _lineSkipsStationStock(i)
+                            vehicleLoadRowSkipsStationStockCheck(i)
                                 ? l10n.vehicleLoadNoStationStockForRow
                                 : l10n.stationSaleStockAvailable(
                                     i < _stationStocks.length

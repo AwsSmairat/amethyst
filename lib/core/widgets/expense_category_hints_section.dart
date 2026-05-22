@@ -1,23 +1,22 @@
+import 'package:amethyst/core/expenses/expense_aggregates.dart';
 import 'package:amethyst/core/l10n/context_l10n.dart';
+import 'package:amethyst/core/theme/app_colors.dart';
 import 'package:flutter/material.dart';
 
-/// حقول توضّح تصنيفات المصاريف.
-/// [includeStationExpense] للأدمن/السوبر أدمن: يظهر «تنك مي» و«كراتين» و«رواتب عمال» إضافة لمصاريف السائق.
-/// [onCategoryTap] عند تمريره (مثلاً للأدمن): الضغط يفتح تقرير التصنيف؛ مفاتيح: gasoline, carRepair, other, tankWater, cartons, workersWages, stationCards, … stationFilters.
+/// حقول تصنيفات المصاريف مع مبالغ اليوم والشهر داخل كل مربع.
 class ExpenseCategoryHintsSection extends StatelessWidget {
   const ExpenseCategoryHintsSection({
     super.key,
     this.includeStationExpense = false,
     this.onCategoryTap,
+    this.categoryTotals,
+    this.formatAmount,
   });
 
-  /// عند `true`: حقول إضافية للأدمن (تنك مي، كراتين، رواتب عمال).
   final bool includeStationExpense;
-
-  /// استدعاء عند الضغط على حقل تصنيف (يُمرَّر مفتاح التصنيف).
   final void Function(String categoryKey)? onCategoryTap;
-
-  static const double _innerH = 22;
+  final Map<String, CategoryExpenseTotals>? categoryTotals;
+  final String Function(double value)? formatAmount;
 
   static Widget _field(
     BuildContext context, {
@@ -25,8 +24,37 @@ class ExpenseCategoryHintsSection extends StatelessWidget {
     required IconData icon,
     required String label,
     void Function(String key)? onCategoryTap,
+    CategoryExpenseTotals? totals,
+    String Function(double value)? formatAmount,
   }) {
-    final decoration = InputDecoration(
+    final l10n = context.l10n;
+    final String Function(double) fmt =
+        formatAmount ?? _defaultFormatAmount;
+    final CategoryExpenseTotals t =
+        totals ?? const CategoryExpenseTotals();
+
+    final Widget amountBody = Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: <Widget>[
+        Text(
+          l10n.expenseCategoryMonthLine(l10n.amountDinars(fmt(t.month))),
+          style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                fontWeight: FontWeight.w800,
+                color: AppColors.primaryText,
+              ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          l10n.expenseCategoryTodayLine(l10n.amountDinars(fmt(t.today))),
+          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: AppColors.onSurfaceVariant,
+                fontWeight: FontWeight.w600,
+              ),
+        ),
+      ],
+    );
+
+    final InputDecoration decoration = InputDecoration(
       labelText: label,
       filled: true,
       border: OutlineInputBorder(
@@ -34,14 +62,14 @@ class ExpenseCategoryHintsSection extends StatelessWidget {
       ),
       prefixIcon: Icon(icon),
     );
+
     if (onCategoryTap == null) {
-      return TextField(
-        readOnly: true,
-        canRequestFocus: false,
-        enableInteractiveSelection: false,
+      return InputDecorator(
         decoration: decoration,
+        child: amountBody,
       );
     }
+
     return Material(
       color: Colors.transparent,
       child: InkWell(
@@ -49,15 +77,24 @@ class ExpenseCategoryHintsSection extends StatelessWidget {
         onTap: () => onCategoryTap(categoryKey),
         child: InputDecorator(
           decoration: decoration,
-          child: const SizedBox(height: _innerH),
+          child: amountBody,
         ),
       ),
     );
   }
 
+  static String _defaultFormatAmount(double value) {
+    if (value == value.roundToDouble()) {
+      return value.round().toString();
+    }
+    return value.toStringAsFixed(2);
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = context.l10n;
+    final Map<String, CategoryExpenseTotals>? totals = categoryTotals;
+
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
       child: Column(
@@ -69,6 +106,8 @@ class ExpenseCategoryHintsSection extends StatelessWidget {
             icon: Icons.local_gas_station_outlined,
             label: l10n.gasolineExpenses,
             onCategoryTap: onCategoryTap,
+            totals: totals?['gasoline'],
+            formatAmount: formatAmount,
           ),
           const SizedBox(height: 10),
           _field(
@@ -77,6 +116,8 @@ class ExpenseCategoryHintsSection extends StatelessWidget {
             icon: Icons.handyman_outlined,
             label: l10n.carRepairExpenses,
             onCategoryTap: onCategoryTap,
+            totals: totals?['carRepair'],
+            formatAmount: formatAmount,
           ),
           const SizedBox(height: 10),
           _field(
@@ -85,6 +126,8 @@ class ExpenseCategoryHintsSection extends StatelessWidget {
             icon: Icons.more_horiz,
             label: l10n.otherExpenses,
             onCategoryTap: onCategoryTap,
+            totals: totals?['other'],
+            formatAmount: formatAmount,
           ),
           if (includeStationExpense) ...<Widget>[
             const SizedBox(height: 10),
@@ -94,6 +137,8 @@ class ExpenseCategoryHintsSection extends StatelessWidget {
               icon: Icons.water_drop_outlined,
               label: l10n.expenseTankWater,
               onCategoryTap: onCategoryTap,
+              totals: totals?['tankWater'],
+              formatAmount: formatAmount,
             ),
             const SizedBox(height: 10),
             _field(
@@ -102,6 +147,8 @@ class ExpenseCategoryHintsSection extends StatelessWidget {
               icon: Icons.inventory_2_outlined,
               label: l10n.expenseCartons,
               onCategoryTap: onCategoryTap,
+              totals: totals?['cartons'],
+              formatAmount: formatAmount,
             ),
             const SizedBox(height: 10),
             _field(
@@ -110,6 +157,8 @@ class ExpenseCategoryHintsSection extends StatelessWidget {
               icon: Icons.groups_outlined,
               label: l10n.expenseWorkersWages,
               onCategoryTap: onCategoryTap,
+              totals: totals?['workersWages'],
+              formatAmount: formatAmount,
             ),
             const SizedBox(height: 10),
             _field(
@@ -118,6 +167,8 @@ class ExpenseCategoryHintsSection extends StatelessWidget {
               icon: Icons.credit_card_outlined,
               label: l10n.expenseStationCards,
               onCategoryTap: onCategoryTap,
+              totals: totals?['stationCards'],
+              formatAmount: formatAmount,
             ),
             const SizedBox(height: 10),
             _field(
@@ -126,6 +177,8 @@ class ExpenseCategoryHintsSection extends StatelessWidget {
               icon: Icons.route_outlined,
               label: l10n.expenseStationCarTracking,
               onCategoryTap: onCategoryTap,
+              totals: totals?['stationCarTracking'],
+              formatAmount: formatAmount,
             ),
             const SizedBox(height: 10),
             _field(
@@ -134,6 +187,8 @@ class ExpenseCategoryHintsSection extends StatelessWidget {
               icon: Icons.wifi_outlined,
               label: l10n.expenseStationInternet,
               onCategoryTap: onCategoryTap,
+              totals: totals?['stationInternet'],
+              formatAmount: formatAmount,
             ),
             const SizedBox(height: 10),
             _field(
@@ -142,6 +197,8 @@ class ExpenseCategoryHintsSection extends StatelessWidget {
               icon: Icons.storefront_outlined,
               label: l10n.expenseStationShopRent,
               onCategoryTap: onCategoryTap,
+              totals: totals?['stationShopRent'],
+              formatAmount: formatAmount,
             ),
             const SizedBox(height: 10),
             _field(
@@ -150,6 +207,8 @@ class ExpenseCategoryHintsSection extends StatelessWidget {
               icon: Icons.door_front_door_outlined,
               label: l10n.expenseStationRoomRent,
               onCategoryTap: onCategoryTap,
+              totals: totals?['stationRoomRent'],
+              formatAmount: formatAmount,
             ),
             const SizedBox(height: 10),
             _field(
@@ -158,6 +217,8 @@ class ExpenseCategoryHintsSection extends StatelessWidget {
               icon: Icons.bolt_outlined,
               label: l10n.expenseStationElectricity,
               onCategoryTap: onCategoryTap,
+              totals: totals?['stationElectricity'],
+              formatAmount: formatAmount,
             ),
             const SizedBox(height: 10),
             _field(
@@ -166,6 +227,8 @@ class ExpenseCategoryHintsSection extends StatelessWidget {
               icon: Icons.shopping_bag_outlined,
               label: l10n.expenseStationBags,
               onCategoryTap: onCategoryTap,
+              totals: totals?['stationBags'],
+              formatAmount: formatAmount,
             ),
             const SizedBox(height: 10),
             _field(
@@ -174,6 +237,8 @@ class ExpenseCategoryHintsSection extends StatelessWidget {
               icon: Icons.local_drink_outlined,
               label: l10n.expenseStationEmptyBottles,
               onCategoryTap: onCategoryTap,
+              totals: totals?['stationEmptyBottles'],
+              formatAmount: formatAmount,
             ),
             const SizedBox(height: 10),
             _field(
@@ -182,6 +247,8 @@ class ExpenseCategoryHintsSection extends StatelessWidget {
               icon: Icons.water_outlined,
               label: l10n.expenseStationEmptyGallon,
               onCategoryTap: onCategoryTap,
+              totals: totals?['stationEmptyGallon'],
+              formatAmount: formatAmount,
             ),
             const SizedBox(height: 10),
             _field(
@@ -190,6 +257,8 @@ class ExpenseCategoryHintsSection extends StatelessWidget {
               icon: Icons.grain_outlined,
               label: l10n.expenseStationSalt,
               onCategoryTap: onCategoryTap,
+              totals: totals?['stationSalt'],
+              formatAmount: formatAmount,
             ),
             const SizedBox(height: 10),
             _field(
@@ -198,6 +267,8 @@ class ExpenseCategoryHintsSection extends StatelessWidget {
               icon: Icons.layers_outlined,
               label: l10n.expenseStationShrinkWrap,
               onCategoryTap: onCategoryTap,
+              totals: totals?['stationShrinkWrap'],
+              formatAmount: formatAmount,
             ),
             const SizedBox(height: 10),
             _field(
@@ -206,6 +277,8 @@ class ExpenseCategoryHintsSection extends StatelessWidget {
               icon: Icons.filter_alt_outlined,
               label: l10n.expenseStationFilters,
               onCategoryTap: onCategoryTap,
+              totals: totals?['stationFilters'],
+              formatAmount: formatAmount,
             ),
           ],
         ],

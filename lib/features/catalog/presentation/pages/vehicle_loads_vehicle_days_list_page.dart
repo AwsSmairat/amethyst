@@ -1,6 +1,7 @@
 import 'package:amethyst/core/data/amethyst_api.dart';
 import 'package:amethyst/core/l10n/context_l10n.dart';
 import 'package:amethyst/core/theme/app_colors.dart';
+import 'package:amethyst/core/vehicle_load/vehicle_load_aggregates.dart';
 import 'package:amethyst/di/injection.dart';
 import 'package:amethyst/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
@@ -54,7 +55,7 @@ class _VehicleLoadsVehicleDaysListPageState
               .toList(growable: false);
       final Set<DateTime> daySet = <DateTime>{};
       for (final Map<String, dynamic> item in items) {
-        final DateTime? d = _parseLoadDate(item['loadDate']);
+        final DateTime? d = vehicleLoadRowDate(item);
         if (d == null) {
           continue;
         }
@@ -78,16 +79,6 @@ class _VehicleLoadsVehicleDaysListPageState
         _loading = false;
       });
     }
-  }
-
-  DateTime? _parseLoadDate(dynamic v) {
-    if (v == null) {
-      return null;
-    }
-    if (v is String) {
-      return DateTime.tryParse(v);
-    }
-    return null;
   }
 
   String _ymd(DateTime d) {

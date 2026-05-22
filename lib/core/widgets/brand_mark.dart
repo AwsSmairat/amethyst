@@ -26,10 +26,11 @@ class BrandMarkSmall extends StatelessWidget {
 
 abstract final class BrandAssets {
   static const String loginBanner = 'assets/images/login_banner.png';
-  static const String logo = 'assets/images/brand_logo.png';
 
   /// شعار العلامة — شاشة التحميل وتسجيل الدخول (`amethyst_brand_logo.png`).
   static const String appBrandMark = 'assets/images/amethyst_brand_logo.png';
+
+  static const String logo = appBrandMark;
 
   /// شعار دائري لصفحة تسجيل الدخول.
   static const String loginIcon = appBrandMark;

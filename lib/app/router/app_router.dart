@@ -1,7 +1,6 @@
 import 'package:amethyst/core/l10n/context_l10n.dart';
 import 'package:amethyst/core/data/amethyst_api.dart';
 import 'package:amethyst/di/injection.dart';
-import 'package:amethyst/features/admin/presentation/widgets/add_vehicle_load_sheet.dart';
 import 'package:amethyst/features/auth/presentation/cubit/auth_cubit.dart';
 import 'package:amethyst/features/auth/presentation/cubit/auth_state.dart';
 import 'package:amethyst/features/auth/presentation/pages/login_page.dart';
@@ -9,6 +8,7 @@ import 'package:amethyst/features/catalog/presentation/cubit/json_list_cubit.dar
 import 'package:amethyst/features/catalog/presentation/pages/expenses_hub_page.dart';
 import 'package:amethyst/features/catalog/presentation/pages/expense_category_report_page.dart';
 import 'package:amethyst/features/catalog/presentation/pages/json_list_page.dart';
+import 'package:amethyst/features/catalog/presentation/pages/returns_list_page.dart';
 import 'package:amethyst/features/catalog/presentation/pages/vehicle_loads_hub_page.dart';
 import 'package:amethyst/features/catalog/presentation/pages/vehicle_loads_vehicle_day_page.dart';
 import 'package:amethyst/features/catalog/presentation/pages/vehicle_loads_vehicle_days_list_page.dart';
@@ -38,7 +38,6 @@ import 'package:amethyst/features/driver/presentation/pages/driver_expenses_page
 import 'package:amethyst/features/driver/presentation/pages/driver_loads_page.dart';
 import 'package:amethyst/features/driver/presentation/pages/driver_notes_page.dart';
 import 'package:amethyst/features/driver/presentation/pages/driver_sales_page.dart';
-import 'package:amethyst/features/profile/presentation/pages/profile_page.dart';
 import 'package:amethyst/features/shared/presentation/shells/admin_shell.dart';
 import 'package:amethyst/features/shared/presentation/shells/driver_shell_page.dart';
 import 'package:amethyst/features/shared/presentation/shells/super_admin_shell.dart';
@@ -350,10 +349,6 @@ GoRouter createAppRouter(AuthCubit authCubit) {
                 path: 'reports',
                 builder: (_, __) => const ReportsPage(),
               ),
-              GoRoute(
-                path: 'profile',
-                builder: (_, __) => const ProfilePage(),
-              ),
             ],
           ),
         ],
@@ -442,17 +437,9 @@ GoRouter createAppRouter(AuthCubit authCubit) {
               ),
               GoRoute(
                 path: 'vehicle-loads',
-                builder: (BuildContext context, _) => VehicleLoadsHubPage(
+                builder: (BuildContext context, _) => const VehicleLoadsHubPage(
                   shellBase: '/admin',
-                  fab: Builder(
-                    builder: (BuildContext context) {
-                      return FloatingActionButton.extended(
-                        onPressed: () => showAddVehicleLoadSheet(context),
-                        icon: const Icon(Icons.add),
-                        label: Text(context.l10n.addLoad),
-                      );
-                    },
-                  ),
+                  showAddLoadFab: true,
                 ),
                 routes: <RouteBase>[
                   GoRoute(
@@ -572,7 +559,7 @@ GoRouter createAppRouter(AuthCubit authCubit) {
                   create: (_) =>
                       JsonListCubit(() => sl<AmethystApi>().listReturns())
                         ..load(),
-                  child: JsonListPage(title: context.l10n.titleReturns),
+                  child: const ReturnsListPage(),
                 ),
               ),
               GoRoute(
@@ -586,10 +573,6 @@ GoRouter createAppRouter(AuthCubit authCubit) {
                 path: 'expenses',
                 builder: (BuildContext context, _) =>
                     const ExpensesHubPage(basePath: '/admin'),
-              ),
-              GoRoute(
-                path: 'profile',
-                builder: (_, __) => const ProfilePage(),
               ),
             ],
           ),
@@ -720,14 +703,6 @@ GoRouter createAppRouter(AuthCubit authCubit) {
                   GoRoute(
                     path: 'notes',
                     builder: (_, __) => const DriverNotesPage(),
-                  ),
-                ],
-              ),
-              StatefulShellBranch(
-                routes: <RouteBase>[
-                  GoRoute(
-                    path: 'profile',
-                    builder: (_, __) => const ProfilePage(),
                   ),
                 ],
               ),

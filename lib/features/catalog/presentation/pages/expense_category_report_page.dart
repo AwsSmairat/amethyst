@@ -1,94 +1,13 @@
 import 'package:amethyst/core/data/amethyst_api.dart';
+import 'package:amethyst/core/expenses/expense_category_match.dart';
 import 'package:amethyst/core/l10n/context_l10n.dart';
 import 'package:amethyst/di/injection.dart';
 import 'package:amethyst/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
-/// مفاتيح تتطابق مع [ExpenseCategoryHintsSection.onCategoryTap].
-const Set<String> kExpenseReportCategoryKeys = <String>{
-  'gasoline',
-  'carRepair',
-  'other',
-  'tankWater',
-  'cartons',
-  'workersWages',
-  'stationCards',
-  'stationCarTracking',
-  'stationInternet',
-  'stationShopRent',
-  'stationRoomRent',
-  'stationElectricity',
-  'stationBags',
-  'stationEmptyBottles',
-  'stationEmptyGallon',
-  'stationSalt',
-  'stationShrinkWrap',
-  'stationFilters',
-};
-
-bool expenseNoteMatchesCategory(
-  String note,
-  String categoryKey,
-  AppLocalizations l10n,
-) {
-  final n = note.trim();
-  bool prefix(String p) =>
-      n == p || n.startsWith('$p —') || n.startsWith('$p:');
-  switch (categoryKey) {
-    case 'gasoline':
-      return prefix(l10n.gasolineExpenses);
-    case 'carRepair':
-      return prefix(l10n.carRepairExpenses);
-    case 'other':
-      return prefix(l10n.otherExpenses);
-    case 'tankWater':
-      return prefix(l10n.expenseTankWater);
-    case 'cartons': {
-      const sentinel = 'STATION_CARTON_WATER:';
-      String rest = n;
-      if (rest.startsWith(sentinel)) {
-        rest = rest.substring(sentinel.length);
-      }
-      bool prefixCarton(String p) =>
-          rest == p || rest.startsWith('$p —') || rest.startsWith('$p:');
-      return prefixCarton(l10n.expenseCartons) ||
-          prefixCarton(l10n.expenseCartonsWater);
-    }
-    case 'workersWages':
-      // Keep matching legacy labels too (pre-rename).
-      return prefix(l10n.expenseWorkersWages) ||
-          prefix(l10n.expenseStaffSalaries) ||
-          prefix('رواتب عمال') ||
-          prefix('رواتب موظفين');
-    case 'stationCards':
-      return prefix(l10n.expenseStationCards);
-    case 'stationCarTracking':
-      return prefix(l10n.expenseStationCarTracking);
-    case 'stationInternet':
-      return prefix(l10n.expenseStationInternet);
-    case 'stationShopRent':
-      return prefix(l10n.expenseStationShopRent);
-    case 'stationRoomRent':
-      return prefix(l10n.expenseStationRoomRent);
-    case 'stationElectricity':
-      return prefix(l10n.expenseStationElectricity);
-    case 'stationBags':
-      return prefix(l10n.expenseStationBags);
-    case 'stationEmptyBottles':
-      return prefix(l10n.expenseStationEmptyBottles);
-    case 'stationEmptyGallon':
-      return prefix(l10n.expenseStationEmptyGallon);
-    case 'stationSalt':
-      return prefix(l10n.expenseStationSalt);
-    case 'stationShrinkWrap':
-      return prefix(l10n.expenseStationShrinkWrap);
-    case 'stationFilters':
-      return prefix(l10n.expenseStationFilters);
-    default:
-      return false;
-  }
-}
+export 'package:amethyst/core/expenses/expense_category_match.dart'
+    show expenseNoteMatchesCategory, kExpenseReportCategoryKeys;
 
 String expenseReportCategoryTitle(String categoryKey, AppLocalizations l10n) {
   switch (categoryKey) {

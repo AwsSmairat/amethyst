@@ -309,6 +309,19 @@ class AppLocalizationsAr extends AppLocalizations {
   String get expensesToday => 'مصاريف اليوم';
 
   @override
+  String get expensesGrandTotal => 'مجموع المصاريف';
+
+  @override
+  String expenseCategoryTodayLine(String amount) {
+    return 'اليوم: $amount';
+  }
+
+  @override
+  String expenseCategoryMonthLine(String amount) {
+    return 'الشهر: $amount';
+  }
+
+  @override
   String get monthlyExpenses => 'المصاريف الشهرية';
 
   @override
@@ -565,6 +578,21 @@ class AppLocalizationsAr extends AppLocalizations {
   @override
   String get vehicleLoadsChooseVehicleHint =>
       'اختر مركبة لعرض تحميلاتها بحسب اليوم.';
+
+  @override
+  String vehicleLoadTodayQtyLine(String count) {
+    return 'محمّل اليوم: $count';
+  }
+
+  @override
+  String vehicleLoadMonthQtyLine(String count) {
+    return 'محمّل الشهر: $count';
+  }
+
+  @override
+  String vehicleLoadRemainingQtyLine(String count) {
+    return 'المتبقي على السيارة: $count';
+  }
 
   @override
   String vehicleLoadsDaysListTitle(String vehicle) {
@@ -1112,6 +1140,9 @@ class AppLocalizationsAr extends AppLocalizations {
   String get logReturnSheetTitle => 'تسجيل إرجاع';
 
   @override
+  String get returnAutomaticEndOfDay => 'إرجاع تلقائي (نهاية اليوم)';
+
+  @override
   String get expensesSectionUpper => 'المصاريف';
 
   @override
@@ -1373,6 +1404,15 @@ class AppLocalizationsAr extends AppLocalizations {
   @override
   String get vehicleLoadNoStationStockForRow =>
       'لا يُتحقق من مخزون المحطة ولا يُخصم عند التحميل لهذا البند.';
+
+  @override
+  String vehicleLoadInsufficientStationStock(String product, String available) {
+    return 'الكمية تتجاوز مخزون المحطة لـ $product (المتاح: $available).';
+  }
+
+  @override
+  String get vehicleLoadStationStockHint =>
+      'يُتحقق من مخزون المحطة قبل التحميل ولا يُخصم منه.';
 
   @override
   String get loadsRecorded => 'تم تسجيل التحميلات';

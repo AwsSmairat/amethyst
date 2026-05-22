@@ -676,6 +676,24 @@ abstract class AppLocalizations {
   /// **'مصاريف اليوم'**
   String get expensesToday;
 
+  /// No description provided for @expensesGrandTotal.
+  ///
+  /// In ar, this message translates to:
+  /// **'مجموع المصاريف'**
+  String get expensesGrandTotal;
+
+  /// No description provided for @expenseCategoryTodayLine.
+  ///
+  /// In ar, this message translates to:
+  /// **'اليوم: {amount}'**
+  String expenseCategoryTodayLine(String amount);
+
+  /// No description provided for @expenseCategoryMonthLine.
+  ///
+  /// In ar, this message translates to:
+  /// **'الشهر: {amount}'**
+  String expenseCategoryMonthLine(String amount);
+
   /// No description provided for @monthlyExpenses.
   ///
   /// In ar, this message translates to:
@@ -1149,6 +1167,24 @@ abstract class AppLocalizations {
   /// In ar, this message translates to:
   /// **'اختر مركبة لعرض تحميلاتها بحسب اليوم.'**
   String get vehicleLoadsChooseVehicleHint;
+
+  /// No description provided for @vehicleLoadTodayQtyLine.
+  ///
+  /// In ar, this message translates to:
+  /// **'محمّل اليوم: {count}'**
+  String vehicleLoadTodayQtyLine(String count);
+
+  /// No description provided for @vehicleLoadMonthQtyLine.
+  ///
+  /// In ar, this message translates to:
+  /// **'محمّل الشهر: {count}'**
+  String vehicleLoadMonthQtyLine(String count);
+
+  /// No description provided for @vehicleLoadRemainingQtyLine.
+  ///
+  /// In ar, this message translates to:
+  /// **'المتبقي على السيارة: {count}'**
+  String vehicleLoadRemainingQtyLine(String count);
 
   /// No description provided for @vehicleLoadsDaysListTitle.
   ///
@@ -2169,6 +2205,12 @@ abstract class AppLocalizations {
   /// **'تسجيل إرجاع'**
   String get logReturnSheetTitle;
 
+  /// No description provided for @returnAutomaticEndOfDay.
+  ///
+  /// In ar, this message translates to:
+  /// **'إرجاع تلقائي (نهاية اليوم)'**
+  String get returnAutomaticEndOfDay;
+
   /// No description provided for @expensesSectionUpper.
   ///
   /// In ar, this message translates to:
@@ -2642,6 +2684,18 @@ abstract class AppLocalizations {
   /// In ar, this message translates to:
   /// **'لا يُتحقق من مخزون المحطة ولا يُخصم عند التحميل لهذا البند.'**
   String get vehicleLoadNoStationStockForRow;
+
+  /// No description provided for @vehicleLoadInsufficientStationStock.
+  ///
+  /// In ar, this message translates to:
+  /// **'الكمية تتجاوز مخزون المحطة لـ {product} (المتاح: {available}).'**
+  String vehicleLoadInsufficientStationStock(String product, String available);
+
+  /// No description provided for @vehicleLoadStationStockHint.
+  ///
+  /// In ar, this message translates to:
+  /// **'يُتحقق من مخزون المحطة قبل التحميل ولا يُخصم منه.'**
+  String get vehicleLoadStationStockHint;
 
   /// No description provided for @loadsRecorded.
   ///
