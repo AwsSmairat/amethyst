@@ -1,9 +1,11 @@
+import 'package:amethyst/core/catalog/catalog_product_display_label.dart';
 import 'package:amethyst/core/data/amethyst_api.dart';
 import 'package:amethyst/core/l10n/context_l10n.dart';
 import 'package:amethyst/core/theme/app_colors.dart';
 import 'package:amethyst/core/utils/parse_dynamic_double.dart';
+import 'package:amethyst/core/vehicle_load/vehicle_load_batches.dart';
 import 'package:amethyst/di/injection.dart';
-import 'package:amethyst/features/catalog/presentation/widgets/vehicle_load_line_tile.dart';
+import 'package:amethyst/features/catalog/presentation/widgets/vehicle_load_batch_card.dart';
 import 'package:amethyst/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
@@ -167,7 +169,11 @@ class _VehicleLoadsVehicleDayPageState extends State<VehicleLoadsVehicleDayPage>
   String _productName(Map<String, dynamic> item) {
     final Object? p = item['product'];
     if (p is Map<String, dynamic>) {
-      return p['name']?.toString() ?? '—';
+      final String? raw = p['name']?.toString();
+      if (raw == null || raw.trim().isEmpty) {
+        return '—';
+      }
+      return catalogProductArabicDisplayLabel(raw);
     }
     return '—';
   }
@@ -372,6 +378,8 @@ class _VehicleLoadsVehicleDayPageState extends State<VehicleLoadsVehicleDayPage>
     final AppLocalizations l10n = context.l10n;
     final String locale = Localizations.localeOf(context).toString();
     final String dateLabel = DateFormat.yMMMd(locale).format(_day);
+    final List<VehicleLoadBatch> batches =
+        groupVehicleLoadsIntoBatches(_loads);
 
     return Scaffold(
       appBar: AppBar(
@@ -428,7 +436,11 @@ class _VehicleLoadsVehicleDayPageState extends State<VehicleLoadsVehicleDayPage>
                       child: Align(
                         alignment: AlignmentDirectional.centerStart,
                         child: Text(
-                          l10n.vehicleLoadsLoadsSectionTitle,
+                          batches.isEmpty
+                              ? l10n.vehicleLoadsLoadsSectionTitle
+                              : l10n.vehicleLoadsBatchesSectionTitle(
+                                  '${batches.length}',
+                                ),
                           style:
                               Theme.of(context).textTheme.titleSmall?.copyWith(
                                     fontWeight: FontWeight.w800,
@@ -437,25 +449,24 @@ class _VehicleLoadsVehicleDayPageState extends State<VehicleLoadsVehicleDayPage>
                         ),
                       ),
                     ),
-                    if (_loads.isEmpty)
+                    if (batches.isEmpty)
                       Padding(
                         padding: const EdgeInsets.fromLTRB(16, 0, 16, 32),
                         child: Center(child: Text(l10n.nothingHereYet)),
                       )
                     else
-                      ...List<Widget>.generate(_loads.length * 2 - 1, (int i) {
-                        if (i.isOdd) {
-                          return const Padding(
-                            padding: EdgeInsets.symmetric(horizontal: 16),
-                            child: Divider(height: 28),
-                          );
-                        }
-                        final int row = i ~/ 2;
-                        return Padding(
-                          padding: const EdgeInsets.fromLTRB(16, 0, 16, 0),
-                          child: VehicleLoadLineTile(item: _loads[row]),
-                        );
-                      }),
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(12, 0, 12, 24),
+                        child: Column(
+                          children: List<Widget>.generate(batches.length, (int i) {
+                            return VehicleLoadBatchCard(
+                              batch: batches[i],
+                              batchNumber: batches.length - i,
+                              initiallyExpanded: i == 0,
+                            );
+                          }),
+                        ),
+                      ),
                     const SizedBox(height: 24),
                   ],
                 ),

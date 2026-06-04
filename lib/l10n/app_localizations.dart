@@ -712,6 +712,72 @@ abstract class AppLocalizations {
   /// **'مبيع الكراتين'**
   String get cartonSalesMonthly;
 
+  /// No description provided for @staffNoteKpi.
+  ///
+  /// In ar, this message translates to:
+  /// **'ملاحظة'**
+  String get staffNoteKpi;
+
+  /// No description provided for @staffNoteSendTitle.
+  ///
+  /// In ar, this message translates to:
+  /// **'إرسال ملاحظة'**
+  String get staffNoteSendTitle;
+
+  /// No description provided for @staffNoteMessageHint.
+  ///
+  /// In ar, this message translates to:
+  /// **'اكتب الملاحظة هنا...'**
+  String get staffNoteMessageHint;
+
+  /// No description provided for @staffNoteRecipientLabel.
+  ///
+  /// In ar, this message translates to:
+  /// **'المستلم'**
+  String get staffNoteRecipientLabel;
+
+  /// No description provided for @staffNoteRecipientAllAdmins.
+  ///
+  /// In ar, this message translates to:
+  /// **'المحطة'**
+  String get staffNoteRecipientAllAdmins;
+
+  /// No description provided for @staffNoteSendButton.
+  ///
+  /// In ar, this message translates to:
+  /// **'إرسال'**
+  String get staffNoteSendButton;
+
+  /// No description provided for @staffNoteSentSuccess.
+  ///
+  /// In ar, this message translates to:
+  /// **'تم إرسال الملاحظة'**
+  String get staffNoteSentSuccess;
+
+  /// No description provided for @staffNoteFromSender.
+  ///
+  /// In ar, this message translates to:
+  /// **'من: {name}'**
+  String staffNoteFromSender(String name);
+
+  /// No description provided for @staffNoteMarkRead.
+  ///
+  /// In ar, this message translates to:
+  /// **'تم القراءة'**
+  String get staffNoteMarkRead;
+
+  /// No description provided for @staffNoteEmptyMessage.
+  ///
+  /// In ar, this message translates to:
+  /// **'الرجاء كتابة الملاحظة'**
+  String get staffNoteEmptyMessage;
+
+  /// No description provided for @staffNotePickDriver.
+  ///
+  /// In ar, this message translates to:
+  /// **'اختر السائق'**
+  String get staffNotePickDriver;
+
   /// No description provided for @superAdminDebtListKpiCaption.
   ///
   /// In ar, this message translates to:
@@ -1138,6 +1204,12 @@ abstract class AppLocalizations {
   /// **'تفاصيل المبيعات'**
   String get vehicleSalesLinesSectionTitle;
 
+  /// No description provided for @vehicleSaleDebtRepaymentBadge.
+  ///
+  /// In ar, this message translates to:
+  /// **'سداد دين'**
+  String get vehicleSaleDebtRepaymentBadge;
+
   /// No description provided for @vehicleSaleDestinationHome.
   ///
   /// In ar, this message translates to:
@@ -1203,6 +1275,30 @@ abstract class AppLocalizations {
   /// In ar, this message translates to:
   /// **'التحميل على المركبة'**
   String get vehicleLoadsLoadsSectionTitle;
+
+  /// No description provided for @vehicleLoadsBatchesSectionTitle.
+  ///
+  /// In ar, this message translates to:
+  /// **'حمولات اليوم ({count})'**
+  String vehicleLoadsBatchesSectionTitle(String count);
+
+  /// No description provided for @vehicleLoadsDayBatchCountLine.
+  ///
+  /// In ar, this message translates to:
+  /// **'{count} حمولة'**
+  String vehicleLoadsDayBatchCountLine(String count);
+
+  /// No description provided for @vehicleLoadBatchTitle.
+  ///
+  /// In ar, this message translates to:
+  /// **'حمل {number}'**
+  String vehicleLoadBatchTitle(String number);
+
+  /// No description provided for @vehicleLoadBatchMetaLine.
+  ///
+  /// In ar, this message translates to:
+  /// **'{products} منتج · {pieces} قطعة · {time}'**
+  String vehicleLoadBatchMetaLine(String products, String pieces, String time);
 
   /// No description provided for @vehicleLoadsGrandTotalSales.
   ///
@@ -1450,12 +1546,6 @@ abstract class AppLocalizations {
   /// **'التحميلات'**
   String get navLoads;
 
-  /// No description provided for @navNotes.
-  ///
-  /// In ar, this message translates to:
-  /// **'الملاحظات'**
-  String get navNotes;
-
   /// No description provided for @myExpenses.
   ///
   /// In ar, this message translates to:
@@ -1465,7 +1555,7 @@ abstract class AppLocalizations {
   /// No description provided for @gasolineExpenses.
   ///
   /// In ar, this message translates to:
-  /// **'مصاريف بانزين'**
+  /// **'مصاريف ديزل'**
   String get gasolineExpenses;
 
   /// No description provided for @carRepairExpenses.
@@ -1516,6 +1606,102 @@ abstract class AppLocalizations {
   /// **'تسجيل أرصدة البنود'**
   String get stationBalanceSubtitle;
 
+  /// No description provided for @stationBalancePageHint.
+  ///
+  /// In ar, this message translates to:
+  /// **'عرض مخزون المحطة حسب التصنيف. اضغط «تسجيل الرصيد» لتحديث الكميات.'**
+  String get stationBalancePageHint;
+
+  /// No description provided for @stationBalanceSectionCartons.
+  ///
+  /// In ar, this message translates to:
+  /// **'كراتين'**
+  String get stationBalanceSectionCartons;
+
+  /// No description provided for @stationBalanceSectionBags.
+  ///
+  /// In ar, this message translates to:
+  /// **'شرنك'**
+  String get stationBalanceSectionBags;
+
+  /// No description provided for @stationBalanceSectionBottles.
+  ///
+  /// In ar, this message translates to:
+  /// **'قوارير'**
+  String get stationBalanceSectionBottles;
+
+  /// No description provided for @stationBalanceSectionGallons.
+  ///
+  /// In ar, this message translates to:
+  /// **'جالونات'**
+  String get stationBalanceSectionGallons;
+
+  /// No description provided for @stationBalanceSectionStationFloor.
+  ///
+  /// In ar, this message translates to:
+  /// **'أرضية المحطة'**
+  String get stationBalanceSectionStationFloor;
+
+  /// No description provided for @stationBalanceSectionCoupons.
+  ///
+  /// In ar, this message translates to:
+  /// **'كوبونات'**
+  String get stationBalanceSectionCoupons;
+
+  /// No description provided for @stationBalanceSectionOptional.
+  ///
+  /// In ar, this message translates to:
+  /// **'بند إضافي'**
+  String get stationBalanceSectionOptional;
+
+  /// No description provided for @stationBalanceSectionStockLine.
+  ///
+  /// In ar, this message translates to:
+  /// **'المجموع {stock} · {count} بند'**
+  String stationBalanceSectionStockLine(String stock, String count);
+
+  /// No description provided for @stationBalanceTotalUnits.
+  ///
+  /// In ar, this message translates to:
+  /// **'إجمالي الوحدات في المحطة'**
+  String get stationBalanceTotalUnits;
+
+  /// No description provided for @stationBalanceItemsWithStock.
+  ///
+  /// In ar, this message translates to:
+  /// **'بنود بمخزون'**
+  String get stationBalanceItemsWithStock;
+
+  /// No description provided for @stationBalanceLowStock.
+  ///
+  /// In ar, this message translates to:
+  /// **'مخزون منخفض'**
+  String get stationBalanceLowStock;
+
+  /// No description provided for @stationBalanceUnlinked.
+  ///
+  /// In ar, this message translates to:
+  /// **'غير مربوط'**
+  String get stationBalanceUnlinked;
+
+  /// No description provided for @stationBalanceRowUnlinkedHint.
+  ///
+  /// In ar, this message translates to:
+  /// **'لم يُربط بمنتج في النظام'**
+  String get stationBalanceRowUnlinkedHint;
+
+  /// No description provided for @stationBalanceSuperAdminPricesHint.
+  ///
+  /// In ar, this message translates to:
+  /// **'تعديل أسعار المنتجات من شاشة التسعير'**
+  String get stationBalanceSuperAdminPricesHint;
+
+  /// No description provided for @stationBalancePricingHint.
+  ///
+  /// In ar, this message translates to:
+  /// **'تعديل أسعار المنتجات من شاشة التسعير'**
+  String get stationBalancePricingHint;
+
   /// No description provided for @addStationBalance.
   ///
   /// In ar, this message translates to:
@@ -1543,19 +1729,19 @@ abstract class AppLocalizations {
   /// No description provided for @stationBalanceField3.
   ///
   /// In ar, this message translates to:
-  /// **'ش كبير'**
+  /// **'شرنك كبير'**
   String get stationBalanceField3;
 
   /// No description provided for @stationBalanceField4.
   ///
   /// In ar, this message translates to:
-  /// **'ش وسط'**
+  /// **'شرنك وسط'**
   String get stationBalanceField4;
 
   /// No description provided for @stationBalanceField5.
   ///
   /// In ar, this message translates to:
-  /// **'ش صغير'**
+  /// **'شرنك صغير'**
   String get stationBalanceField5;
 
   /// No description provided for @stationBalanceField6.
@@ -1575,12 +1761,6 @@ abstract class AppLocalizations {
   /// In ar, this message translates to:
   /// **'ج فارغ'**
   String get stationBalanceField8;
-
-  /// No description provided for @stationBalanceField9.
-  ///
-  /// In ar, this message translates to:
-  /// **'ق ١٠ لتر'**
-  String get stationBalanceField9;
 
   /// No description provided for @stationBalanceField10.
   ///
@@ -1611,6 +1791,24 @@ abstract class AppLocalizations {
   /// In ar, this message translates to:
   /// **'كوبون ٥٠'**
   String get stationBalanceField14;
+
+  /// No description provided for @stationBalanceField15.
+  ///
+  /// In ar, this message translates to:
+  /// **'ق صغير فارغ'**
+  String get stationBalanceField15;
+
+  /// No description provided for @stationBalanceField16.
+  ///
+  /// In ar, this message translates to:
+  /// **'ج صغير فارغ'**
+  String get stationBalanceField16;
+
+  /// No description provided for @stationBalanceFieldOptional.
+  ///
+  /// In ar, this message translates to:
+  /// **'حقل إضافي (اختياري)'**
+  String get stationBalanceFieldOptional;
 
   /// No description provided for @stationBalanceField13Optional.
   ///
@@ -1935,18 +2133,6 @@ abstract class AppLocalizations {
   /// In ar, this message translates to:
   /// **'ملاحظات وملخص'**
   String get notesAndSummary;
-
-  /// No description provided for @driverNotesTitle.
-  ///
-  /// In ar, this message translates to:
-  /// **'ملاحظات'**
-  String get driverNotesTitle;
-
-  /// No description provided for @driverNotesFieldHint.
-  ///
-  /// In ar, this message translates to:
-  /// **'اكتب ملاحظاتك هنا…'**
-  String get driverNotesFieldHint;
 
   /// No description provided for @currentLoads.
   ///
@@ -2289,6 +2475,12 @@ abstract class AppLocalizations {
   /// **'اختر نوع البيع'**
   String get stationSalePickKindTitle;
 
+  /// No description provided for @stationDebtPickKindTitle.
+  ///
+  /// In ar, this message translates to:
+  /// **'اختر نوع الدين'**
+  String get stationDebtPickKindTitle;
+
   /// No description provided for @stationSaleKindFilling.
   ///
   /// In ar, this message translates to:
@@ -2313,6 +2505,18 @@ abstract class AppLocalizations {
   /// **'قاروره'**
   String get stationSaleProductBottle;
 
+  /// No description provided for @stationSaleProductSmallGallon.
+  ///
+  /// In ar, this message translates to:
+  /// **'جالون صغير'**
+  String get stationSaleProductSmallGallon;
+
+  /// No description provided for @stationSaleProductSmallBottle.
+  ///
+  /// In ar, this message translates to:
+  /// **'قاروره صغير'**
+  String get stationSaleProductSmallBottle;
+
   /// No description provided for @stationSaleProductMahdi.
   ///
   /// In ar, this message translates to:
@@ -2328,8 +2532,8 @@ abstract class AppLocalizations {
   /// No description provided for @stationSaleWithFillingPriceHint.
   ///
   /// In ar, this message translates to:
-  /// **'يُضاف ٠٫٥٠ لسعر كل وحدة على المنتجات التي تُباع.'**
-  String get stationSaleWithFillingPriceHint;
+  /// **'يُضاف {amount} لسعر كل وحدة على منتجات هذا الصف.'**
+  String stationSaleWithFillingPriceHint(String amount);
 
   /// No description provided for @stationSaleBack.
   ///

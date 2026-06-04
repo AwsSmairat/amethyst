@@ -5,6 +5,7 @@ import 'package:amethyst/features/auth/presentation/cubit/auth_cubit.dart';
 import 'package:amethyst/features/auth/presentation/cubit/auth_state.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:amethyst/features/staff_note/presentation/widgets/staff_note_inbox_overlay.dart';
 import 'package:go_router/go_router.dart';
 
 class AdminShell extends StatelessWidget {
@@ -106,6 +107,13 @@ class AdminShell extends StatelessWidget {
               _tile(
                 context,
                 path,
+                '/admin/product-prices',
+                Icons.price_change_outlined,
+                context.l10n.titleProductPrices,
+              ),
+              _tile(
+                context,
+                path,
                 '/admin/returns',
                 Icons.assignment_return,
                 context.l10n.returns,
@@ -120,7 +128,7 @@ class AdminShell extends StatelessWidget {
             ],
           ),
         ),
-        body: child,
+        body: StaffNoteInboxOverlay(child: child),
       ),
     );
   }

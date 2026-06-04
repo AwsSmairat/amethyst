@@ -1,3 +1,4 @@
+import 'package:amethyst/core/catalog/catalog_product_display_label.dart';
 import 'package:amethyst/core/l10n/context_l10n.dart';
 import 'package:amethyst/core/theme/app_colors.dart';
 import 'package:amethyst/core/utils/parse_dynamic_double.dart';
@@ -51,7 +52,11 @@ String _saleProductKey(Map<String, dynamic> item) {
 String _saleProductName(Map<String, dynamic> item) {
   final Object? p = item['product'];
   if (p is Map<String, dynamic>) {
-    return p['name']?.toString() ?? '—';
+    final String? raw = p['name']?.toString();
+    if (raw == null || raw.trim().isEmpty) {
+      return '—';
+    }
+    return catalogProductArabicDisplayLabel(raw);
   }
   return '—';
 }

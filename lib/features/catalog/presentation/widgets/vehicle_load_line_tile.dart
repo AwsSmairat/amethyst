@@ -1,3 +1,4 @@
+import 'package:amethyst/core/catalog/catalog_product_display_label.dart';
 import 'package:amethyst/core/l10n/context_l10n.dart';
 import 'package:amethyst/core/theme/app_colors.dart';
 import 'package:amethyst/core/vehicle_load/vehicle_load_aggregates.dart';
@@ -13,7 +14,10 @@ class VehicleLoadLineTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = context.l10n;
     final theme = Theme.of(context);
-    final String productTitle = _nestedString(item['product'], 'name');
+    final String rawProductName = _nestedString(item['product'], 'name');
+    final String productTitle = rawProductName.isEmpty
+        ? ''
+        : catalogProductArabicDisplayLabel(rawProductName);
     final String vehicleNo = _nestedString(item['vehicle'], 'vehicleNumber');
     final String driverName = _nestedString(item['driver'], 'fullName');
     final String statusAr =

@@ -153,8 +153,7 @@ class _SuperAdminDriversBody extends StatelessWidget {
                   u['fullName']?.toString() ?? u['email']?.toString() ?? '';
               final bool isActive = u['isActive'] == true;
               final String status = isActive ? l10n.active : l10n.inactive;
-              final String phone = u['phone']?.toString() ?? '—';
-              final String sub = '${u['email'] ?? ''}\n$phone\n$status';
+              final String sub = '${u['email'] ?? ''}\n$status';
               final bool isSelf = selfId != null && id == selfId;
               final SuperAdminUsersCubit cubit =
                   context.read<SuperAdminUsersCubit>();

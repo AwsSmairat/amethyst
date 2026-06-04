@@ -1,4 +1,5 @@
 import 'package:amethyst/core/l10n/context_l10n.dart';
+import 'package:amethyst/features/admin/presentation/station_debt/station_debt_registration_nav.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
@@ -85,10 +86,13 @@ Future<void> showAdminDebtRegistrationPicker(
             ListTile(
               leading: const Icon(Icons.store_outlined),
               title: Text(l10n.stationDebtKindStation),
-              subtitle: Text(l10n.stationSaleKindFilling),
-              onTap: () {
+              subtitle: Text(l10n.stationDebtPickKindTitle),
+              onTap: () async {
                 Navigator.of(sheetCtx).pop();
-                context.push(stationDebtPath);
+                await openAdminStationDebtRegistration(
+                  context,
+                  registrationPath: stationDebtPath,
+                );
               },
             ),
             ListTile(

@@ -1,6 +1,7 @@
 import 'package:amethyst/core/prototype/prototype_session.dart';
 import 'package:amethyst/core/station_balance/station_balance_catalog.dart';
 import 'package:amethyst/core/utils/parse_dynamic_double.dart';
+import 'package:amethyst/core/vehicle_load/vehicle_load_aggregates.dart';
 import 'package:amethyst/core/vehicle_load/vehicle_load_catalog.dart';
 import 'package:amethyst/features/auth/domain/entities/user_entity.dart';
 
@@ -14,7 +15,7 @@ final class PrototypeSampleData {
   static List<Map<String, dynamic>> get users => <Map<String, dynamic>>[
         _user(
           id: 'proto_super',
-          fullName: 'مدير عام (عرض)',
+          fullName: 'صهيب بيك',
           email: 'super@preview.local',
           phone: '+201000000001',
           role: 'super_admin',
@@ -24,13 +25,6 @@ final class PrototypeSampleData {
           fullName: 'مسؤول المحطة',
           email: 'admin@preview.local',
           phone: '+201000000002',
-          role: 'admin',
-        ),
-        _user(
-          id: 'proto_admin2',
-          fullName: 'مسؤول مساعد',
-          email: 'admin2@preview.local',
-          phone: '+201000000004',
           role: 'admin',
         ),
         _user(
@@ -52,7 +46,7 @@ final class PrototypeSampleData {
   static final List<Map<String, dynamic>> _products = <Map<String, dynamic>>[
     _product(
       id: 'p_water',
-      name: 'قاروره ٢٠ لتر',
+      name: 'Water Bottle',
       unitType: 'bottle',
       price: 25,
       stationStock: 0,
@@ -66,14 +60,14 @@ final class PrototypeSampleData {
     ),
     _product(
       id: 'p_gallon',
-      name: 'جالون ٢٠ لتر',
-      unitType: 'bottle',
+      name: 'Water Gallon',
+      unitType: 'gallon',
       price: 12,
       stationStock: 0,
     ),
     _product(
       id: 'p_coupon50',
-      name: 'Coupon 3',
+      name: 'كوبون ٥٠',
       unitType: 'coupon',
       price: 0,
       stationStock: 0,
@@ -104,6 +98,116 @@ final class PrototypeSampleData {
     ensureStoreGallonSaleProduct();
     ensureStoreBottleSaleProduct();
     ensureStoreMahdiSaleProduct();
+    ensureFillingGallonProduct();
+    ensureFillingBottleProduct();
+    ensureWaterSmallGallonProduct();
+    ensureWaterSmallBottleProduct();
+    ensureEmptySaleWithFillingRow1Product();
+    ensureEmptySaleWithFillingRow2Product();
+  }
+
+  /// بيع فارغ — زيادة «مع تعبئة» للمنتجات ١–٣.
+  static void ensureEmptySaleWithFillingRow1Product() {
+    if (resolveEmptySaleWithFillingRow1Product(products: _products) != null) {
+      return;
+    }
+    _products.add(
+      _product(
+        id: 'p_empty_sale_with_filling_row1',
+        name: kEmptySaleWithFillingRow1ProductApiName,
+        unitType: 'piece',
+        price: 0.5,
+        stationStock: 0,
+      ),
+    );
+  }
+
+  /// بيع فارغ — زيادة «مع تعبئة» للمنتجين ٤–٥.
+  static void ensureEmptySaleWithFillingRow2Product() {
+    if (resolveEmptySaleWithFillingRow2Product(products: _products) != null) {
+      return;
+    }
+    _products.add(
+      _product(
+        id: 'p_empty_sale_with_filling_row2',
+        name: kEmptySaleWithFillingRow2ProductApiName,
+        unitType: 'piece',
+        price: 0.5,
+        stationStock: 0,
+      ),
+    );
+  }
+
+  /// تعبئة المحطة — عمود جالون ([kFillingGallonProductApiName]).
+  static void ensureFillingGallonProduct() {
+    if (resolveFillingGallonProduct(products: _products) != null) {
+      return;
+    }
+    final Map<String, dynamic>? load = resolveVehicleLoadRowProduct(
+      products: _products,
+      rowIndex: 0,
+    );
+    _products.add(
+      _product(
+        id: 'p_filling_gallon',
+        name: kFillingGallonProductApiName,
+        unitType: 'gallon',
+        price: parseDynamicDouble(load?['price']) ?? 12,
+        stationStock: 0,
+      ),
+    );
+  }
+
+  /// تعبئة المحطة — عمود قارورة ([kFillingBottleProductApiName]).
+  static void ensureFillingBottleProduct() {
+    if (resolveFillingBottleProduct(products: _products) != null) {
+      return;
+    }
+    final Map<String, dynamic>? load = resolveVehicleLoadRowProduct(
+      products: _products,
+      rowIndex: 1,
+    );
+    _products.add(
+      _product(
+        id: 'p_filling_bottle',
+        name: kFillingBottleProductApiName,
+        unitType: 'bottle',
+        price: parseDynamicDouble(load?['price']) ?? 25,
+        stationStock: 0,
+      ),
+    );
+  }
+
+  /// جالون صغير (تعبئة/سيارة) — منفصل عن «ج صغير فارغ».
+  static void ensureWaterSmallGallonProduct() {
+    if (resolveWaterSmallGallonProduct(products: _products) != null) {
+      return;
+    }
+    _products.add(
+      _product(
+        id: 'p_water_small_gallon',
+        name: kWaterSmallGallonProductApiName,
+        unitType: 'gallon',
+        price: 10,
+        stationStock: 0,
+      ),
+    );
+  }
+
+  /// قاروره صغير (تعبئة/سيارة) — منفصل عن «ق صغير فارغ».
+  static void ensureWaterSmallBottleProduct() {
+    if (resolveWaterSmallBottleProduct(products: _products) != null) {
+      return;
+    }
+    _products.add(
+      _product(
+        id: 'p_water_small_bottle',
+        name: kWaterSmallBottleProductApiName,
+        unitType: 'bottle',
+        price: 15,
+        stationStock: 0,
+      ),
+    );
   }
 
   /// منتج بيع «جالون متجر» — سعر مستقل؛ الخصم من حمولة جالون ٢٠ لتر.
@@ -176,6 +280,22 @@ final class PrototypeSampleData {
     _products.add(product);
   }
 
+  /// خصم مخزون المحطة بعد بيع/دين — يطابق صفوف رصيد المحطة (عدة أسماء API لنفس البند).
+  static void deductStationStockForSale({
+    required String productId,
+    required int quantity,
+  }) {
+    try {
+      applyStationStockDeductionForSale(
+        products: _products,
+        productId: productId,
+        quantity: quantity,
+      );
+    } on StateError {
+      throw StateError('INSUFFICIENT_STOCK');
+    }
+  }
+
   /// تحديث مخزون المحطة في الذاكرة (نموذج UI).
   static bool setStationStock(String productId, int stationStock) {
     for (final Map<String, dynamic> p in _products) {
@@ -193,6 +313,17 @@ final class PrototypeSampleData {
     required int rowIndex,
     required int stationStock,
   }) {
+    final List<String> rowIds = productIdsForBalanceRow(
+      products: _products,
+      rowIndex: rowIndex,
+    );
+    if (rowIds.isNotEmpty) {
+      setStationStock(rowIds.first, stationStock);
+      for (var i = 1; i < rowIds.length; i++) {
+        setStationStock(rowIds[i], 0);
+      }
+      return;
+    }
     final Map<String, dynamic>? existing = resolveStationBalanceProduct(
       products: _products,
       rowIndex: rowIndex,
@@ -285,15 +416,10 @@ final class PrototypeSampleData {
     bool skipStockDeduction = false,
   }) {
     _ensureInitialStationSales();
-    final Map<String, dynamic> product = productById(productId);
     final bool skipStock = skipStockDeduction ||
         (settledFromDebtId != null && settledFromDebtId.isNotEmpty);
     if (!skipStock && quantity > 0) {
-      final int current = _intField(product, 'stationStock');
-      if (quantity > current) {
-        throw StateError('INSUFFICIENT_STOCK');
-      }
-      setStationStock(productId, current - quantity);
+      deductStationStockForSale(productId: productId, quantity: quantity);
     }
     final Map<String, dynamic> productAfter = productById(productId);
     final String soldById =
@@ -462,34 +588,56 @@ final class PrototypeSampleData {
   static void closeEndedDayVehicleLoads({DateTime? asOf}) {
     _ensureInitialVehicleLoad();
     final DateTime now = asOf ?? DateTime.now();
-    final DateTime today = _dateOnly(now);
     for (final Map<String, dynamic> load in _vehicleLoads) {
       if (load['status']?.toString() == 'closed') {
         continue;
       }
-      final DateTime loadDay = _loadDateOnly(load);
-      if (loadDay.isAfter(today)) {
-        continue;
-      }
-      if (!_loadBusinessDayEnded(loadDay: loadDay, now: now)) {
+      if (!_loadEligibleForEndOfDayClose(load, now: now)) {
         continue;
       }
       _applyEndOfDayAutomaticReturn(load);
     }
   }
 
-  static bool _loadBusinessDayEnded({
-    required DateTime loadDay,
+  static DateTime? _loadCreatedAt(Map<String, dynamic> load) {
+    final Object? raw = load['createdAt'];
+    if (raw is DateTime) {
+      return raw;
+    }
+    if (raw is String) {
+      return DateTime.tryParse(raw);
+    }
+    return null;
+  }
+
+  /// إغلاق تلقائي: أيام سابقة، أو نفس اليوم بعد [kVehicleLoadEndOfDayCloseHour]
+  /// لسطور أُنشئت **قبل** ساعة الإغلاق (حمولة جديدة بعد ٢٣:٠٠ تبقى مفتوحة حتى اليوم التالي).
+  static bool _loadEligibleForEndOfDayClose(
+    Map<String, dynamic> load, {
     required DateTime now,
   }) {
+    final DateTime loadDay = _loadDateOnly(load);
     final DateTime today = _dateOnly(now);
+    if (loadDay.isAfter(today)) {
+      return false;
+    }
     if (loadDay.isBefore(today)) {
       return true;
     }
-    if (loadDay == today && now.hour >= kVehicleLoadEndOfDayCloseHour) {
-      return true;
+    if (now.hour < kVehicleLoadEndOfDayCloseHour) {
+      return false;
     }
-    return false;
+    final DateTime? created = _loadCreatedAt(load);
+    if (created == null) {
+      return false;
+    }
+    final DateTime cutoff = DateTime(
+      loadDay.year,
+      loadDay.month,
+      loadDay.day,
+      kVehicleLoadEndOfDayCloseHour,
+    );
+    return created.isBefore(cutoff);
   }
 
   /// نهاية اليوم: سجل إرجاعاً في قائمة المرتجعات (ليس تصفيراً صامتاً).
@@ -539,11 +687,13 @@ final class PrototypeSampleData {
     required String productId,
     required int quantityLoaded,
     required String loadDate,
+    String? loadBatchId,
   }) {
     _ensureInitialVehicleLoad();
+    reconcileVehicleLoadStatuses();
     final Map<String, dynamic> vehicle = vehicleById(vehicleId);
     final Map<String, dynamic> product = productById(productId);
-    final DateTime parsedDate = DateTime.tryParse(loadDate) ?? _today;
+    final DateTime dayOnly = _parseLoadDateYmd(loadDate);
     final Map<String, dynamic> row = <String, dynamic>{
       'id': 'load_${_vehicleLoads.length + 1}',
       'vehicleId': vehicle['id'],
@@ -556,12 +706,31 @@ final class PrototypeSampleData {
       'quantitySold': 0,
       'quantityReturned': 0,
       'status': 'open',
-      'loadDate': parsedDate,
-      'createdAt': _now,
+      'loadDate': dayOnly,
+      'createdAt': DateTime.now(),
       'createdBy': userBrief(PrototypeSession.current?.id ?? 'proto_admin'),
+      if (loadBatchId != null && loadBatchId.isNotEmpty)
+        'loadBatchId': loadBatchId,
     };
     _vehicleLoads.add(row);
     return row;
+  }
+
+  static DateTime _parseLoadDateYmd(String loadDate) {
+    final String t = loadDate.trim();
+    final RegExpMatch? m = RegExp(r'^(\d{4})-(\d{2})-(\d{2})').firstMatch(t);
+    if (m != null) {
+      return DateTime(
+        int.parse(m.group(1)!),
+        int.parse(m.group(2)!),
+        int.parse(m.group(3)!),
+      );
+    }
+    final DateTime? parsed = DateTime.tryParse(t);
+    if (parsed != null) {
+      return _dateOnly(parsed.toLocal());
+    }
+    return _today;
   }
 
   /// يضمن وجود منتج لصف التحميل ويعيد معرّفه.
@@ -738,7 +907,9 @@ final class PrototypeSampleData {
       if (settledFromDebtSaleId != null && settledFromDebtSaleId.isNotEmpty)
         'settledFromDebtSaleId': settledFromDebtSaleId,
       'repaidAt': null,
-      'createdAt': _now.toIso8601String(),
+      'createdAt': DateTime.now().toIso8601String(),
+      if (settledFromDebtSaleId != null && settledFromDebtSaleId.isNotEmpty)
+        'saleKind': 'debt_repayment',
     };
     _vehicleSales.add(row);
     return row;
@@ -1291,6 +1462,12 @@ final class PrototypeSampleData {
   static String _sessionDriverId() =>
       PrototypeSession.current?.id ?? 'proto_driver';
 
+  /// مركبة السائق الحالي دون تشغيل [reconcileVehicleLoadStatuses].
+  static String? vehicleIdForSessionDriver() {
+    final String driverId = _sessionDriverId();
+    return _assignedVehicleForDriver(driverId)?['id']?.toString();
+  }
+
   static Map<String, dynamic>? _assignedVehicleForDriver(String driverId) {
     for (final Map<String, dynamic> v in vehicles) {
       if (v['driverId']?.toString() == driverId) {
@@ -1333,10 +1510,13 @@ final class PrototypeSampleData {
         'loads': <Map<String, dynamic>>[],
       };
     }
-    final List<Map<String, dynamic>> loads = _openLoadsForDriver(driverId);
+    final List<Map<String, dynamic>> loadLines = _openLoadsForDriver(driverId);
+    final List<Map<String, dynamic>> loads =
+        aggregateDriverLoadsByProduct(loadLines);
     return <String, dynamic>{
       'vehicle': vehicle,
       'loads': loads,
+      'loadLines': loadLines,
     };
   }
 
@@ -1529,5 +1709,128 @@ final class PrototypeSampleData {
         'stock': stationStock,
         'isActive': true,
       };
+
+  static final List<Map<String, dynamic>> _staffNotes =
+      <Map<String, dynamic>>[];
+
+  /// مسؤولو المحطة + السائقون (مستلمو الملاحظات).
+  static List<Map<String, dynamic>> staffNoteRecipientOptions() {
+    final List<Map<String, dynamic>> out = <Map<String, dynamic>>[];
+    for (final Map<String, dynamic> u in users) {
+      if (u['isActive'] == false) {
+        continue;
+      }
+      final String role = u['role']?.toString() ?? '';
+      if (role == 'admin' || role == 'driver') {
+        out.add(Map<String, dynamic>.from(u));
+      }
+    }
+    return out;
+  }
+
+  /// إنشاء ملاحظة لمسؤولي المحطة كلهم أو لسائق واحد.
+  static List<Map<String, dynamic>> createStaffNotes({
+    required String senderUserId,
+    required String message,
+    required String recipientKind,
+    String? driverUserId,
+  }) {
+    final String text = message.trim();
+    if (text.isEmpty) {
+      throw StateError('EMPTY_MESSAGE');
+    }
+    final List<String> targetUserIds = <String>[];
+    switch (recipientKind) {
+      case 'all_admins':
+        for (final Map<String, dynamic> u in users) {
+          if (u['isActive'] == false) {
+            continue;
+          }
+          if (u['role']?.toString() == 'admin') {
+            final String? id = u['id']?.toString();
+            if (id != null && id.isNotEmpty) {
+              targetUserIds.add(id);
+            }
+          }
+        }
+      case 'driver':
+        final String? id = driverUserId?.trim();
+        if (id == null || id.isEmpty) {
+          throw StateError('MISSING_DRIVER');
+        }
+        targetUserIds.add(id);
+      default:
+        throw StateError('INVALID_RECIPIENT');
+    }
+    if (targetUserIds.isEmpty) {
+      throw StateError('NO_RECIPIENTS');
+    }
+    final Map<String, dynamic> fromUser = userBrief(senderUserId);
+    final String createdAt = DateTime.now().toIso8601String();
+    final List<Map<String, dynamic>> created = <Map<String, dynamic>>[];
+    for (final String toUserId in targetUserIds) {
+      if (toUserId == senderUserId) {
+        continue;
+      }
+      final Map<String, dynamic> row = <String, dynamic>{
+        'id': 'staff_note_${_staffNotes.length + 1}',
+        'message': text,
+        'toUserId': toUserId,
+        'fromUserId': senderUserId,
+        'fromUser': fromUser,
+        'createdAt': createdAt,
+        'readAt': null,
+      };
+      _staffNotes.add(row);
+      created.add(Map<String, dynamic>.from(row));
+    }
+    if (created.isEmpty) {
+      throw StateError('NO_RECIPIENTS');
+    }
+    return created;
+  }
+
+  /// أقدم ملاحظة غير مقروءة للمستخدم الحالي (تُعرض واحدة في كل مرة).
+  static Map<String, dynamic>? firstUnreadStaffNoteForUser(String userId) {
+    final String want = userId.trim();
+    if (want.isEmpty) {
+      return null;
+    }
+    Map<String, dynamic>? newest;
+    DateTime? newestAt;
+    for (final Map<String, dynamic> n in _staffNotes) {
+      if (n['toUserId']?.toString() != want) {
+        continue;
+      }
+      if (n['readAt'] != null) {
+        continue;
+      }
+      final DateTime? at = DateTime.tryParse(n['createdAt']?.toString() ?? '');
+      if (newest == null ||
+          (at != null && (newestAt == null || at.isAfter(newestAt)))) {
+        newest = n;
+        newestAt = at;
+      }
+    }
+    return newest == null ? null : Map<String, dynamic>.from(newest);
+  }
+
+  static void markStaffNoteRead({
+    required String noteId,
+    required String userId,
+  }) {
+    final String wantId = noteId.trim();
+    final String wantUser = userId.trim();
+    for (final Map<String, dynamic> n in _staffNotes) {
+      if (n['id']?.toString() != wantId) {
+        continue;
+      }
+      if (n['toUserId']?.toString() != wantUser) {
+        return;
+      }
+      n['readAt'] = DateTime.now().toIso8601String();
+      return;
+    }
+  }
 
 }

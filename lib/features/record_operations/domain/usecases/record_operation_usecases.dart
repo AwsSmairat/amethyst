@@ -109,6 +109,21 @@ final class PatchProductStationStockUseCase {
       );
 }
 
+final class DeductStationStockForSaleUseCase {
+  DeductStationStockForSaleUseCase(this._repository);
+
+  final RecordOperationsRepository _repository;
+
+  Future<void> call({
+    required String productId,
+    required int quantity,
+  }) =>
+      _repository.deductStationStockForSale(
+        productId: productId,
+        quantity: quantity,
+      );
+}
+
 final class CreateExpenseUseCase {
   CreateExpenseUseCase(this._repository);
 
@@ -156,6 +171,7 @@ final class CreateVehicleLoadUseCase {
     required String productId,
     required int quantityLoaded,
     required String loadDate,
+    String? loadBatchId,
   }) =>
       _repository.createVehicleLoad(
         vehicleId: vehicleId,
@@ -163,5 +179,6 @@ final class CreateVehicleLoadUseCase {
         productId: productId,
         quantityLoaded: quantityLoaded,
         loadDate: loadDate,
+        loadBatchId: loadBatchId,
       );
 }

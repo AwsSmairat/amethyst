@@ -331,6 +331,41 @@ class AppLocalizationsAr extends AppLocalizations {
   String get cartonSalesMonthly => 'مبيع الكراتين';
 
   @override
+  String get staffNoteKpi => 'ملاحظة';
+
+  @override
+  String get staffNoteSendTitle => 'إرسال ملاحظة';
+
+  @override
+  String get staffNoteMessageHint => 'اكتب الملاحظة هنا...';
+
+  @override
+  String get staffNoteRecipientLabel => 'المستلم';
+
+  @override
+  String get staffNoteRecipientAllAdmins => 'المحطة';
+
+  @override
+  String get staffNoteSendButton => 'إرسال';
+
+  @override
+  String get staffNoteSentSuccess => 'تم إرسال الملاحظة';
+
+  @override
+  String staffNoteFromSender(String name) {
+    return 'من: $name';
+  }
+
+  @override
+  String get staffNoteMarkRead => 'تم القراءة';
+
+  @override
+  String get staffNoteEmptyMessage => 'الرجاء كتابة الملاحظة';
+
+  @override
+  String get staffNotePickDriver => 'اختر السائق';
+
+  @override
   String get superAdminDebtListKpiCaption => 'غير مسدد — الاسم والمنتجات';
 
   @override
@@ -562,6 +597,9 @@ class AppLocalizationsAr extends AppLocalizations {
   String get vehicleSalesLinesSectionTitle => 'تفاصيل المبيعات';
 
   @override
+  String get vehicleSaleDebtRepaymentBadge => 'سداد دين';
+
+  @override
   String get vehicleSaleDestinationHome => 'المنزل';
 
   @override
@@ -604,6 +642,26 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get vehicleLoadsLoadsSectionTitle => 'التحميل على المركبة';
+
+  @override
+  String vehicleLoadsBatchesSectionTitle(String count) {
+    return 'حمولات اليوم ($count)';
+  }
+
+  @override
+  String vehicleLoadsDayBatchCountLine(String count) {
+    return '$count حمولة';
+  }
+
+  @override
+  String vehicleLoadBatchTitle(String number) {
+    return 'حمل $number';
+  }
+
+  @override
+  String vehicleLoadBatchMetaLine(String products, String pieces, String time) {
+    return '$products منتج · $pieces قطعة · $time';
+  }
 
   @override
   String vehicleLoadsGrandTotalSales(String amount) {
@@ -736,13 +794,10 @@ class AppLocalizationsAr extends AppLocalizations {
   String get navLoads => 'التحميلات';
 
   @override
-  String get navNotes => 'الملاحظات';
-
-  @override
   String get myExpenses => 'مصاريفي';
 
   @override
-  String get gasolineExpenses => 'مصاريف بانزين';
+  String get gasolineExpenses => 'مصاريف ديزل';
 
   @override
   String get carRepairExpenses => 'مصاريف تصليح السيارة';
@@ -769,6 +824,59 @@ class AppLocalizationsAr extends AppLocalizations {
   String get stationBalanceSubtitle => 'تسجيل أرصدة البنود';
 
   @override
+  String get stationBalancePageHint =>
+      'عرض مخزون المحطة حسب التصنيف. اضغط «تسجيل الرصيد» لتحديث الكميات.';
+
+  @override
+  String get stationBalanceSectionCartons => 'كراتين';
+
+  @override
+  String get stationBalanceSectionBags => 'شرنك';
+
+  @override
+  String get stationBalanceSectionBottles => 'قوارير';
+
+  @override
+  String get stationBalanceSectionGallons => 'جالونات';
+
+  @override
+  String get stationBalanceSectionStationFloor => 'أرضية المحطة';
+
+  @override
+  String get stationBalanceSectionCoupons => 'كوبونات';
+
+  @override
+  String get stationBalanceSectionOptional => 'بند إضافي';
+
+  @override
+  String stationBalanceSectionStockLine(String stock, String count) {
+    return 'المجموع $stock · $count بند';
+  }
+
+  @override
+  String get stationBalanceTotalUnits => 'إجمالي الوحدات في المحطة';
+
+  @override
+  String get stationBalanceItemsWithStock => 'بنود بمخزون';
+
+  @override
+  String get stationBalanceLowStock => 'مخزون منخفض';
+
+  @override
+  String get stationBalanceUnlinked => 'غير مربوط';
+
+  @override
+  String get stationBalanceRowUnlinkedHint => 'لم يُربط بمنتج في النظام';
+
+  @override
+  String get stationBalanceSuperAdminPricesHint =>
+      'تعديل أسعار المنتجات من شاشة التسعير';
+
+  @override
+  String get stationBalancePricingHint =>
+      'تعديل أسعار المنتجات من شاشة التسعير';
+
+  @override
   String get addStationBalance => 'تسجيل الرصيد';
 
   @override
@@ -781,13 +889,13 @@ class AppLocalizationsAr extends AppLocalizations {
   String get stationBalanceField2 => 'ك يافا';
 
   @override
-  String get stationBalanceField3 => 'ش كبير';
+  String get stationBalanceField3 => 'شرنك كبير';
 
   @override
-  String get stationBalanceField4 => 'ش وسط';
+  String get stationBalanceField4 => 'شرنك وسط';
 
   @override
-  String get stationBalanceField5 => 'ش صغير';
+  String get stationBalanceField5 => 'شرنك صغير';
 
   @override
   String get stationBalanceField6 => 'ق سعودي';
@@ -797,9 +905,6 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get stationBalanceField8 => 'ج فارغ';
-
-  @override
-  String get stationBalanceField9 => 'ق ١٠ لتر';
 
   @override
   String get stationBalanceField10 => 'ق ارضية';
@@ -815,6 +920,15 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get stationBalanceField14 => 'كوبون ٥٠';
+
+  @override
+  String get stationBalanceField15 => 'ق صغير فارغ';
+
+  @override
+  String get stationBalanceField16 => 'ج صغير فارغ';
+
+  @override
+  String get stationBalanceFieldOptional => 'حقل إضافي (اختياري)';
 
   @override
   String get stationBalanceField13Optional => 'حقل إضافي (اختياري)';
@@ -984,12 +1098,6 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get notesAndSummary => 'ملاحظات وملخص';
-
-  @override
-  String get driverNotesTitle => 'ملاحظات';
-
-  @override
-  String get driverNotesFieldHint => 'اكتب ملاحظاتك هنا…';
 
   @override
   String get currentLoads => 'التحميلات الحالية';
@@ -1182,6 +1290,9 @@ class AppLocalizationsAr extends AppLocalizations {
   String get stationSalePickKindTitle => 'اختر نوع البيع';
 
   @override
+  String get stationDebtPickKindTitle => 'اختر نوع الدين';
+
+  @override
   String get stationSaleKindFilling => 'تعبئة';
 
   @override
@@ -1194,14 +1305,21 @@ class AppLocalizationsAr extends AppLocalizations {
   String get stationSaleProductBottle => 'قاروره';
 
   @override
+  String get stationSaleProductSmallGallon => 'جالون صغير';
+
+  @override
+  String get stationSaleProductSmallBottle => 'قاروره صغير';
+
+  @override
   String get stationSaleProductMahdi => 'مهدي';
 
   @override
   String get stationSaleWithFilling => 'مع تعبئة';
 
   @override
-  String get stationSaleWithFillingPriceHint =>
-      'يُضاف ٠٫٥٠ لسعر كل وحدة على المنتجات التي تُباع.';
+  String stationSaleWithFillingPriceHint(String amount) {
+    return 'يُضاف $amount لسعر كل وحدة على منتجات هذا الصف.';
+  }
 
   @override
   String get stationSaleBack => 'رجوع';

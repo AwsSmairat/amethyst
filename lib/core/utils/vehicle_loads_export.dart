@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:amethyst/core/catalog/catalog_product_display_label.dart';
 import 'package:amethyst/core/l10n/context_l10n.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
@@ -63,7 +64,10 @@ String _buildExportText(
     ..writeln();
 
   for (final Map<String, dynamic> item in items) {
-    final String product = _nested(item['product'], 'name');
+    final String rawProduct = _nested(item['product'], 'name');
+    final String product = rawProduct.isNotEmpty
+        ? catalogProductArabicDisplayLabel(rawProduct)
+        : rawProduct;
     final String vehicleNo = _nested(item['vehicle'], 'vehicleNumber');
     final String driver = _nested(item['driver'], 'fullName');
     final DateTime? loadDate = _parseLoadDate(item['loadDate']);

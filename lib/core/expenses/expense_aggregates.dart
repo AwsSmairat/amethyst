@@ -150,3 +150,19 @@ Map<String, CategoryExpenseTotals> summarizeExpensesByCategory({
   }
   return out;
 }
+
+/// مصاريف السائق الحالي فقط (حسب `driverId` في السجل).
+List<Map<String, dynamic>> expenseRowsForDriver(
+  List<Map<String, dynamic>> rows, {
+  required String? driverId,
+}) {
+  if (driverId == null || driverId.isEmpty) {
+    return rows;
+  }
+  return rows
+      .where(
+        (Map<String, dynamic> row) =>
+            row['driverId']?.toString() == driverId,
+      )
+      .toList(growable: false);
+}

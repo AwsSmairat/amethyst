@@ -1,6 +1,8 @@
 import 'package:amethyst/core/data/amethyst_api.dart';
+import 'package:amethyst/core/catalog/catalog_product_display_label.dart';
 import 'package:amethyst/core/l10n/context_l10n.dart';
 import 'package:amethyst/core/theme/app_colors.dart';
+import 'package:amethyst/core/widgets/fab_hero_tags.dart';
 import 'package:amethyst/di/injection.dart';
 import 'package:amethyst/features/driver/presentation/widgets/add_return_sheet.dart';
 import 'package:flutter/material.dart';
@@ -56,6 +58,7 @@ class _DriverLoadsPageState extends State<DriverLoadsPage> {
         ],
       ),
       floatingActionButton: FloatingActionButton.extended(
+        heroTag: FabHeroTags.driverLoads,
         onPressed: () => showAddReturnSheet(context).then((_) => _load()),
         icon: const Icon(Icons.assignment_return),
         label: Text(context.l10n.quickLogReturn),
@@ -166,20 +169,25 @@ class _DriverLoadsPageState extends State<DriverLoadsPage> {
             Text(l10n.noLoadsForToday)
           else
             ...loads.map(
-              (Map<String, dynamic> l) => Card(
-                child: ListTile(
-                  title:
-                      Text(l['product']?['name']?.toString() ?? l10n.product),
-                  subtitle: Text(
+              (Map<String, dynamic> l) {
+                final String? raw = l['product']?['name']?.toString();
+                final String title = raw == null || raw.trim().isEmpty
+                    ? l10n.product
+                    : catalogProductArabicDisplayLabel(raw);
+                return Card(
+                  child: ListTile(
+                    title: Text(title),
+                    subtitle: Text(
                     l10n.loadQuantitiesLine(
                       '${l['quantityLoaded']}',
                       '${l['quantitySold']}',
                       '${l['quantityReturned']}',
                       '${l['remaining']}',
                     ),
+                    ),
                   ),
-                ),
-              ),
+                );
+              },
             ),
         ],
       ],

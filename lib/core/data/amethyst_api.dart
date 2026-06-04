@@ -99,6 +99,15 @@ final class AmethystApi {
   }) =>
       _b.patchProductStationStock(id: id, stationStock: stationStock);
 
+  Future<void> deductStationStockForSale({
+    required String productId,
+    required int quantity,
+  }) =>
+      _b.deductStationStockForSale(
+        productId: productId,
+        quantity: quantity,
+      );
+
   Future<void> upsertStationBalanceRowStock({
     required int rowIndex,
     required int stationStock,
@@ -156,12 +165,15 @@ final class AmethystApi {
 
   Future<Map<String, dynamic>> driverCurrentLoad() => _b.driverCurrentLoad();
 
+  Future<String?> driverAssignedVehicleId() => _b.driverAssignedVehicleId();
+
   Future<Map<String, dynamic>> createVehicleLoad({
     required String vehicleId,
     required String driverId,
     required String productId,
     required int quantityLoaded,
     required String loadDate,
+    String? loadBatchId,
   }) =>
       _b.createVehicleLoad(
         vehicleId: vehicleId,
@@ -169,6 +181,7 @@ final class AmethystApi {
         productId: productId,
         quantityLoaded: quantityLoaded,
         loadDate: loadDate,
+        loadBatchId: loadBatchId,
       );
 
   Future<Map<String, dynamic>> listStationSales({int page = 1, int limit = 100}) =>
@@ -314,6 +327,25 @@ final class AmethystApi {
     int? month,
   }) =>
       _b.reportsSalesMonthly(year: year, month: month);
+
+  Future<List<Map<String, dynamic>>> listStaffNoteRecipients() =>
+      _b.listStaffNoteRecipients();
+
+  Future<List<Map<String, dynamic>>> createStaffNotes({
+    required String message,
+    required String recipientKind,
+    String? driverUserId,
+  }) =>
+      _b.createStaffNotes(
+        message: message,
+        recipientKind: recipientKind,
+        driverUserId: driverUserId,
+      );
+
+  Future<Map<String, dynamic>?> getPendingStaffNoteForMe() =>
+      _b.getPendingStaffNoteForMe();
+
+  Future<void> markStaffNoteRead(String noteId) => _b.markStaffNoteRead(noteId);
 }
 
 extension AmethystApiErrors on AmethystApi {

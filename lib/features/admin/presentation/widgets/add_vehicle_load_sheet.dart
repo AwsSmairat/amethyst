@@ -32,7 +32,7 @@ class _AddVehicleLoadBody extends StatefulWidget {
 }
 
 class _AddVehicleLoadBodyState extends State<_AddVehicleLoadBody> {
-  static const int _rowCount = 6;
+  static const int _rowCount = kVehicleLoadFixedRowCount;
 
   /// ترتيب ثابت لأسماء المنتجات (كما في الخادم) — بدون قوائم اختيار.
   /// ثلاثة أصناف كوبون (١٢ / ٢٤ / ٥٠): أنشئ منتجات `Coupon` و `Coupon 2` و `Coupon 3`.
@@ -43,7 +43,6 @@ class _AddVehicleLoadBodyState extends State<_AddVehicleLoadBody> {
     (_) => TextEditingController(),
   );
   final List<String?> _productIds = List<String?>.filled(_rowCount, null);
-  final List<String> _productLabels = List<String>.filled(_rowCount, '');
   final List<int> _stationStocks = List<int>.filled(_rowCount, 0);
 
   String? _vehicleId;
@@ -101,16 +100,11 @@ class _AddVehicleLoadBodyState extends State<_AddVehicleLoadBody> {
         _catalogProducts = products;
         _vehicleId = _pickInitialVehicleId(vehicles);
         for (var i = 0; i < _rowCount; i++) {
-          final String fixedName = i < kVehicleLoadFixedApiNames.length
-              ? kVehicleLoadFixedApiNames[i]
-              : '';
           final Map<String, dynamic>? match = resolveVehicleLoadRowProduct(
             products: products,
             rowIndex: i,
           );
           _productIds[i] = match?['id'] as String?;
-          _productLabels[i] =
-              match?['name']?.toString().trim() ?? fixedName;
           _stationStocks[i] = stationStockForVehicleLoadRow(
             products: products,
             rowIndex: i,
@@ -162,10 +156,12 @@ class _AddVehicleLoadBodyState extends State<_AddVehicleLoadBody> {
     return switch (index) {
       0 => l10n.vehicleLoadRowGallon,
       1 => l10n.vehicleLoadRowBottle,
-      2 => l10n.vehicleLoadRowCarton,
-      3 => l10n.vehicleLoadCouponBook1,
-      4 => l10n.vehicleLoadCouponBook2,
-      5 => l10n.vehicleLoadCouponBook3,
+      2 => l10n.stationSaleProductSmallGallon,
+      3 => l10n.stationSaleProductSmallBottle,
+      4 => l10n.vehicleLoadRowCarton,
+      5 => l10n.vehicleLoadCouponBook1,
+      6 => l10n.vehicleLoadCouponBook2,
+      7 => l10n.vehicleLoadCouponBook3,
       _ => l10n.productRow(index + 1),
     };
   }
@@ -367,9 +363,7 @@ class _AddVehicleLoadBodyState extends State<_AddVehicleLoadBody> {
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: <Widget>[
                           Text(
-                            _productLabels[i].isNotEmpty
-                                ? _productLabels[i]
-                                : '—',
+                            _productRowTitle(context, i),
                             textAlign: TextAlign.right,
                             style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                                   fontWeight: FontWeight.w600,

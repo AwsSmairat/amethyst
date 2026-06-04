@@ -10,6 +10,12 @@ abstract class RecordOperationsRepository {
     required int stationStock,
   });
 
+  /// خصم كمية من مخزون المحطة بعد بيع/دين (صف رصيد قد يجمع عدة منتجات).
+  Future<void> deductStationStockForSale({
+    required String productId,
+    required int quantity,
+  });
+
   /// حفظ رصيد صف في نموذج المحطة (إنشاء منتج إن لم يكن مربوطاً).
   Future<void> upsertStationBalanceRowStock({
     required int rowIndex,
@@ -75,5 +81,6 @@ abstract class RecordOperationsRepository {
     required String productId,
     required int quantityLoaded,
     required String loadDate,
+    String? loadBatchId,
   });
 }

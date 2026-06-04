@@ -22,6 +22,32 @@ final class SuperAdminProductPricesCubit extends Cubit<ListLoadState> {
       PrototypeSampleData.ensurePricingCatalogProducts();
       final List<Map<String, dynamic>> catalog = await _fetchAllProducts();
       final List<SuperAdminPricingRow> rows = <SuperAdminPricingRow>[
+        for (final int slot in kSuperAdminFillingSalePricingExtraSlots)
+          (
+            rowIndex: slot,
+            product: switch (slot) {
+              kSuperAdminFillingGallonPricingExtraSlot =>
+                resolveFillingGallonProduct(products: catalog),
+              kSuperAdminFillingBottlePricingExtraSlot =>
+                resolveFillingBottleProduct(products: catalog),
+              kSuperAdminFillingSmallGallonPricingExtraSlot =>
+                resolveWaterSmallGallonProduct(products: catalog),
+              kSuperAdminFillingSmallBottlePricingExtraSlot =>
+                resolveWaterSmallBottleProduct(products: catalog),
+              _ => null,
+            },
+          ),
+        for (final int slot in kSuperAdminEmptySaleWithFillingPricingExtraSlots)
+          (
+            rowIndex: slot,
+            product: switch (slot) {
+              kSuperAdminEmptySaleWithFillingRow1PricingExtraSlot =>
+                resolveEmptySaleWithFillingRow1Product(products: catalog),
+              kSuperAdminEmptySaleWithFillingRow2PricingExtraSlot =>
+                resolveEmptySaleWithFillingRow2Product(products: catalog),
+              _ => null,
+            },
+          ),
         for (final int rowIndex in kStationPricingBalanceRowIndices)
           (
             rowIndex: rowIndex,
@@ -89,6 +115,24 @@ final class SuperAdminProductPricesCubit extends Cubit<ListLoadState> {
   Future<String?> linkPricingRow(int rowIndex) async {
     try {
       switch (rowIndex) {
+        case kSuperAdminFillingGallonPricingExtraSlot:
+          PrototypeSampleData.ensureFillingGallonProduct();
+          break;
+        case kSuperAdminFillingBottlePricingExtraSlot:
+          PrototypeSampleData.ensureFillingBottleProduct();
+          break;
+        case kSuperAdminFillingSmallGallonPricingExtraSlot:
+          PrototypeSampleData.ensureWaterSmallGallonProduct();
+          break;
+        case kSuperAdminFillingSmallBottlePricingExtraSlot:
+          PrototypeSampleData.ensureWaterSmallBottleProduct();
+          break;
+        case kSuperAdminEmptySaleWithFillingRow1PricingExtraSlot:
+          PrototypeSampleData.ensureEmptySaleWithFillingRow1Product();
+          break;
+        case kSuperAdminEmptySaleWithFillingRow2PricingExtraSlot:
+          PrototypeSampleData.ensureEmptySaleWithFillingRow2Product();
+          break;
         case kSuperAdminStoreGallonPricingExtraSlot:
           PrototypeSampleData.ensureStoreGallonSaleProduct();
           break;

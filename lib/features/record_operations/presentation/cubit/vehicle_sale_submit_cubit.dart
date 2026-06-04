@@ -16,11 +16,11 @@ typedef VehicleSaleLineInput = ({
 final class VehicleSaleSubmitCubit extends Cubit<SubmitState> {
   VehicleSaleSubmitCubit(
     this._useCase,
-    this._patchStationStock,
+    this._deductStationStock,
   ) : super(const SubmitIdle());
 
   final CreateVehicleSaleUseCase _useCase;
-  final PatchProductStationStockUseCase _patchStationStock;
+  final DeductStationStockForSaleUseCase _deductStationStock;
 
   Future<void> submit({
     required String vehicleId,
@@ -87,12 +87,9 @@ final class VehicleSaleSubmitCubit extends Cubit<SubmitState> {
           stockProductId: line.stockProductId,
         );
         if (line.deductStationStock) {
-          final int next = (line.stationStockSnapshot - line.quantity);
-          final String stockId =
-              line.stockProductId ?? line.productId;
-          await _patchStationStock(
-            productId: stockId,
-            stationStock: next < 0 ? 0 : next,
+          await _deductStationStock(
+            productId: line.stockProductId ?? line.productId,
+            quantity: line.quantity,
           );
         }
       }

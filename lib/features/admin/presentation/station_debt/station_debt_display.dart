@@ -1,3 +1,4 @@
+import 'package:amethyst/core/catalog/catalog_product_display_label.dart';
 import 'package:amethyst/core/station_balance/station_balance_catalog.dart';
 import 'package:amethyst/core/vehicle_sale/vehicle_product_columns.dart';
 import 'package:amethyst/features/admin/presentation/station_debt/station_debt_kind.dart';
@@ -20,23 +21,29 @@ String debtEntryProductDisplayLabel(
       : null;
   final String fallback = product?['name']?.toString().trim() ?? '—';
   if (!isVehicleDebtEntry(entry)) {
-    return fallback.isEmpty ? '—' : fallback;
+    return catalogProductArabicDisplayLabel(fallback);
   }
 
   final VehicleProductColumnPlace place = _placeFromEntry(entry);
   final String? productId = entry['productId']?.toString();
 
-  if (products != null && productId != null && productId.isNotEmpty) {
-    for (var i = 0; i < vehicleProductColumnCount(place); i++) {
-      final VehicleProductColumnBinding binding = bindVehicleProductColumn(
-        place: place,
-        columnIndex: i,
-        products: products,
-      );
-      if (binding.saleProductId == productId) {
-        return binding.displayLabel;
-      }
+  if (productId != null && productId.isNotEmpty) {
+    final int? col = vehicleProductColumnIndexForSaleProductId(
+      place: place,
+      productId: productId,
+      products: products,
+    );
+    if (col != null) {
+      return vehicleProductDisplayLabel(place, col);
     }
+  }
+
+  final String? byName = vehicleProductDisplayLabelByNameMatch(
+    place: place,
+    productName: fallback,
+  );
+  if (byName != null) {
+    return byName;
   }
 
   if (place == VehicleProductColumnPlace.store) {
@@ -53,13 +60,7 @@ String debtEntryProductDisplayLabel(
     }
   }
 
-  for (var i = 0; i < vehicleProductColumnCount(place); i++) {
-    final String label = vehicleProductDisplayLabel(place, i);
-    if (stationBalanceProductNamesMatch(fallback, label)) {
-      return label;
-    }
-  }
-  return fallback.isEmpty ? '—' : fallback;
+  return catalogProductArabicDisplayLabel(fallback);
 }
 
 String? debtEntryVehiclePlaceLabel(

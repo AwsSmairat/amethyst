@@ -1,3 +1,4 @@
+import 'package:amethyst/core/station_balance/station_balance_catalog.dart';
 import 'package:equatable/equatable.dart';
 
 final class StationDebtRegistrationState extends Equatable {
@@ -18,7 +19,7 @@ final class StationDebtRegistrationState extends Equatable {
   });
 
   factory StationDebtRegistrationState.initial({
-    int columnCount = 6,
+    int columnCount = kStationFillingColumnCount,
     bool useVehicleProductLabels = false,
   }) =>
       StationDebtRegistrationState(
@@ -35,8 +36,8 @@ final class StationDebtRegistrationState extends Equatable {
         useVehicleProductLabels: useVehicleProductLabels,
       );
 
-  /// أقصى عدد أعمدة (وضع المحطة).
-  static const int adminColumnCount = 6;
+  /// أقصى عدد أعمدة (وضع المحطة) — مطابق أعمدة التعبئة (٣ كوبونات).
+  static const int adminColumnCount = kStationFillingColumnCount;
 
   final bool loadingProducts;
   final String? loadError;

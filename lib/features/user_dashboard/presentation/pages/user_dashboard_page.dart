@@ -78,8 +78,6 @@ class _UserDashboardView extends StatelessWidget {
                       const _QuickActionsRow(),
                       const SizedBox(height: 12),
                       const _DriverDebtActionsRow(),
-                      const SizedBox(height: 22),
-                      const _NotesCardRow(),
                     ]),
                   ),
                 ),
@@ -182,74 +180,6 @@ class _DriverDebtActionsRow extends StatelessWidget {
           ],
         ),
       ],
-    );
-  }
-}
-
-class _NotesCardRow extends StatelessWidget {
-  const _NotesCardRow();
-
-  @override
-  Widget build(BuildContext context) {
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: () => context.go('/driver/notes'),
-        borderRadius: BorderRadius.circular(24),
-        child: DecoratedBox(
-          decoration: BoxDecoration(
-            color: AppColors.surfaceContainerLow,
-            borderRadius: BorderRadius.circular(24),
-            border: Border.all(
-              color: AppColors.outlineVariant.withValues(alpha: 0.30),
-              width: 2,
-            ),
-          ),
-          child: Padding(
-            padding: const EdgeInsets.all(18),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: <Widget>[
-                Row(
-                  children: <Widget>[
-                    Icon(
-                      Icons.edit_note,
-                      color:
-                          AppColors.onSurfaceVariant.withValues(alpha: 0.6),
-                    ),
-                    const SizedBox(width: 8),
-                    Text(
-                      context.l10n.dailyNotesUpper,
-                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                            fontSize: 10,
-                            letterSpacing: 1.2,
-                            color: AppColors.onSurfaceVariant,
-                            fontWeight: FontWeight.w800,
-                          ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 10),
-                Text(
-                  context.l10n.noCriticalUpdatesToday,
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: AppColors.onSurfaceVariant,
-                        fontStyle: FontStyle.italic,
-                      ),
-                ),
-                const SizedBox(height: 10),
-                Align(
-                  alignment: Alignment.bottomRight,
-                  child: Icon(
-                    Icons.add_circle,
-                    color: AppColors.primary,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
     );
   }
 }

@@ -1,4 +1,5 @@
 import 'package:amethyst/core/data/amethyst_api.dart';
+import 'package:amethyst/core/expenses/expense_aggregates.dart';
 import 'package:amethyst/core/expenses/expense_category_match.dart';
 import 'package:amethyst/core/l10n/context_l10n.dart';
 import 'package:amethyst/di/injection.dart';
@@ -54,9 +55,14 @@ String expenseReportCategoryTitle(String categoryKey, AppLocalizations l10n) {
 
 /// تقرير مصاريف حسب تصنيف الملاحظة (للأدمن / السوبر أدمن).
 class ExpenseCategoryReportPage extends StatefulWidget {
-  const ExpenseCategoryReportPage({super.key, required this.categoryKey});
+  const ExpenseCategoryReportPage({
+    super.key,
+    required this.categoryKey,
+    this.driverIdFilter,
+  });
 
   final String categoryKey;
+  final String? driverIdFilter;
 
   @override
   State<ExpenseCategoryReportPage> createState() =>
@@ -115,7 +121,11 @@ class _ExpenseCategoryReportPageState extends State<ExpenseCategoryReportPage> {
         if (pageItems.length < limit) break;
       }
       if (!mounted) return;
-      final filtered = all.where((Map<String, dynamic> m) {
+      final List<Map<String, dynamic>> scoped = expenseRowsForDriver(
+        all,
+        driverId: widget.driverIdFilter,
+      );
+      final filtered = scoped.where((Map<String, dynamic> m) {
         final note = '${m['note'] ?? ''}';
         return expenseNoteMatchesCategory(note, widget.categoryKey, l10n);
       }).toList(growable: false);

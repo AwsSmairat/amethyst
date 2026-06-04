@@ -8,6 +8,7 @@ import 'package:amethyst/di/injection.dart';
 import 'package:amethyst/features/dashboard/presentation/cubit/super_admin_dashboard_cubit.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:amethyst/features/staff_note/presentation/widgets/send_staff_note_sheet.dart';
 import 'package:go_router/go_router.dart';
 
 class SuperAdminDashboardPage extends StatelessWidget {
@@ -203,6 +204,12 @@ class _SuperAdminDashboardBodyState extends State<_SuperAdminDashboardBody>
                     icon: Icons.inventory_2_outlined,
                     onTap: () =>
                         context.push('/super-admin/carton-sales'),
+                  ),
+                  _KpiCard(
+                    label: l10n.staffNoteKpi,
+                    value: '✉',
+                    icon: Icons.note_alt_outlined,
+                    onTap: () => showSendStaffNoteSheet(context),
                   ),
                 ],
               ),

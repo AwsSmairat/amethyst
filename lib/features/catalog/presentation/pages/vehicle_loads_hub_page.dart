@@ -2,6 +2,7 @@ import 'package:amethyst/core/data/amethyst_api.dart';
 import 'package:amethyst/core/l10n/context_l10n.dart';
 import 'package:amethyst/core/prototype/ui_only.dart';
 import 'package:amethyst/core/theme/app_colors.dart';
+import 'package:amethyst/core/widgets/fab_hero_tags.dart';
 import 'package:amethyst/core/vehicle_load/vehicle_load_aggregates.dart';
 import 'package:amethyst/core/vehicle_sale/vehicle_sales_aggregates.dart';
 import 'package:amethyst/di/injection.dart';
@@ -126,6 +127,7 @@ class _VehicleLoadsHubPageState extends State<VehicleLoadsHubPage> {
       ),
       floatingActionButton: widget.showAddLoadFab
           ? FloatingActionButton.extended(
+              heroTag: FabHeroTags.adminVehicleLoads,
               onPressed: _loading ? null : _openAddLoadSheet,
               icon: const Icon(Icons.add),
               label: Text(l10n.addLoad),

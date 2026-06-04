@@ -1,3 +1,4 @@
+import 'package:amethyst/core/station_balance/station_balance_catalog.dart';
 import 'package:amethyst/features/admin/presentation/station_sale/station_sale_entry_kind.dart';
 
 bool stationSaleColumnSkipsStationStock({
@@ -8,7 +9,7 @@ bool stationSaleColumnSkipsStationStock({
   if (entryKind != StationSaleEntryKind.filling) {
     return false;
   }
-  if (columnIndex == 0 || columnIndex == 1) {
+  if (kStationFillingSkipStockColumnIndices.contains(columnIndex)) {
     return true;
   }
   if (product == null) {
@@ -29,7 +30,14 @@ bool productNameSuggestsFillingSkipStock(String? name) {
   if (t.isEmpty) {
     return false;
   }
-  const Set<String> exact = <String>{'Water Gallon', 'Water Bottle'};
+  const Set<String> exact = <String>{
+    'Water Gallon',
+    'Water Bottle',
+    'جالون صغير',
+    'قاروره صغير',
+    'Water Small Gallon',
+    'Water Small Bottle',
+  };
   if (exact.contains(t)) {
     return true;
   }

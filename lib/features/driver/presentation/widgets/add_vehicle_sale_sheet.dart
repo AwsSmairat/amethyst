@@ -1,3 +1,4 @@
+import 'package:amethyst/core/station_balance/station_balance_list_refresh.dart';
 import 'package:amethyst/core/utils/parse_dynamic_double.dart';
 import 'package:amethyst/core/data/amethyst_api.dart';
 import 'package:amethyst/core/l10n/context_l10n.dart';
@@ -26,7 +27,7 @@ Future<void> showAddVehicleSaleSheet(BuildContext context) {
       create: (_) =>
           VehicleSaleSubmitCubit(
             sl<CreateVehicleSaleUseCase>(),
-            sl<PatchProductStationStockUseCase>(),
+            sl<DeductStationStockForSaleUseCase>(),
           ),
       child: const _AddVehicleSaleBody(),
     ),
@@ -124,9 +125,12 @@ class _AddVehicleSaleBodyState extends State<_AddVehicleSaleBody> {
       final vehicle = dash['assignedVehicle'] as Map<String, dynamic>?;
       final items = await _fetchAllProducts(api);
       final currentLoad = await api.driverCurrentLoad();
-      final loads = (currentLoad['loads'] as List<dynamic>? ?? <dynamic>[])
-          .whereType<Map<String, dynamic>>()
-          .toList(growable: false);
+      final List<Map<String, dynamic>> loads =
+          (currentLoad['loadLines'] as List<dynamic>? ??
+                  currentLoad['loads'] as List<dynamic>? ??
+                  <dynamic>[])
+              .whereType<Map<String, dynamic>>()
+              .toList(growable: false);
       if (!mounted) return;
       setState(() {
         _vehicleId = vehicle?['id'] as String?;
@@ -187,15 +191,16 @@ class _AddVehicleSaleBodyState extends State<_AddVehicleSaleBody> {
       match ??= _findProductByCatalogName(name);
       final String? pid = match?['id']?.toString();
       _stockProductIds[i] = pid;
-      if (i == 2) {
+      if (i == kVehicleHomeMahdiColumnIndex) {
         _stationStocks[i] = aggregateStationStockForBalanceRow(
           products: _productItems,
           rowIndex: 0,
         );
-      } else if (i >= 3 && i <= 5) {
-        _stationStocks[i] = aggregateStationStockForBalanceRow(
+      } else if (i >= kVehicleHomeFirstCouponColumnIndex &&
+          i < kVehicleLoadFixedRowCount) {
+        _stationStocks[i] = stationStockForBalanceRowCanonical(
           products: _productItems,
-          rowIndex: 8 + i,
+          rowIndex: stationBalanceRowIndexForVehicleCouponColumn(i),
         );
       } else {
         _stationStocks[i] =
@@ -348,16 +353,17 @@ class _AddVehicleSaleBodyState extends State<_AddVehicleSaleBody> {
       return _storeMahdiStationStockFromCatalog();
     }
     if (_selectedPlace == VehicleSalePlace.home) {
-      if (columnIndex == 2) {
+      if (columnIndex == kVehicleHomeMahdiColumnIndex) {
         return aggregateStationStockForBalanceRow(
           products: _productItems,
           rowIndex: 0,
         );
       }
-      if (columnIndex >= 3 && columnIndex <= 5) {
-        return aggregateStationStockForBalanceRow(
+      if (columnIndex >= kVehicleHomeFirstCouponColumnIndex &&
+          columnIndex < kVehicleLoadFixedRowCount) {
+        return stationStockForBalanceRowCanonical(
           products: _productItems,
-          rowIndex: 8 + columnIndex,
+          rowIndex: stationBalanceRowIndexForVehicleCouponColumn(columnIndex),
         );
       }
     }
@@ -367,15 +373,16 @@ class _AddVehicleSaleBodyState extends State<_AddVehicleSaleBody> {
   /// أقصى كمية للبيع: جالون/قارورة من حمولة السيارة فقط؛ مهدي/كوبونات منزل أو مهدي متجر = أقل (حمولة + محطة).
   int _maxSellableQuantity(int columnIndex) {
     final bool vehicleLoadOnly =
-        (_selectedPlace == VehicleSalePlace.home && columnIndex <= 1) ||
+        (_selectedPlace == VehicleSalePlace.home &&
+            columnIndex < kVehicleHomeMahdiColumnIndex) ||
         (_selectedPlace == VehicleSalePlace.store && columnIndex < 2);
     if (vehicleLoadOnly) {
       return _vehicleRemainingForColumn(columnIndex);
     }
     final bool homeRows =
         _selectedPlace == VehicleSalePlace.home &&
-            columnIndex >= 2 &&
-            columnIndex <= 5;
+            columnIndex >= kVehicleHomeMahdiColumnIndex &&
+            columnIndex < kVehicleLoadFixedRowCount;
     final bool storeMahdi =
         _selectedPlace == VehicleSalePlace.store && columnIndex == 2;
     if (!homeRows && !storeMahdi) {
@@ -439,14 +446,17 @@ class _AddVehicleSaleBodyState extends State<_AddVehicleSaleBody> {
         return null;
       }
       final bool homeStationStockDeduct =
-          _selectedPlace == VehicleSalePlace.home && i >= 2 && i <= 5;
+          _selectedPlace == VehicleSalePlace.home &&
+              i >= kVehicleHomeMahdiColumnIndex &&
+              i < kVehicleLoadFixedRowCount;
       final bool storeStationStockDeduct =
           _selectedPlace == VehicleSalePlace.store && i == 2;
       final bool needsStationStockCheck =
           homeStationStockDeduct || storeStationStockDeduct;
       final int stationAvailable = _stationStockForColumn(i);
       final bool needsVehicleCheck =
-          (_selectedPlace == VehicleSalePlace.home && i <= 5) ||
+          (_selectedPlace == VehicleSalePlace.home &&
+              i < kVehicleLoadFixedRowCount) ||
           (_selectedPlace == VehicleSalePlace.store && i <= 2);
 
       // أولاً: متبقي السيارة (منتج ٣ متجر = كرتون مهدي على الحمولة).
@@ -476,7 +486,8 @@ class _AddVehicleSaleBodyState extends State<_AddVehicleSaleBody> {
           ? _stockProductIds[i]
           : null;
       final bool deductFromVehicleLoad =
-          (_selectedPlace == VehicleSalePlace.home && i <= 5) ||
+          (_selectedPlace == VehicleSalePlace.home &&
+              i < kVehicleLoadFixedRowCount) ||
           (_selectedPlace == VehicleSalePlace.store && i <= 2);
       String? lineStockId;
       if (deductFromVehicleLoad &&
@@ -487,7 +498,7 @@ class _AddVehicleSaleBodyState extends State<_AddVehicleSaleBody> {
         lineStockId = stockPid;
       } else if (storeStationStockDeduct && i == 2) {
         lineStockId = stockPid;
-      } else if (homeStationStockDeduct && i == 2) {
+      } else if (homeStationStockDeduct && i == kVehicleHomeMahdiColumnIndex) {
         lineStockId = stockPid;
       }
       lines.add(
@@ -525,6 +536,7 @@ class _AddVehicleSaleBodyState extends State<_AddVehicleSaleBody> {
       child: BlocConsumer<VehicleSaleSubmitCubit, SubmitState>(
         listener: (context, state) {
           if (state is SubmitSuccess) {
+            StationBalanceListRefresh.request();
             Navigator.of(context).pop();
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(content: Text(l10n.vehicleSalesRecorded)),

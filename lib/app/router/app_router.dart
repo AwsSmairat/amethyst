@@ -1,5 +1,6 @@
 import 'package:amethyst/core/l10n/context_l10n.dart';
 import 'package:amethyst/core/data/amethyst_api.dart';
+import 'package:amethyst/core/widgets/fab_hero_tags.dart';
 import 'package:amethyst/di/injection.dart';
 import 'package:amethyst/features/auth/presentation/cubit/auth_cubit.dart';
 import 'package:amethyst/features/auth/presentation/cubit/auth_state.dart';
@@ -19,13 +20,13 @@ import 'package:amethyst/features/admin/presentation/widgets/add_station_sale_sh
 import 'package:amethyst/features/catalog/presentation/pages/station_sales_list_page.dart';
 import 'package:amethyst/features/admin/presentation/station_debt/station_debt_list_page.dart';
 import 'package:amethyst/features/admin/presentation/station_debt/station_debtor_detail_page.dart';
-import 'package:amethyst/features/admin/presentation/station_debt/station_debt_registration_page.dart';
-import 'package:amethyst/features/admin/presentation/station_debt/cubit/station_debt_registration_cubit.dart';
+import 'package:amethyst/features/admin/presentation/station_debt/station_debt_registration_nav.dart';
 import 'package:amethyst/features/admin/presentation/station_debt/station_debt_vehicle_place.dart';
+import 'package:amethyst/features/admin/presentation/station_debt/cubit/station_debt_registration_cubit.dart';
+import 'package:amethyst/features/admin/presentation/station_debt/station_debt_registration_page.dart';
 import 'package:amethyst/features/record_operations/domain/usecases/record_operation_usecases.dart';
 import 'package:amethyst/features/dashboard/presentation/pages/admin_dashboard_page.dart';
 import 'package:amethyst/features/dashboard/presentation/pages/admin_station_balance_page.dart';
-import 'package:amethyst/features/dashboard/presentation/pages/reports_page.dart';
 import 'package:amethyst/features/dashboard/presentation/pages/sales_working_days_page.dart';
 import 'package:amethyst/features/dashboard/presentation/pages/super_admin_carton_sales_page.dart';
 import 'package:amethyst/features/dashboard/presentation/pages/super_admin_dashboard_page.dart';
@@ -36,7 +37,6 @@ import 'package:amethyst/features/dashboard/presentation/pages/super_admin_produ
 import 'package:amethyst/features/dashboard/presentation/pages/super_admin_vehicles_page.dart';
 import 'package:amethyst/features/driver/presentation/pages/driver_expenses_page.dart';
 import 'package:amethyst/features/driver/presentation/pages/driver_loads_page.dart';
-import 'package:amethyst/features/driver/presentation/pages/driver_notes_page.dart';
 import 'package:amethyst/features/driver/presentation/pages/driver_sales_page.dart';
 import 'package:amethyst/features/shared/presentation/shells/admin_shell.dart';
 import 'package:amethyst/features/shared/presentation/shells/driver_shell_page.dart';
@@ -169,38 +169,13 @@ GoRouter createAppRouter(AuthCubit authCubit) {
               ),
               GoRoute(
                 path: 'station-balance',
-                builder: (_, __) => const AdminStationBalancePage(),
+                builder: (_, __) => const AdminStationBalancePage(
+                  shellBase: '/super-admin',
+                ),
               ),
               GoRoute(
                 path: 'station-debt-registration',
-                builder: (BuildContext context, GoRouterState state) {
-                  StationDebtVehiclePlace? place;
-                  final Object? extra = state.extra;
-                  if (extra is Map<String, dynamic>) {
-                    final String? raw = extra['vehiclePlace']?.toString();
-                    if (raw == 'store') {
-                      place = StationDebtVehiclePlace.store;
-                    } else if (raw == 'home') {
-                      place = StationDebtVehiclePlace.home;
-                    }
-                  }
-                  return BlocProvider<StationDebtRegistrationCubit>(
-                    create: (_) => StationDebtRegistrationCubit(
-                      listProductItems: sl<ListProductItemsUseCase>(),
-                      createStationDebtEntries:
-                          sl<CreateStationDebtEntriesUseCase>(),
-                      vehiclePlace: place,
-                      api: place != null ? sl<AmethystApi>() : null,
-                      createVehicleSale: place != null
-                          ? sl<CreateVehicleSaleUseCase>()
-                          : null,
-                      patchProductStationStock: place != null
-                          ? sl<PatchProductStationStockUseCase>()
-                          : null,
-                    ),
-                    child: const StationDebtRegistrationPage(),
-                  );
-                },
+                builder: buildStationDebtRegistrationRoute,
               ),
               GoRoute(
                 path: 'station-debt-list',
@@ -345,10 +320,6 @@ GoRouter createAppRouter(AuthCubit authCubit) {
                 builder: (BuildContext context, _) =>
                     const ExpensesHubPage(basePath: '/super-admin'),
               ),
-              GoRoute(
-                path: 'reports',
-                builder: (_, __) => const ReportsPage(),
-              ),
             ],
           ),
         ],
@@ -373,35 +344,14 @@ GoRouter createAppRouter(AuthCubit authCubit) {
                 builder: (_, __) => const AdminDashboardPage(),
               ),
               GoRoute(
+                path: 'product-prices',
+                builder: (_, __) => const SuperAdminProductPricesPage(
+                  allowAddProduct: false,
+                ),
+              ),
+              GoRoute(
                 path: 'station-debt-registration',
-                builder: (BuildContext context, GoRouterState state) {
-                  StationDebtVehiclePlace? place;
-                  final Object? extra = state.extra;
-                  if (extra is Map<String, dynamic>) {
-                    final String? raw = extra['vehiclePlace']?.toString();
-                    if (raw == 'store') {
-                      place = StationDebtVehiclePlace.store;
-                    } else if (raw == 'home') {
-                      place = StationDebtVehiclePlace.home;
-                    }
-                  }
-                  return BlocProvider<StationDebtRegistrationCubit>(
-                    create: (_) => StationDebtRegistrationCubit(
-                      listProductItems: sl<ListProductItemsUseCase>(),
-                      createStationDebtEntries:
-                          sl<CreateStationDebtEntriesUseCase>(),
-                      vehiclePlace: place,
-                      api: place != null ? sl<AmethystApi>() : null,
-                      createVehicleSale: place != null
-                          ? sl<CreateVehicleSaleUseCase>()
-                          : null,
-                      patchProductStationStock: place != null
-                          ? sl<PatchProductStationStockUseCase>()
-                          : null,
-                    ),
-                    child: const StationDebtRegistrationPage(),
-                  );
-                },
+                builder: buildStationDebtRegistrationRoute,
               ),
               GoRoute(
                 path: 'station-debt-list',
@@ -490,6 +440,7 @@ GoRouter createAppRouter(AuthCubit authCubit) {
                     fab: Builder(
                       builder: (BuildContext context) {
                         return FloatingActionButton.extended(
+                          heroTag: FabHeroTags.adminStationSales,
                           onPressed: () => showAddStationSaleSheet(context),
                           icon: const Icon(Icons.add),
                           label: Text(context.l10n.addStationSale),
@@ -542,7 +493,9 @@ GoRouter createAppRouter(AuthCubit authCubit) {
               ),
               GoRoute(
                 path: 'station-balance',
-                builder: (_, __) => const AdminStationBalancePage(),
+                builder: (_, __) => const AdminStationBalancePage(
+                  shellBase: '/admin',
+                ),
               ),
               GoRoute(
                 path: 'products',
@@ -624,8 +577,8 @@ GoRouter createAppRouter(AuthCubit authCubit) {
                               vehiclePlace: place,
                               api: sl<AmethystApi>(),
                               createVehicleSale: sl<CreateVehicleSaleUseCase>(),
-                              patchProductStationStock:
-                                  sl<PatchProductStationStockUseCase>(),
+                              deductStationStockForSale:
+                                  sl<DeductStationStockForSaleUseCase>(),
                             ),
                             child: const StationDebtRegistrationPage(),
                           );
@@ -687,6 +640,23 @@ GoRouter createAppRouter(AuthCubit authCubit) {
                   GoRoute(
                     path: 'expenses',
                     builder: (_, __) => const DriverExpensesPage(),
+                    routes: <RouteBase>[
+                      GoRoute(
+                        path: 'report/:category',
+                        builder: (BuildContext context, GoRouterState state) {
+                          final AuthState auth =
+                              context.read<AuthCubit>().state;
+                          final String? driverId = auth is AuthAuthenticated
+                              ? auth.user.id
+                              : null;
+                          return ExpenseCategoryReportPage(
+                            categoryKey:
+                                state.pathParameters['category'] ?? '',
+                            driverIdFilter: driverId,
+                          );
+                        },
+                      ),
+                    ],
                   ),
                 ],
               ),
@@ -695,14 +665,6 @@ GoRouter createAppRouter(AuthCubit authCubit) {
                   GoRoute(
                     path: 'loads',
                     builder: (_, __) => const DriverLoadsPage(),
-                  ),
-                ],
-              ),
-              StatefulShellBranch(
-                routes: <RouteBase>[
-                  GoRoute(
-                    path: 'notes',
-                    builder: (_, __) => const DriverNotesPage(),
                   ),
                 ],
               ),

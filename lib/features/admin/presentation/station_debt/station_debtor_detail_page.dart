@@ -8,6 +8,8 @@ import 'package:amethyst/features/admin/presentation/station_debt/station_debt_k
 import 'package:amethyst/l10n/app_localizations.dart';
 import 'package:amethyst/features/auth/presentation/cubit/auth_cubit.dart';
 import 'package:amethyst/features/auth/presentation/cubit/auth_state.dart';
+import 'package:amethyst/features/driver/presentation/driver_sales_list_refresh.dart';
+import 'package:amethyst/core/vehicle_sale/vehicle_sales_list_refresh.dart';
 import 'package:amethyst/features/record_operations/domain/usecases/record_operation_usecases.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -30,6 +32,25 @@ class StationDebtorDetailPage extends StatefulWidget {
 
 class _StationDebtorDetailPageState extends State<StationDebtorDetailPage> {
   bool _submitting = false;
+  List<Map<String, dynamic>>? _products;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadProducts();
+  }
+
+  Future<void> _loadProducts() async {
+    try {
+      final List<Map<String, dynamic>> items =
+          await sl<ListProductItemsUseCase>()();
+      if (mounted) {
+        setState(() => _products = items);
+      }
+    } on Object {
+      // عرض الأسماء بدون كتالوج — مطابقة بالاسم فقط.
+    }
+  }
 
   bool _hasStationDebt(List<Map<String, dynamic>> entries) =>
       entries.any(isStationDebtEntry);
@@ -88,6 +109,10 @@ class _StationDebtorDetailPageState extends State<StationDebtorDetailPage> {
           : vehicleRepaid > 0
               ? l10n.stationDebtRepaySuccessVehicle
               : l10n.stationDebtRepaySuccess;
+      if (vehicleRepaid > 0) {
+        VehicleSalesListRefresh.request();
+        DriverSalesListRefresh.request();
+      }
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(successMessage)),
       );
@@ -160,8 +185,10 @@ class _StationDebtorDetailPageState extends State<StationDebtorDetailPage> {
                     separatorBuilder: (_, __) => const Divider(height: 1),
                     itemBuilder: (BuildContext context, int i) {
                       final Map<String, dynamic> item = sorted[i];
-                      final String pname =
-                          debtEntryProductDisplayLabel(item);
+                      final String pname = debtEntryProductDisplayLabel(
+                        item,
+                        products: _products,
+                      );
                       final String qty = item['quantity']?.toString() ?? '';
                       final String total =
                           formatStationDebtAmount(item['totalAmount']);

@@ -1,4 +1,5 @@
 import 'package:amethyst/core/l10n/context_l10n.dart';
+import 'package:amethyst/core/station_balance/station_balance_list_refresh.dart';
 import 'package:amethyst/features/admin/presentation/station_sale/cubit/station_sale_form_cubit.dart';
 import 'package:amethyst/features/admin/presentation/station_sale/cubit/station_sale_form_state.dart';
 import 'package:amethyst/features/admin/presentation/station_sale/station_sale_entry_kind.dart';
@@ -34,6 +35,7 @@ class StationSaleFormView extends StatelessWidget {
         listener: (BuildContext context, StationSaleFormState state) {
           final l10n = context.l10n;
           if (state.submitSucceeded) {
+            StationBalanceListRefresh.request();
             Navigator.of(context).pop();
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(content: Text(l10n.stationSalesRecorded)),
@@ -112,8 +114,7 @@ class StationSaleFormView extends StatelessWidget {
                       ),
                 ),
                 const SizedBox(height: 12),
-                if (state.entryKind == StationSaleEntryKind.filling &&
-                    state.colCount == 6) ...<Widget>[
+                if (state.entryKind == StationSaleEntryKind.filling) ...<Widget>[
                   _productRow(
                     context,
                     state: state,
@@ -137,48 +138,48 @@ class StationSaleFormView extends StatelessWidget {
                     start: 4,
                     end: 6,
                   ),
-                ] else
+                  const SizedBox(height: 12),
+                  _productRow(
+                    context,
+                    state: state,
+                    busy: busy,
+                    start: 6,
+                    end: state.colCount,
+                  ),
+                ] else ...<Widget>[
                   _productRow(
                     context,
                     state: state,
                     busy: busy,
                     start: 0,
+                    end: 3,
+                  ),
+                  _withFillingRowControls(
+                    context,
+                    busy: busy,
+                    active: state.withFillingRow1On,
+                    surcharge: state.emptySaleWithFillingSurchargeRow1,
+                    onToggle: () => context
+                        .read<StationSaleFormCubit>()
+                        .toggleWithFillingRow1(),
+                  ),
+                  const SizedBox(height: 12),
+                  _productRow(
+                    context,
+                    state: state,
+                    busy: busy,
+                    start: 3,
                     end: state.colCount,
                   ),
-                if (state.entryKind == StationSaleEntryKind.emptySale) ...<Widget>[
-                  const SizedBox(height: 16),
-                  Center(
-                    child: FilledButton(
-                      onPressed: busy
-                          ? null
-                          : () => context
-                              .read<StationSaleFormCubit>()
-                              .toggleWithFilling(),
-                      style: FilledButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 24,
-                          vertical: 12,
-                        ),
-                        backgroundColor: state.withFilling
-                            ? scheme.primary
-                            : scheme.surfaceContainerHighest,
-                        foregroundColor: state.withFilling
-                            ? scheme.onPrimary
-                            : scheme.onSurface,
-                      ),
-                      child: Text(l10n.stationSaleWithFilling),
-                    ),
+                  _withFillingRowControls(
+                    context,
+                    busy: busy,
+                    active: state.withFillingRow2On,
+                    surcharge: state.emptySaleWithFillingSurchargeRow2,
+                    onToggle: () => context
+                        .read<StationSaleFormCubit>()
+                        .toggleWithFillingRow2(),
                   ),
-                  if (state.withFilling) ...<Widget>[
-                    const SizedBox(height: 8),
-                    Text(
-                      l10n.stationSaleWithFillingPriceHint,
-                      textAlign: TextAlign.center,
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: scheme.onSurfaceVariant,
-                          ),
-                    ),
-                  ],
                 ],
                 const SizedBox(height: 20),
                 FilledButton(
@@ -213,6 +214,50 @@ class StationSaleFormView extends StatelessWidget {
           );
         },
       ),
+    );
+  }
+
+  Widget _withFillingRowControls(
+    BuildContext context, {
+    required bool busy,
+    required bool active,
+    required double surcharge,
+    required VoidCallback onToggle,
+  }) {
+    final l10n = context.l10n;
+    final ColorScheme scheme = Theme.of(context).colorScheme;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: <Widget>[
+        const SizedBox(height: 12),
+        Center(
+          child: FilledButton(
+            onPressed: busy ? null : onToggle,
+            style: FilledButton.styleFrom(
+              padding: const EdgeInsets.symmetric(
+                horizontal: 24,
+                vertical: 12,
+              ),
+              backgroundColor: active
+                  ? scheme.primary
+                  : scheme.surfaceContainerHighest,
+              foregroundColor:
+                  active ? scheme.onPrimary : scheme.onSurface,
+            ),
+            child: Text(l10n.stationSaleWithFilling),
+          ),
+        ),
+        if (active) ...<Widget>[
+          const SizedBox(height: 8),
+          Text(
+            l10n.stationSaleWithFillingPriceHint(surcharge.toStringAsFixed(2)),
+            textAlign: TextAlign.center,
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: scheme.onSurfaceVariant,
+                ),
+          ),
+        ],
+      ],
     );
   }
 

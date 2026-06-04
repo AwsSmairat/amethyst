@@ -8,12 +8,14 @@ class ExpenseCategoryHintsSection extends StatelessWidget {
   const ExpenseCategoryHintsSection({
     super.key,
     this.includeStationExpense = false,
+    this.includeOtherExpense = true,
     this.onCategoryTap,
     this.categoryTotals,
     this.formatAmount,
   });
 
   final bool includeStationExpense;
+  final bool includeOtherExpense;
   final void Function(String categoryKey)? onCategoryTap;
   final Map<String, CategoryExpenseTotals>? categoryTotals;
   final String Function(double value)? formatAmount;
@@ -119,16 +121,18 @@ class ExpenseCategoryHintsSection extends StatelessWidget {
             totals: totals?['carRepair'],
             formatAmount: formatAmount,
           ),
-          const SizedBox(height: 10),
-          _field(
-            context,
-            categoryKey: 'other',
-            icon: Icons.more_horiz,
-            label: l10n.otherExpenses,
-            onCategoryTap: onCategoryTap,
-            totals: totals?['other'],
-            formatAmount: formatAmount,
-          ),
+          if (includeOtherExpense) ...<Widget>[
+            const SizedBox(height: 10),
+            _field(
+              context,
+              categoryKey: 'other',
+              icon: Icons.more_horiz,
+              label: l10n.otherExpenses,
+              onCategoryTap: onCategoryTap,
+              totals: totals?['other'],
+              formatAmount: formatAmount,
+            ),
+          ],
           if (includeStationExpense) ...<Widget>[
             const SizedBox(height: 10),
             _field(

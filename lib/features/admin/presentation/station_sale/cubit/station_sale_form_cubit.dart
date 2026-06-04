@@ -24,9 +24,6 @@ typedef _LineBuild = ({
   StationSaleValidationError? err,
 });
 
-/// زيادة سعر الوحدة عند «مع تعبئة» في وضع بيع فارغ فقط.
-const double kEmptySaleWithFillingSurchargePerUnit = 0.5;
-
 /// ملاحظة تُخزَّن مع بيع التعبئة عند تفعيل «كوبون» على جالون/قارورة.
 const String kFillingCouponSaleNote = 'كوبون';
 
@@ -73,11 +70,22 @@ final class StationSaleFormCubit extends Cubit<StationSaleFormState> {
           List<double?>.filled(state.colCount, null, growable: false);
       for (var i = 0; i < state.colCount; i++) {
         Map<String, dynamic>? match;
-        if (state.entryKind == StationSaleEntryKind.emptySale) {
+        if (state.entryKind == StationSaleEntryKind.emptySale &&
+            i < kStationEmptySaleBalanceRowIndices.length) {
           match = resolveStationBalanceProduct(
             products: items,
-            rowIndex: 5 + i,
+            rowIndex: kStationEmptySaleBalanceRowIndices[i],
           );
+        }
+        if (state.entryKind == StationSaleEntryKind.filling &&
+            i < kStationFillingBalanceRowByColumn.length) {
+          final int? balanceRow = kStationFillingBalanceRowByColumn[i];
+          if (balanceRow != null) {
+            match = resolveStationBalanceProduct(
+              products: items,
+              rowIndex: balanceRow,
+            );
+          }
         }
         if (match == null) {
           final String name = i < apiNames.length ? apiNames[i] : '';
@@ -121,7 +129,7 @@ final class StationSaleFormCubit extends Cubit<StationSaleFormState> {
             }
           }
         }
-        if (state.entryKind == StationSaleEntryKind.filling && i == 2) {
+        if (state.entryKind == StationSaleEntryKind.filling && i == 4) {
           final String? canonical =
               resolveMahdiCartonStockProductId(products: items);
           if (canonical != null && canonical.isNotEmpty) {
@@ -137,11 +145,27 @@ final class StationSaleFormCubit extends Cubit<StationSaleFormState> {
               }
             }
           }
+          final double? mahdiPrice =
+              stationMahdiFillingAndHomeUnitPrice(products: items);
+          if (mahdiPrice != null) {
+            prices[i] = mahdiPrice;
+          }
           stocks[i] = aggregateStationStockForBalanceRow(
             products: items,
             rowIndex: 0,
           );
           skipStock[i] = false;
+        } else if (state.entryKind == StationSaleEntryKind.emptySale &&
+            i < kStationEmptySaleBalanceRowIndices.length) {
+          stocks[i] = stationStockForBalanceRow(
+            products: items,
+            rowIndex: kStationEmptySaleBalanceRowIndices[i],
+          );
+          skipStock[i] = stationSaleColumnSkipsStationStock(
+            entryKind: state.entryKind,
+            columnIndex: i,
+            product: row,
+          );
         } else {
           stocks[i] = stationStockFromProductJson(row ?? <String, dynamic>{});
           skipStock[i] = stationSaleColumnSkipsStationStock(
@@ -151,6 +175,18 @@ final class StationSaleFormCubit extends Cubit<StationSaleFormState> {
           );
         }
       }
+      double surchargeRow1 = state.emptySaleWithFillingSurchargeRow1;
+      double surchargeRow2 = state.emptySaleWithFillingSurchargeRow2;
+      if (state.entryKind == StationSaleEntryKind.emptySale) {
+        final Map<String, dynamic>? row1Product =
+            resolveEmptySaleWithFillingRow1Product(products: items);
+        final Map<String, dynamic>? row2Product =
+            resolveEmptySaleWithFillingRow2Product(products: items);
+        surchargeRow1 =
+            parseDynamicDouble(row1Product?['price']) ?? surchargeRow1;
+        surchargeRow2 =
+            parseDynamicDouble(row2Product?['price']) ?? surchargeRow2;
+      }
       emit(
         state.copyWith(
           loadingProducts: false,
@@ -158,6 +194,8 @@ final class StationSaleFormCubit extends Cubit<StationSaleFormState> {
           unitPrices: prices,
           columnSkipsStationStock: skipStock,
           columnStationStock: stocks,
+          emptySaleWithFillingSurchargeRow1: surchargeRow1,
+          emptySaleWithFillingSurchargeRow2: surchargeRow2,
         ),
       );
     } on Object catch (e) {
@@ -202,8 +240,12 @@ final class StationSaleFormCubit extends Cubit<StationSaleFormState> {
     );
   }
 
-  void toggleWithFilling() {
-    emit(state.copyWith(withFilling: !state.withFilling));
+  void toggleWithFillingRow1() {
+    emit(state.copyWith(withFillingRow1On: !state.withFillingRow1On));
+  }
+
+  void toggleWithFillingRow2() {
+    emit(state.copyWith(withFillingRow2On: !state.withFillingRow2On));
   }
 
   void toggleCouponLine(int productIndex) {
@@ -300,25 +342,51 @@ final class StationSaleFormCubit extends Cubit<StationSaleFormState> {
     try {
       final bool fillingSale =
           state.entryKind == StationSaleEntryKind.filling;
-      final bool addFillingSurcharge =
-          !fillingSale &&
-          state.entryKind == StationSaleEntryKind.emptySale &&
-          state.withFilling;
       final List<Map<String, dynamic>> catalog = await _listProductItems();
+      final Map<String, ({int quantity, double unitPrice, int? columnIndex, String? note})>
+          mergedByProduct = <String,
+              ({int quantity, double unitPrice, int? columnIndex, String? note})>{};
       for (final StationSaleLine line in lines) {
-        final double unitOut = addFillingSurcharge
-            ? line.unitPrice + kEmptySaleWithFillingSurchargePerUnit
-            : line.unitPrice;
+        final double unitOut = line.unitPrice +
+            emptySaleWithFillingSurchargeForColumn(
+              columnIndex: line.columnIndex,
+              row1On: state.withFillingRow1On,
+              row2On: state.withFillingRow2On,
+              row1Surcharge: state.emptySaleWithFillingSurchargeRow1,
+              row2Surcharge: state.emptySaleWithFillingSurchargeRow2,
+            );
+        final String pid = canonicalProductIdForMahdiStoreSale(
+          productId: line.productId,
+          products: catalog,
+        );
+        final ({int quantity, double unitPrice, int? columnIndex, String? note})?
+            existing = mergedByProduct[pid];
+        if (existing != null) {
+          mergedByProduct[pid] = (
+            quantity: existing.quantity + line.quantity,
+            unitPrice: existing.unitPrice,
+            columnIndex: existing.columnIndex,
+            note: existing.note,
+          );
+        } else {
+          mergedByProduct[pid] = (
+            quantity: line.quantity,
+            unitPrice: unitOut,
+            columnIndex: line.columnIndex,
+            note: line.note,
+          );
+        }
+      }
+      for (final MapEntry<String,
+              ({int quantity, double unitPrice, int? columnIndex, String? note})>
+          entry in mergedByProduct.entries) {
         await _createStationSale(
-          productId: canonicalProductIdForMahdiStoreSale(
-            productId: line.productId,
-            products: catalog,
-          ),
-          quantity: line.quantity,
-          unitPrice: unitOut,
+          productId: entry.key,
+          quantity: entry.value.quantity,
+          unitPrice: entry.value.unitPrice,
           fillingSale: fillingSale,
-          fillingLineSlot: fillingSale ? line.columnIndex : null,
-          note: line.note,
+          fillingLineSlot: fillingSale ? entry.value.columnIndex : null,
+          note: entry.value.note,
         );
       }
       emit(
@@ -371,17 +439,17 @@ String? _unitTypeFromProductJson(Map<String, dynamic> pr) {
 
 /// يطابق أعمدة الشاشة مع `ProductUnitType` في الـ API عندما لا يطابق الاسم الإنجليزي الثابت.
 ///
-/// بيع فارغ: أعمدة ق سعودي / ق اردني / ج فارغ — تُربط بالاسم فقط (`Saudi Bottle` …)
+/// بيع فارغ: ق سعودي / ق اردني / ج فارغ / ق صغير فارغ / ج صغير فارغ — بالاسم أو صف الرصيد.
 /// حتى لا يُختار نفس منتج [bottle] مرتين عند التراجع عن التطابق بالاسم.
 String? _unitTypeForStationSaleSlot(StationSaleEntryKind kind, int index) {
   if (kind == StationSaleEntryKind.emptySale) {
     return null;
   }
   return switch (index) {
-    0 => 'gallon',
-    1 => 'bottle',
-    2 => 'carton',
-    3 || 4 || 5 => 'coupon',
+    0 || 2 => 'gallon',
+    1 || 3 => 'bottle',
+    4 => 'carton',
+    5 || 6 || 7 => 'coupon',
     _ => null,
   };
 }

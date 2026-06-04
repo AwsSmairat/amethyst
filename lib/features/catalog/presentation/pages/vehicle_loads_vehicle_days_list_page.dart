@@ -2,6 +2,7 @@ import 'package:amethyst/core/data/amethyst_api.dart';
 import 'package:amethyst/core/l10n/context_l10n.dart';
 import 'package:amethyst/core/theme/app_colors.dart';
 import 'package:amethyst/core/vehicle_load/vehicle_load_aggregates.dart';
+import 'package:amethyst/core/vehicle_load/vehicle_load_batches.dart';
 import 'package:amethyst/di/injection.dart';
 import 'package:amethyst/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
@@ -31,6 +32,7 @@ class _VehicleLoadsVehicleDaysListPageState
   bool _loading = true;
   String? _error;
   List<DateTime> _days = <DateTime>[];
+  Map<DateTime, int> _batchCountByDay = <DateTime, int>{};
 
   @override
   void initState() {
@@ -54,12 +56,21 @@ class _VehicleLoadsVehicleDaysListPageState
               .whereType<Map<String, dynamic>>()
               .toList(growable: false);
       final Set<DateTime> daySet = <DateTime>{};
+      final Map<DateTime, int> batchCounts = <DateTime, int>{};
       for (final Map<String, dynamic> item in items) {
-        final DateTime? d = vehicleLoadRowDate(item);
+        final DateTime? d = vehicleLoadCalendarDay(item);
         if (d == null) {
           continue;
         }
-        daySet.add(DateTime(d.year, d.month, d.day));
+        final DateTime day = DateTime(d.year, d.month, d.day);
+        daySet.add(day);
+      }
+      for (final DateTime day in daySet) {
+        batchCounts[day] = vehicleLoadBatchCountForDay(
+          loads: items,
+          vehicleId: widget.vehicleId,
+          day: day,
+        );
       }
       final List<DateTime> days = daySet.toList()
         ..sort((DateTime a, DateTime b) => b.compareTo(a));
@@ -68,6 +79,7 @@ class _VehicleLoadsVehicleDaysListPageState
       }
       setState(() {
         _days = days;
+        _batchCountByDay = batchCounts;
         _loading = false;
       });
     } on Object catch (e) {
@@ -176,7 +188,25 @@ class _VehicleLoadsVehicleDaysListPageState
               primary,
               style: const TextStyle(fontWeight: FontWeight.w800),
             ),
-            subtitle: Text(secondary),
+            subtitle: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                Text(secondary),
+                if ((_batchCountByDay[day] ?? 0) > 0) ...<Widget>[
+                  const SizedBox(height: 4),
+                  Text(
+                    l10n.vehicleLoadsDayBatchCountLine(
+                      '${_batchCountByDay[day]}',
+                    ),
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          fontWeight: FontWeight.w700,
+                          color: Theme.of(context).colorScheme.primary,
+                        ),
+                  ),
+                ],
+              ],
+            ),
+            isThreeLine: (_batchCountByDay[day] ?? 0) > 0,
             trailing: Row(
               mainAxisSize: MainAxisSize.min,
               children: <Widget>[

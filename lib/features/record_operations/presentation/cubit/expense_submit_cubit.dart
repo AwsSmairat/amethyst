@@ -25,9 +25,13 @@ final class ExpenseSubmitCubit extends Cubit<SubmitState> {
         receiptBytes: receiptBytes,
         receiptFilename: receiptFilename,
       );
-      emit(const SubmitSuccess());
+      if (!isClosed) {
+        emit(const SubmitSuccess());
+      }
     } on Object catch (e) {
-      emit(SubmitFailure(errorMessageFrom(e)));
+      if (!isClosed) {
+        emit(SubmitFailure(errorMessageFrom(e)));
+      }
     }
   }
 }

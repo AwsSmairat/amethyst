@@ -1,4 +1,7 @@
+import 'package:amethyst/core/catalog/catalog_product_display_label.dart';
 import 'package:amethyst/core/data/amethyst_api.dart';
+import 'package:amethyst/core/vehicle_sale/vehicle_sales_aggregates.dart';
+import 'package:amethyst/core/vehicle_sale/vehicle_sales_list_refresh.dart';
 import 'package:amethyst/core/utils/parse_api_datetime.dart';
 import 'package:amethyst/core/l10n/context_l10n.dart';
 import 'package:amethyst/core/theme/app_colors.dart';
@@ -39,7 +42,16 @@ class _VehicleSalesDayPageState extends State<VehicleSalesDayPage> {
   void initState() {
     super.initState();
     _day = _parseDayKey(widget.dayKey);
+    VehicleSalesListRefresh.onRefreshRequested = _load;
     _load();
+  }
+
+  @override
+  void dispose() {
+    if (VehicleSalesListRefresh.onRefreshRequested == _load) {
+      VehicleSalesListRefresh.onRefreshRequested = null;
+    }
+    super.dispose();
   }
 
   @override
@@ -99,7 +111,9 @@ class _VehicleSalesDayPageState extends State<VehicleSalesDayPage> {
               .whereType<Map<String, dynamic>>()
               .toList(growable: false);
       setState(() {
-        _items = list;
+        _items = list
+            .where(isVehicleSaleVisibleInSalesList)
+            .toList(growable: false);
         _loading = false;
       });
     } on Object catch (e) {
@@ -361,7 +375,10 @@ class _VehicleSaleLineTile extends StatelessWidget {
     final Object? p = item['product'];
     String productName = '—';
     if (p is Map<String, dynamic>) {
-      productName = p['name']?.toString() ?? '—';
+      final String? raw = p['name']?.toString();
+      productName = raw == null || raw.trim().isEmpty
+          ? '—'
+          : catalogProductArabicDisplayLabel(raw);
     }
     final String qty = item['quantity']?.toString() ?? '';
     final String title = '$productName × $qty';
@@ -374,7 +391,12 @@ class _VehicleSaleLineTile extends StatelessWidget {
     final String unitStr =
         unit != null ? money.format(unit) : (item['unitPrice']?.toString() ?? '—');
 
-    final bool coupon = unit != null && unit == 0;
+    final bool debtRepayment = isVehicleDebtRepaymentSale(item);
+    final bool coupon = shouldShowVehicleSaleCouponBadge(
+      item,
+      displayProductName: productName,
+    );
+    final String? debtorName = item['debtorName']?.toString().trim();
 
     final String destRaw = item['saleDestination']?.toString().trim().toLowerCase() ?? '';
     final String destLabel =
@@ -421,6 +443,29 @@ class _VehicleSaleLineTile extends StatelessWidget {
                       ),
                     ),
                   ),
+                  if (debtRepayment) ...<Widget>[
+                    const SizedBox(width: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        color: AppColors.tertiaryFixed.withValues(alpha: 0.55),
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(
+                          color: theme.colorScheme.primary.withValues(alpha: 0.25),
+                        ),
+                      ),
+                      child: Text(
+                        l10n.vehicleSaleDebtRepaymentBadge,
+                        style: theme.textTheme.labelMedium?.copyWith(
+                          fontWeight: FontWeight.w800,
+                          color: theme.colorScheme.primary,
+                        ),
+                      ),
+                    ),
+                  ],
                   if (coupon) ...<Widget>[
                     const SizedBox(width: 10),
                     Container(
@@ -458,7 +503,13 @@ class _VehicleSaleLineTile extends StatelessWidget {
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
-                      timePart.isNotEmpty ? '$destLabel · $timePart' : destLabel,
+                      <String>[
+                        if (debtRepayment &&
+                            debtorName != null &&
+                            debtorName.isNotEmpty)
+                          '$debtorName · ',
+                        if (timePart.isNotEmpty) '$destLabel · $timePart' else destLabel,
+                      ].join(),
                       style: theme.textTheme.bodyMedium?.copyWith(
                         color: AppColors.onSurfaceVariant,
                         fontWeight: FontWeight.w600,

@@ -7,6 +7,12 @@ const List<String> kDriverExpenseCategoryKeys = <String>[
   'other',
 ];
 
+/// تصنيفات مصاريف السائق في الواجهة (بدون «أخرى»).
+const List<String> kDriverExpenseUiCategoryKeys = <String>[
+  'gasoline',
+  'carRepair',
+];
+
 const List<String> kStationExpenseCategoryKeys = <String>[
   'tankWater',
   'cartons',

@@ -125,6 +125,20 @@
   "monthlyExpenses": "المصاريف الشهرية",
   "monthlySales": "المبيعات الشهرية",
   "cartonSalesMonthly": "مبيع الكراتين",
+  "staffNoteKpi": "ملاحظة",
+  "staffNoteSendTitle": "إرسال ملاحظة",
+  "staffNoteMessageHint": "اكتب الملاحظة هنا...",
+  "staffNoteRecipientLabel": "المستلم",
+  "staffNoteRecipientAllAdmins": "المحطة",
+  "staffNoteSendButton": "إرسال",
+  "staffNoteSentSuccess": "تم إرسال الملاحظة",
+  "staffNoteFromSender": "من: {name}",
+  "@staffNoteFromSender": {
+    "placeholders": {"name": {"type": "String"}}
+  },
+  "staffNoteMarkRead": "تم القراءة",
+  "staffNoteEmptyMessage": "الرجاء كتابة الملاحظة",
+  "staffNotePickDriver": "اختر السائق",
   "superAdminDebtListKpiCaption": "غير مسدد — الاسم والمنتجات",
   "cartonStockLabel": "مخزون كراتين",
   "cartonMonthlyExpensesLabel": "مصاريف الكراتين الشهرية",
@@ -229,6 +243,7 @@
     }
   },
   "vehicleSalesLinesSectionTitle": "تفاصيل المبيعات",
+  "vehicleSaleDebtRepaymentBadge": "سداد دين",
   "vehicleSaleDestinationHome": "المنزل",
   "vehicleSaleDestinationStore": "المتجر",
   "vehicleSalesVehicleDayTitle": "{vehicle} — {date}",
@@ -266,6 +281,32 @@
   },
   "vehicleLoadsSalesSummaryTitle": "ملخص مبيعات اليوم",
   "vehicleLoadsLoadsSectionTitle": "التحميل على المركبة",
+  "vehicleLoadsBatchesSectionTitle": "حمولات اليوم ({count})",
+  "@vehicleLoadsBatchesSectionTitle": {
+    "placeholders": {
+      "count": {"type": "String"}
+    }
+  },
+  "vehicleLoadsDayBatchCountLine": "{count} حمولة",
+  "@vehicleLoadsDayBatchCountLine": {
+    "placeholders": {
+      "count": {"type": "String"}
+    }
+  },
+  "vehicleLoadBatchTitle": "حمل {number}",
+  "@vehicleLoadBatchTitle": {
+    "placeholders": {
+      "number": {"type": "String"}
+    }
+  },
+  "vehicleLoadBatchMetaLine": "{products} منتج · {pieces} قطعة · {time}",
+  "@vehicleLoadBatchMetaLine": {
+    "placeholders": {
+      "products": {"type": "String"},
+      "pieces": {"type": "String"},
+      "time": {"type": "String"}
+    }
+  },
   "vehicleLoadsGrandTotalSales": "إجمالي المبيعات: {amount}",
   "@vehicleLoadsGrandTotalSales": {
     "placeholders": {
@@ -323,9 +364,8 @@
   "navSales": "المبيعات",
   "navExpenses": "المصاريف",
   "navLoads": "التحميلات",
-  "navNotes": "الملاحظات",
   "myExpenses": "مصاريفي",
-  "gasolineExpenses": "مصاريف بانزين",
+  "gasolineExpenses": "مصاريف ديزل",
   "carRepairExpenses": "مصاريف تصليح السيارة",
   "otherExpenses": "مصاريف أخرى",
   "chooseExpenseCategory": "اختر نوع المصروف",
@@ -334,22 +374,46 @@
   "stationExpenses": "مصاريف المحطة",
   "stationBalanceTitle": "رصيد المحطة",
   "stationBalanceSubtitle": "تسجيل أرصدة البنود",
+  "stationBalancePageHint": "عرض مخزون المحطة حسب التصنيف. اضغط «تسجيل الرصيد» لتحديث الكميات.",
+  "stationBalanceSectionCartons": "كراتين",
+  "stationBalanceSectionBags": "شرنك",
+  "stationBalanceSectionBottles": "قوارير",
+  "stationBalanceSectionGallons": "جالونات",
+  "stationBalanceSectionStationFloor": "أرضية المحطة",
+  "stationBalanceSectionCoupons": "كوبونات",
+  "stationBalanceSectionOptional": "بند إضافي",
+  "stationBalanceSectionStockLine": "المجموع {stock} · {count} بند",
+  "@stationBalanceSectionStockLine": {
+    "placeholders": {
+      "stock": {"type": "String"},
+      "count": {"type": "String"}
+    }
+  },
+  "stationBalanceTotalUnits": "إجمالي الوحدات في المحطة",
+  "stationBalanceItemsWithStock": "بنود بمخزون",
+  "stationBalanceLowStock": "مخزون منخفض",
+  "stationBalanceUnlinked": "غير مربوط",
+  "stationBalanceRowUnlinkedHint": "لم يُربط بمنتج في النظام",
+  "stationBalanceSuperAdminPricesHint": "تعديل أسعار المنتجات من شاشة التسعير",
+  "stationBalancePricingHint": "تعديل أسعار المنتجات من شاشة التسعير",
   "addStationBalance": "تسجيل الرصيد",
   "stationBalanceSaved": "تم حفظ البيانات",
   "stationBalanceField1": "ك مهدي",
   "stationBalanceField2": "ك يافا",
-  "stationBalanceField3": "ش كبير",
-  "stationBalanceField4": "ش وسط",
-  "stationBalanceField5": "ش صغير",
+  "stationBalanceField3": "شرنك كبير",
+  "stationBalanceField4": "شرنك وسط",
+  "stationBalanceField5": "شرنك صغير",
   "stationBalanceField6": "ق سعودي",
   "stationBalanceField7": "ق اردني",
   "stationBalanceField8": "ج فارغ",
-  "stationBalanceField9": "ق ١٠ لتر",
   "stationBalanceField10": "ق ارضية",
   "stationBalanceField11": "ج ارضية",
   "stationBalanceField12": "كوبون ١٢",
   "stationBalanceField13": "كوبون ٢٤",
   "stationBalanceField14": "كوبون ٥٠",
+  "stationBalanceField15": "ق صغير فارغ",
+  "stationBalanceField16": "ج صغير فارغ",
+  "stationBalanceFieldOptional": "حقل إضافي (اختياري)",
   "stationBalanceField13Optional": "حقل إضافي (اختياري)",
   "stationBalanceInvalidQuantity": "تأكد أن الكميات أرقام صحيحة وغير سالبة.",
   "stationBalanceSaveRowUnlinked": "لا يوجد منتج في النظام يطابق البند: {name}",
@@ -421,8 +485,6 @@
   "yesterdayChip": "أمس",
   "myVehicleSales": "مبيعات مركبتي",
   "notesAndSummary": "ملاحظات وملخص",
-  "driverNotesTitle": "ملاحظات",
-  "driverNotesFieldHint": "اكتب ملاحظاتك هنا…",
   "currentLoads": "التحميلات الحالية",
   "todaysLoadsSection": "تحميلات اليوم",
   "todaysLoadsExpandHint": "اضغط لعرض المحمّل المسجّل لتاريخ اليوم",
@@ -517,13 +579,23 @@
   "stationInsideSales": "البيع داخل المحطة",
   "newStationSale": "تسجيل بيع من المحطة",
   "stationSalePickKindTitle": "اختر نوع البيع",
+  "stationDebtPickKindTitle": "اختر نوع الدين",
   "stationSaleKindFilling": "تعبئة",
   "stationSaleKindEmptySale": "بيع فارغ",
   "stationSaleProductGallon": "جالون",
   "stationSaleProductBottle": "قاروره",
+  "stationSaleProductSmallGallon": "جالون صغير",
+  "stationSaleProductSmallBottle": "قاروره صغير",
   "stationSaleProductMahdi": "مهدي",
   "stationSaleWithFilling": "مع تعبئة",
-  "stationSaleWithFillingPriceHint": "يُضاف ٠٫٥٠ لسعر كل وحدة على المنتجات التي تُباع.",
+  "stationSaleWithFillingPriceHint": "يُضاف {amount} لسعر كل وحدة على منتجات هذا الصف.",
+  "@stationSaleWithFillingPriceHint": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
   "stationSaleBack": "رجوع",
   "addStationSale": "إضافة بيع",
   "openStationSalesList": "عرض قائمة مبيعات المحطة",

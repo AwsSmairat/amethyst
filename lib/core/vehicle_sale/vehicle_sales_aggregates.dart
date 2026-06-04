@@ -1,5 +1,6 @@
 import 'package:amethyst/core/data/amethyst_api.dart';
 import 'package:amethyst/core/expenses/expense_aggregates.dart';
+import 'package:amethyst/core/station_balance/station_balance_catalog.dart';
 import 'package:amethyst/core/utils/parse_dynamic_double.dart';
 
 /// مبيعات نقدية لمركبة واحدة (يوم / شهر).
@@ -14,6 +15,60 @@ final class VehicleSalesTotals {
 }
 
 bool isCashVehicleSaleRow(Map<String, dynamic> row) => row['isDebt'] != true;
+
+/// سداد دين مسجّل كمبيع سيارة (نقدي، مرتبط بسطر الدين الأصلي).
+bool isVehicleDebtRepaymentSale(Map<String, dynamic> row) {
+  final String? settled = row['settledFromDebtSaleId']?.toString().trim();
+  return settled != null && settled.isNotEmpty;
+}
+
+/// منتج دفتر كوبون (وليس مجرد سعر وحدة = ٠).
+bool isVehicleCouponBookProductRow(Map<String, dynamic> row) {
+  final Map<String, dynamic>? product = row['product'] is Map<String, dynamic>
+      ? row['product'] as Map<String, dynamic>
+      : null;
+  if (product == null) {
+    return false;
+  }
+  final String unitType =
+      (product['unitType'] ?? product['type'])?.toString().trim().toLowerCase() ??
+          '';
+  if (unitType == 'coupon') {
+    return true;
+  }
+  final String name = normalizeStationBalanceProductName(
+    product['name']?.toString() ?? '',
+  );
+  return name.contains('coupon') || name.contains('كوبون');
+}
+
+/// شارة «كوبون» في قائمة المبيعات — لا تُعرض لسداد الدين ولا عندما الاسم يوضح أنه كوبون.
+bool shouldShowVehicleSaleCouponBadge(
+  Map<String, dynamic> row, {
+  String? displayProductName,
+}) {
+  if (isVehicleDebtRepaymentSale(row)) {
+    return false;
+  }
+  if (!isVehicleCouponBookProductRow(row)) {
+    return false;
+  }
+  final String shown = normalizeStationBalanceProductName(
+    displayProductName?.trim() ?? '',
+  );
+  if (shown.contains('coupon') || shown.contains('كوبون')) {
+    return false;
+  }
+  return true;
+}
+
+/// يُعرض في قائمة/ملخص مبيعات المركبة: مبيع نقدي أو سداد دين — لا تسجيل دين مفتوح.
+bool isVehicleSaleVisibleInSalesList(Map<String, dynamic> row) {
+  if (row['isDebt'] == true) {
+    return false;
+  }
+  return true;
+}
 
 double vehicleSaleRowMoney(Map<String, dynamic> row) =>
     parseDynamicDouble(row['totalAmount']) ?? 0;

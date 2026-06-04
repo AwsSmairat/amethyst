@@ -1,6 +1,7 @@
 import 'package:amethyst/core/data/amethyst_api.dart';
 import 'package:amethyst/core/l10n/context_l10n.dart';
 import 'package:amethyst/core/theme/app_colors.dart';
+import 'package:amethyst/core/widgets/fab_hero_tags.dart';
 import 'package:amethyst/di/injection.dart';
 import 'package:amethyst/core/presentation/list_load_state.dart';
 import 'package:amethyst/features/catalog/presentation/cubit/json_list_cubit.dart';
@@ -80,6 +81,7 @@ class _DriverSalesPageState extends State<DriverSalesPage> {
           ],
         ),
         floatingActionButton: FloatingActionButton.extended(
+          heroTag: FabHeroTags.driverSales,
           onPressed: () async {
             await showAddVehicleSaleSheet(context);
             if (mounted) {

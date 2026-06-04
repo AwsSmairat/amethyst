@@ -43,9 +43,12 @@ class _AddReturnBodyState extends State<_AddReturnBody> {
     try {
       final api = sl<AmethystApi>();
       final current = await api.driverCurrentLoad();
-      final loads = (current['loads'] as List<dynamic>? ?? <dynamic>[])
-          .whereType<Map<String, dynamic>>()
-          .toList(growable: false);
+      final List<Map<String, dynamic>> loads =
+          (current['loadLines'] as List<dynamic>? ??
+                  current['loads'] as List<dynamic>? ??
+                  <dynamic>[])
+              .whereType<Map<String, dynamic>>()
+              .toList(growable: false);
       if (!mounted) return;
       setState(() {
         _loads = loads;

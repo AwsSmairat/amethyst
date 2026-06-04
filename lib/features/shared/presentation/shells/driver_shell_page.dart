@@ -5,6 +5,7 @@ import 'package:amethyst/features/auth/presentation/cubit/auth_cubit.dart';
 import 'package:amethyst/features/driver/presentation/driver_sales_list_refresh.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:amethyst/features/staff_note/presentation/widgets/staff_note_inbox_overlay.dart';
 import 'package:go_router/go_router.dart';
 
 class DriverShellPage extends StatelessWidget {
@@ -35,7 +36,7 @@ class DriverShellPage extends StatelessWidget {
             ),
           ],
         ),
-        body: navigationShell,
+        body: StaffNoteInboxOverlay(child: navigationShell),
         bottomNavigationBar: NavigationBar(
           selectedIndex: navigationShell.currentIndex,
           onDestinationSelected: (int index) {
@@ -64,11 +65,6 @@ class DriverShellPage extends StatelessWidget {
               icon: const Icon(Icons.local_shipping_outlined),
               selectedIcon: const Icon(Icons.local_shipping),
               label: context.l10n.navLoads,
-            ),
-            NavigationDestination(
-              icon: const Icon(Icons.notes_outlined),
-              selectedIcon: const Icon(Icons.notes),
-              label: context.l10n.navNotes,
             ),
           ],
           indicatorColor: AppColors.softSkyBlue.withValues(alpha: 0.42),

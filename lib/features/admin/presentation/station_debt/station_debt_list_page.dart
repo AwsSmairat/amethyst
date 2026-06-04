@@ -1,4 +1,5 @@
 import 'package:amethyst/core/l10n/context_l10n.dart';
+import 'package:amethyst/core/widgets/fab_hero_tags.dart';
 import 'package:amethyst/core/data/amethyst_api.dart';
 import 'package:amethyst/core/presentation/list_load_state.dart';
 import 'package:amethyst/di/injection.dart';
@@ -6,6 +7,7 @@ import 'package:amethyst/features/admin/presentation/station_debt/station_debt_a
 import 'package:amethyst/features/admin/presentation/station_debt/station_debt_display.dart';
 import 'package:amethyst/features/admin/presentation/station_debt/station_debt_kind.dart';
 import 'package:amethyst/features/admin/presentation/station_debt/station_debt_vehicle_place_picker.dart';
+import 'package:amethyst/core/vehicle_sale/vehicle_sales_list_refresh.dart';
 import 'package:amethyst/features/driver/presentation/driver_sales_list_refresh.dart';
 import 'package:amethyst/features/catalog/presentation/cubit/json_list_cubit.dart';
 import 'package:flutter/material.dart';
@@ -46,6 +48,7 @@ class StationDebtListPage extends StatelessWidget {
         ),
         floatingActionButton: shellBase.contains('/driver')
             ? FloatingActionButton.extended(
+                heroTag: FabHeroTags.driverStationDebt,
                 onPressed: () => showVehicleDebtPlacePicker(
                   context,
                   registrationPath:
@@ -55,6 +58,7 @@ class StationDebtListPage extends StatelessWidget {
                 label: Text(l10n.stationDebtSubmit),
               )
             : FloatingActionButton.extended(
+                heroTag: FabHeroTags.adminStationDebt,
                 onPressed: () => showAdminDebtRegistrationPicker(
                   context,
                   stationDebtPath: '$shellBase/station-debt-registration',
@@ -171,6 +175,7 @@ class _DebtorTile extends StatelessWidget {
         }
         if (done == true) {
           context.read<JsonListCubit>().load();
+          VehicleSalesListRefresh.request();
           if (shellBase.contains('/driver')) {
             DriverSalesListRefresh.request();
           }

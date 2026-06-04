@@ -6,6 +6,7 @@ import 'package:amethyst/features/auth/presentation/cubit/auth_state.dart';
 import 'package:amethyst/features/dashboard/presentation/utils/super_admin_dashboard_share.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:amethyst/features/staff_note/presentation/widgets/staff_note_inbox_overlay.dart';
 import 'package:go_router/go_router.dart';
 
 class SuperAdminShell extends StatelessWidget {
@@ -179,17 +180,10 @@ class SuperAdminShell extends StatelessWidget {
                 Icons.payments,
                 context.l10n.expenses,
               ),
-              _tile(
-                context,
-                path,
-                '/super-admin/reports',
-                Icons.analytics,
-                context.l10n.reports,
-              ),
             ],
           ),
         ),
-        body: child,
+        body: StaffNoteInboxOverlay(child: child),
       ),
     );
   }

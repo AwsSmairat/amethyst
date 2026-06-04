@@ -60,11 +60,6 @@ Future<DriverExpenseCategory?> showDriverExpenseCategoryPicker(
             onTap: () =>
                 Navigator.of(ctx).pop(DriverExpenseCategory.carRepair),
           ),
-          ListTile(
-            leading: const Icon(Icons.more_horiz),
-            title: Text(l10n.otherExpenses),
-            onTap: () => Navigator.of(ctx).pop(DriverExpenseCategory.other),
-          ),
           const SizedBox(height: 8),
         ],
       ),
@@ -77,18 +72,20 @@ Future<void> showAddExpenseSheet(
   required DriverExpenseCategory category,
   VoidCallback? onRecorded,
 }) {
+  final ExpenseSubmitCubit cubit =
+      ExpenseSubmitCubit(sl<CreateExpenseUseCase>());
   return showModalBottomSheet<void>(
     context: context,
     isScrollControlled: true,
     showDragHandle: true,
-    builder: (BuildContext context) => BlocProvider(
-      create: (_) => ExpenseSubmitCubit(sl<CreateExpenseUseCase>()),
+    builder: (BuildContext sheetContext) => BlocProvider.value(
+      value: cubit,
       child: _AddExpenseBody(
         category: category,
         onRecorded: onRecorded,
       ),
     ),
-  );
+  ).whenComplete(cubit.close);
 }
 
 class _AddExpenseBody extends StatefulWidget {
@@ -118,10 +115,9 @@ class _AddExpenseBodyState extends State<_AddExpenseBody> {
 
   Future<void> _loadVehicle() async {
     try {
-      final dash = await sl<AmethystApi>().getDashboardDriver();
-      final v = dash['assignedVehicle'] as Map<String, dynamic>?;
+      final String? id = await sl<AmethystApi>().driverAssignedVehicleId();
       if (!mounted) return;
-      setState(() => _vehicleId = v?['id'] as String?);
+      setState(() => _vehicleId = id);
     } on Object {
       if (!mounted) return;
       setState(() => _vehicleId = null);
@@ -140,21 +136,10 @@ class _AddExpenseBodyState extends State<_AddExpenseBody> {
         return l10n.gasolineExpenses;
       case DriverExpenseCategory.carRepair:
         return l10n.carRepairExpenses;
-      case DriverExpenseCategory.other:
-        return l10n.otherExpenses;
     }
   }
 
-  String _composedNote(AppLocalizations l10n) {
-    final base = _categoryLabel(l10n);
-    switch (widget.category) {
-      case DriverExpenseCategory.gasoline:
-      case DriverExpenseCategory.carRepair:
-        return base;
-      case DriverExpenseCategory.other:
-        return base;
-    }
-  }
+  String _composedNote(AppLocalizations l10n) => _categoryLabel(l10n);
 
   Future<void> _pickReceipt() async {
     try {
@@ -202,8 +187,8 @@ class _AddExpenseBodyState extends State<_AddExpenseBody> {
       child: BlocConsumer<ExpenseSubmitCubit, SubmitState>(
         listener: (context, state) {
           if (state is SubmitSuccess) {
-            widget.onRecorded?.call();
             Navigator.of(context).pop();
+            widget.onRecorded?.call();
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(content: Text(context.l10n.expenseSaved)),
             );

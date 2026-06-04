@@ -1,6 +1,7 @@
 import 'dart:typed_data';
 
 import 'package:amethyst/core/network/api_exception.dart';
+import 'package:amethyst/core/station_balance/station_balance_catalog.dart';
 import 'package:amethyst/core/prototype/prototype_sample_data.dart';
 import 'package:amethyst/core/utils/parse_api_datetime.dart';
 import 'package:amethyst/core/prototype/prototype_session.dart';
@@ -55,6 +56,23 @@ final class PrototypeAmethystBackend {
   }) async {
     if (!PrototypeSampleData.setStationStock(id, stationStock)) {
       throw ApiException('Product not found', code: 'NOT_FOUND');
+    }
+  }
+
+  Future<void> deductStationStockForSale({
+    required String productId,
+    required int quantity,
+  }) async {
+    try {
+      PrototypeSampleData.deductStationStockForSale(
+        productId: productId,
+        quantity: quantity,
+      );
+    } on StateError catch (e) {
+      if (e.message == 'INSUFFICIENT_STOCK') {
+        throw ApiException('Insufficient stock', code: 'INSUFFICIENT_STOCK');
+      }
+      rethrow;
     }
   }
 
@@ -137,12 +155,16 @@ final class PrototypeAmethystBackend {
   Future<Map<String, dynamic>> driverCurrentLoad() async =>
       PrototypeSampleData.driverCurrentLoad();
 
+  Future<String?> driverAssignedVehicleId() async =>
+      PrototypeSampleData.vehicleIdForSessionDriver();
+
   Future<Map<String, dynamic>> createVehicleLoad({
     required String vehicleId,
     required String driverId,
     required String productId,
     required int quantityLoaded,
     required String loadDate,
+    String? loadBatchId,
   }) async {
     final Map<String, dynamic> row = PrototypeSampleData.addVehicleLoad(
       vehicleId: vehicleId,
@@ -150,6 +172,7 @@ final class PrototypeAmethystBackend {
       productId: productId,
       quantityLoaded: quantityLoaded,
       loadDate: loadDate,
+      loadBatchId: loadBatchId,
     );
     return <String, dynamic>{'item': row};
   }
@@ -167,7 +190,7 @@ final class PrototypeAmethystBackend {
   }) async {
     final bool skipStock = fillingSale &&
         fillingLineSlot != null &&
-        (fillingLineSlot == 0 || fillingLineSlot == 1);
+        kStationFillingSkipStockColumnIndices.contains(fillingLineSlot);
     try {
       final Map<String, dynamic> row = PrototypeSampleData.addStationSale(
         productId: productId,
@@ -380,6 +403,65 @@ final class PrototypeAmethystBackend {
       throw ApiException('Forbidden', code: 'FORBIDDEN');
     }
     return PrototypeSampleData.getDashboardDriver();
+  }
+
+  Future<List<Map<String, dynamic>>> listStaffNoteRecipients() async {
+    if (!PrototypeSession.isSignedIn) {
+      throw ApiException('Not authenticated', code: 'UNAUTHORIZED');
+    }
+    return PrototypeSampleData.staffNoteRecipientOptions();
+  }
+
+  Future<List<Map<String, dynamic>>> createStaffNotes({
+    required String message,
+    required String recipientKind,
+    String? driverUserId,
+  }) async {
+    if (!PrototypeSession.isSignedIn) {
+      throw ApiException('Not authenticated', code: 'UNAUTHORIZED');
+    }
+    final String? senderId = PrototypeSession.current?.id;
+    if (senderId == null || senderId.isEmpty) {
+      throw ApiException('Not authenticated', code: 'UNAUTHORIZED');
+    }
+    try {
+      return PrototypeSampleData.createStaffNotes(
+        senderUserId: senderId,
+        message: message,
+        recipientKind: recipientKind,
+        driverUserId: driverUserId,
+      );
+    } on StateError catch (e) {
+      final String code = switch (e.message) {
+        'EMPTY_MESSAGE' => 'EMPTY_MESSAGE',
+        'MISSING_DRIVER' => 'MISSING_DRIVER',
+        'NO_RECIPIENTS' => 'NO_RECIPIENTS',
+        _ => 'INVALID',
+      };
+      throw ApiException('Invalid staff note', code: code);
+    }
+  }
+
+  Future<Map<String, dynamic>?> getPendingStaffNoteForMe() async {
+    if (!PrototypeSession.isSignedIn) {
+      throw ApiException('Not authenticated', code: 'UNAUTHORIZED');
+    }
+    final String? userId = PrototypeSession.current?.id;
+    if (userId == null) {
+      return null;
+    }
+    return PrototypeSampleData.firstUnreadStaffNoteForUser(userId);
+  }
+
+  Future<void> markStaffNoteRead(String noteId) async {
+    if (!PrototypeSession.isSignedIn) {
+      throw ApiException('Not authenticated', code: 'UNAUTHORIZED');
+    }
+    final String? userId = PrototypeSession.current?.id;
+    if (userId == null) {
+      return;
+    }
+    PrototypeSampleData.markStaffNoteRead(noteId: noteId, userId: userId);
   }
 
   Map<String, dynamic> _paginate(

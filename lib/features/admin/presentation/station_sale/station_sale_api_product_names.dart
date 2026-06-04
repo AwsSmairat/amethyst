@@ -3,6 +3,8 @@ abstract final class StationSaleApiProductNames {
   static const List<String> filling = <String>[
     'Water Gallon',
     'Water Bottle',
+    'جالون صغير',
+    'قاروره صغير',
     'Water Carton',
     'Coupon',
     'Coupon 2',
@@ -13,5 +15,7 @@ abstract final class StationSaleApiProductNames {
     'Saudi Bottle',
     'Jordanian Bottle',
     'Empty Gallon',
+    'Small Empty Bottle',
+    'Small Empty Gallon',
   ];
 }

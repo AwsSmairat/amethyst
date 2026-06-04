@@ -28,7 +28,7 @@ final class PrototypeSession {
   static const UserEntity _superAdmin = UserEntity(
     id: 'proto_super',
     email: 'super@preview.local',
-    fullName: 'مدير عام (عرض)',
+    fullName: 'صهيب بيك',
     role: 'super_admin',
     phone: '+201000000001',
     isActive: true,

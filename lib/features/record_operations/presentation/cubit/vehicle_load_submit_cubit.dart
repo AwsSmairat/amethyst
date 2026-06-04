@@ -39,6 +39,8 @@ final class VehicleLoadSubmitCubit extends Cubit<SubmitState> {
   }) async {
     emit(const SubmitLoading());
     try {
+      final String batchId =
+          'batch_${DateTime.now().millisecondsSinceEpoch}';
       for (final line in lines) {
         await _useCase(
           vehicleId: vehicleId,
@@ -46,6 +48,7 @@ final class VehicleLoadSubmitCubit extends Cubit<SubmitState> {
           productId: line.productId,
           quantityLoaded: line.quantityLoaded,
           loadDate: loadDate,
+          loadBatchId: batchId,
         );
       }
       emit(const SubmitSuccess());

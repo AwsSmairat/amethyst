@@ -158,8 +158,7 @@ class _SuperAdminUsersBody extends StatelessWidget {
               final String role = _roleLabel(context, u['role']?.toString());
               final bool isActive = u['isActive'] == true;
               final String status = isActive ? l10n.active : l10n.inactive;
-              final String phone = u['phone']?.toString() ?? '—';
-              final String sub = '${u['email'] ?? ''}\n$phone\n$role · $status';
+              final String sub = '${u['email'] ?? ''}\n$role · $status';
               final bool isSuperAdmin = u['role'] == 'super_admin';
               final bool isSelf = selfId != null && id == selfId;
               final SuperAdminUsersCubit cubit =

@@ -2,6 +2,7 @@ import 'package:amethyst/core/l10n/context_l10n.dart';
 import 'package:amethyst/core/theme/app_colors.dart';
 import 'package:amethyst/features/admin/presentation/widgets/add_station_expense_sheet.dart';
 import 'package:amethyst/features/admin/presentation/widgets/station_balance_dashboard_card.dart';
+import 'package:amethyst/features/admin/presentation/station_debt/station_debt_registration_nav.dart';
 import 'package:amethyst/features/admin/presentation/widgets/add_station_sale_sheet.dart';
 import 'package:amethyst/features/admin/presentation/widgets/add_vehicle_load_sheet.dart';
 import 'package:flutter/material.dart';
@@ -152,8 +153,10 @@ class AdminDashboardPage extends StatelessWidget {
                   ),
                   const SizedBox(height: 20),
                   FilledButton.icon(
-                    onPressed: () =>
-                        context.push('/admin/station-debt-registration'),
+                    onPressed: () => openAdminStationDebtRegistration(
+                      context,
+                      registrationPath: '/admin/station-debt-registration',
+                    ),
                     icon: const Icon(Icons.add),
                     label: Text(l10n.dashboardDebtRepaymentAction),
                   ),

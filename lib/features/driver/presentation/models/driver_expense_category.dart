@@ -2,5 +2,4 @@
 enum DriverExpenseCategory {
   gasoline,
   carRepair,
-  other,
 }

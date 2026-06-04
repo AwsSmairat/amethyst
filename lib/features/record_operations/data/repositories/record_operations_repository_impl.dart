@@ -44,6 +44,16 @@ final class RecordOperationsRepositoryImpl implements RecordOperationsRepository
       );
 
   @override
+  Future<void> deductStationStockForSale({
+    required String productId,
+    required int quantity,
+  }) =>
+      _api.deductStationStockForSale(
+        productId: productId,
+        quantity: quantity,
+      );
+
+  @override
   Future<void> upsertStationBalanceRowStock({
     required int rowIndex,
     required int stationStock,
@@ -150,6 +160,7 @@ final class RecordOperationsRepositoryImpl implements RecordOperationsRepository
     required String productId,
     required int quantityLoaded,
     required String loadDate,
+    String? loadBatchId,
   }) =>
       _api.createVehicleLoad(
         vehicleId: vehicleId,
@@ -157,5 +168,6 @@ final class RecordOperationsRepositoryImpl implements RecordOperationsRepository
         productId: productId,
         quantityLoaded: quantityLoaded,
         loadDate: loadDate,
+        loadBatchId: loadBatchId,
       );
 }

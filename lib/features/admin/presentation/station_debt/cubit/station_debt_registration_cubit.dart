@@ -1,3 +1,4 @@
+import 'package:amethyst/core/catalog/catalog_product_display_label.dart';
 import 'package:amethyst/core/network/api_exception.dart';
 import 'package:amethyst/core/data/amethyst_api.dart';
 import 'package:amethyst/core/vehicle_sale/vehicle_product_columns.dart';
@@ -26,18 +27,19 @@ final class StationDebtRegistrationCubit extends Cubit<StationDebtRegistrationSt
     required ListProductItemsUseCase listProductItems,
     required CreateStationDebtEntriesUseCase createStationDebtEntries,
     this.vehiclePlace,
+    this.stationEntryKind = StationSaleEntryKind.filling,
     AmethystApi? api,
     CreateVehicleSaleUseCase? createVehicleSale,
-    PatchProductStationStockUseCase? patchProductStationStock,
+    DeductStationStockForSaleUseCase? deductStationStockForSale,
   })  : _listProductItems = listProductItems,
         _createStationDebtEntries = createStationDebtEntries,
         _api = api,
         _createVehicleSale = createVehicleSale,
-        _patchProductStationStock = patchProductStationStock,
+        _deductStationStockForSale = deductStationStockForSale,
         super(
           StationDebtRegistrationState.initial(
             columnCount: vehiclePlace == null
-                ? StationDebtRegistrationState.adminColumnCount
+                ? _adminColumnCount(stationEntryKind)
                 : vehicleProductColumnCount(
                     _vehicleColumnPlace(vehiclePlace),
                   ),
@@ -47,12 +49,18 @@ final class StationDebtRegistrationCubit extends Cubit<StationDebtRegistrationSt
     _loadProducts();
   }
 
+  static int _adminColumnCount(StationSaleEntryKind kind) =>
+      kind == StationSaleEntryKind.emptySale
+          ? kStationEmptySaleColumnCount
+          : kStationFillingColumnCount;
+
   final ListProductItemsUseCase _listProductItems;
   final CreateStationDebtEntriesUseCase _createStationDebtEntries;
   final StationDebtVehiclePlace? vehiclePlace;
+  final StationSaleEntryKind stationEntryKind;
   final AmethystApi? _api;
   final CreateVehicleSaleUseCase? _createVehicleSale;
-  final PatchProductStationStockUseCase? _patchProductStationStock;
+  final DeductStationStockForSaleUseCase? _deductStationStockForSale;
 
   String? _vehicleId;
   List<Map<String, dynamic>> _driverLoadLines = <Map<String, dynamic>>[];
@@ -95,7 +103,9 @@ final class StationDebtRegistrationCubit extends Cubit<StationDebtRegistrationSt
         final Map<String, dynamic>? veh =
             currentLoad['vehicle'] as Map<String, dynamic>?;
         _driverLoadLines =
-            (currentLoad['loads'] as List<dynamic>? ?? <dynamic>[])
+            (currentLoad['loadLines'] as List<dynamic>? ??
+                    currentLoad['loads'] as List<dynamic>? ??
+                    <dynamic>[])
                 .whereType<Map<String, dynamic>>()
                 .toList(growable: false);
         _vehicleId = veh?['id']?.toString();
@@ -169,36 +179,57 @@ final class StationDebtRegistrationCubit extends Cubit<StationDebtRegistrationSt
           byName[n0] = pr;
         }
       }
-      const StationSaleEntryKind kind = StationSaleEntryKind.filling;
-      final List<String> apiNames = StationSaleApiProductNames.filling;
+      final bool emptySale =
+          stationEntryKind == StationSaleEntryKind.emptySale;
+      final List<String> apiNames = emptySale
+          ? StationSaleApiProductNames.emptySale
+          : StationSaleApiProductNames.filling;
       final List<String?> ids =
           List<String?>.filled(n, null, growable: false);
       final List<double?> prices =
           List<double?>.filled(n, null, growable: false);
       for (var i = 0; i < n; i++) {
         Map<String, dynamic>? match;
-        final String name = i < apiNames.length ? apiNames[i] : '';
-        match = name.isNotEmpty ? byName[name] : null;
+        if (emptySale && i < kStationEmptySaleBalanceRowIndices.length) {
+          match = resolveStationBalanceProduct(
+            products: items,
+            rowIndex: kStationEmptySaleBalanceRowIndices[i],
+          );
+        } else if (!emptySale && i < kStationFillingBalanceRowByColumn.length) {
+          final int? balanceRow = kStationFillingBalanceRowByColumn[i];
+          if (balanceRow != null) {
+            match = resolveStationBalanceProduct(
+              products: items,
+              rowIndex: balanceRow,
+            );
+          }
+        }
+        if (match == null) {
+          final String name = i < apiNames.length ? apiNames[i] : '';
+          if (name.isNotEmpty) {
+            match = byName[name];
+          }
+        }
+        if (!emptySale) {
+          match ??=
+              _resolveStationDebtFillingProduct(items: items, columnIndex: i);
+        }
         ids[i] = match?['id'] as String?;
         prices[i] = parseDynamicDouble(match?['price']);
       }
-      for (var i = 0; i < n; i++) {
-        if (ids[i] != null) {
-          continue;
+      if (!emptySale && n > 4) {
+        final String? mahdiId =
+            resolveMahdiCartonStockProductId(products: items);
+        if (mahdiId != null && mahdiId.isNotEmpty) {
+          ids[4] = canonicalProductIdForMahdiStoreSale(
+            productId: ids[4] ?? mahdiId,
+            products: items,
+          );
         }
-        final String? want = _unitTypeForStationSaleSlot(kind, i);
-        if (want == null) {
-          continue;
-        }
-        for (final Map<String, dynamic> pr in items) {
-          if (pr['isActive'] == false) {
-            continue;
-          }
-          if (_unitTypeFromProductJson(pr) == want) {
-            ids[i] = pr['id'] as String?;
-            prices[i] = parseDynamicDouble(pr['price']);
-            break;
-          }
+        final double? mahdiPrice =
+            stationMahdiFillingAndHomeUnitPrice(products: items);
+        if (mahdiPrice != null) {
+          prices[4] = mahdiPrice;
         }
       }
       final List<bool> skipStock =
@@ -208,7 +239,7 @@ final class StationDebtRegistrationCubit extends Cubit<StationDebtRegistrationSt
           List<String>.filled(n, '', growable: false);
       for (var i = 0; i < n; i++) {
         Map<String, dynamic>? row;
-        final String? id = ids[i];
+        String? id = ids[i];
         if (id != null) {
           for (final Map<String, dynamic> pr in items) {
             if (pr['id']?.toString() == id) {
@@ -217,13 +248,34 @@ final class StationDebtRegistrationCubit extends Cubit<StationDebtRegistrationSt
             }
           }
         }
-        stocks[i] = stationStockFromProductJson(row ?? <String, dynamic>{});
-        skipStock[i] = stationSaleColumnSkipsStationStock(
-          entryKind: StationSaleEntryKind.filling,
-          columnIndex: i,
-          product: row,
+        if (!emptySale && i == 4) {
+          stocks[i] = aggregateStationStockForBalanceRow(
+            products: items,
+            rowIndex: 0,
+          );
+          skipStock[i] = false;
+        } else if (emptySale &&
+            i < kStationEmptySaleBalanceRowIndices.length) {
+          stocks[i] = stationStockForBalanceRow(
+            products: items,
+            rowIndex: kStationEmptySaleBalanceRowIndices[i],
+          );
+          skipStock[i] = stationSaleColumnSkipsStationStock(
+            entryKind: StationSaleEntryKind.emptySale,
+            columnIndex: i,
+            product: row,
+          );
+        } else {
+          stocks[i] = stationStockFromProductJson(row ?? <String, dynamic>{});
+          skipStock[i] = stationSaleColumnSkipsStationStock(
+            entryKind: StationSaleEntryKind.filling,
+            columnIndex: i,
+            product: row,
+          );
+        }
+        namesOut[i] = catalogProductArabicDisplayLabel(
+          row?['name']?.toString(),
         );
-        namesOut[i] = row?['name']?.toString().trim() ?? '';
       }
       emit(
         state.copyWith(
@@ -245,30 +297,37 @@ final class StationDebtRegistrationCubit extends Cubit<StationDebtRegistrationSt
     }
   }
 
+  int _vehicleDebtQuantityCap(int index) {
+    final VehicleProductColumnPlace columnPlace =
+        _vehicleColumnPlace(vehiclePlace!);
+    final int vehicle = index < state.columnVehicleRemaining.length
+        ? state.columnVehicleRemaining[index]
+        : 0;
+    final int station = index < state.columnStationStock.length
+        ? state.columnStationStock[index]
+        : 0;
+    return vehicleDebtMaxSellableQuantity(
+      place: columnPlace,
+      columnIndex: index,
+      vehicleRemaining: vehicle,
+      stationStock: station,
+    );
+  }
+
   void adjustQuantity(int index, int delta) {
     if (index < 0 || index >= state.columnCount) {
       return;
     }
     if (delta > 0) {
-      // دين المركبة: سقف الكمية من متبقي الحمولة (ومخزون المحطة إن وُجد).
+      // دين المركبة: سقف الكمية = متبقي الحمولة و/أو مخزون المحطة (مطابق شاشة البيع).
       if (vehiclePlace != null) {
         final VehicleProductColumnPlace columnPlace =
             _vehicleColumnPlace(vehiclePlace!);
-        final bool usesVehicleLoad =
-            vehicleDebtColumnUsesVehicleLoad(columnPlace, index);
-        final bool deductStationStock =
+        final bool capped = vehicleDebtColumnUsesVehicleLoad(columnPlace, index) ||
             vehicleProductColumnDeductsStationStock(columnPlace, index);
-        if ((usesVehicleLoad || deductStationStock) &&
-            index < state.columnVehicleRemaining.length) {
-          int cap = state.columnVehicleRemaining[index];
-          if (deductStationStock &&
-              index < state.columnStationStock.length &&
-              index < state.columnSkipsStationStock.length &&
-              !state.columnSkipsStationStock[index]) {
-            final int station = state.columnStationStock[index];
-            cap = cap < station ? cap : station;
-          }
-          if (state.quantities[index] >= cap) {
+        if (capped) {
+          final int cap = _vehicleDebtQuantityCap(index);
+          if (cap < 999999 && state.quantities[index] >= cap) {
             return;
           }
         }
@@ -394,20 +453,18 @@ final class StationDebtRegistrationCubit extends Cubit<StationDebtRegistrationSt
               )) {
             continue;
           }
-          final int vehicleRem = _vehicleRemainingForDebtColumn(
-            place: place,
+          final int station = line.columnIndex < state.columnStationStock.length
+              ? state.columnStationStock[line.columnIndex]
+              : 0;
+          final int cap = vehicleDebtMaxSellableQuantity(
+            place: columnPlace,
             columnIndex: line.columnIndex,
+            vehicleRemaining: _vehicleRemainingForDebtColumn(
+              place: place,
+              columnIndex: line.columnIndex,
+            ),
+            stationStock: station,
           );
-          var cap = vehicleRem;
-          if (vehicleProductColumnDeductsStationStock(
-            columnPlace,
-            line.columnIndex,
-          )) {
-            final int station = line.columnIndex < state.columnStationStock.length
-                ? state.columnStationStock[line.columnIndex]
-                : 0;
-            cap = cap < station ? cap : station;
-          }
           if (line.quantity > cap) {
             emit(
               state.copyWith(
@@ -431,8 +488,8 @@ final class StationDebtRegistrationCubit extends Cubit<StationDebtRegistrationSt
             ? 'store'
             : 'home';
         final CreateVehicleSaleUseCase createVehicleSale = _createVehicleSale!;
-        final PatchProductStationStockUseCase patchStock =
-            _patchProductStationStock!;
+        final DeductStationStockForSaleUseCase deductStock =
+            _deductStationStockForSale!;
 
         final VehicleProductColumnPlace columnPlace = _vehicleColumnPlace(place);
         for (final line in vehicleLines) {
@@ -452,15 +509,9 @@ final class StationDebtRegistrationCubit extends Cubit<StationDebtRegistrationSt
             line.columnIndex,
           );
           if (deductStationStock) {
-            final int snapshot = line.columnIndex < state.columnStationStock.length
-                ? state.columnStationStock[line.columnIndex]
-                : 0;
-            final int next = snapshot - line.quantity;
-            final String stockPatchId =
-                line.stockProductId ?? line.productId;
-            await patchStock(
-              productId: stockPatchId,
-              stationStock: next < 0 ? 0 : next,
+            await deductStock(
+              productId: line.stockProductId ?? line.productId,
+              quantity: line.quantity,
             );
           }
         }
@@ -497,24 +548,28 @@ final class StationDebtRegistrationCubit extends Cubit<StationDebtRegistrationSt
   }
 }
 
-String? _unitTypeFromProductJson(Map<String, dynamic> pr) {
-  final Object? u = pr['unitType'] ?? pr['type'];
-  final String? s = u?.toString();
-  if (s == null || s.isEmpty) {
-    return null;
-  }
-  return s;
-}
-
-String? _unitTypeForStationSaleSlot(StationSaleEntryKind kind, int index) {
-  if (kind == StationSaleEntryKind.emptySale) {
-    return null;
-  }
-  return switch (index) {
-    0 => 'gallon',
-    1 => 'bottle',
-    2 => 'carton',
-    3 || 4 || 5 => 'coupon',
+Map<String, dynamic>? _resolveStationDebtFillingProduct({
+  required List<Map<String, dynamic>> items,
+  required int columnIndex,
+}) {
+  return switch (columnIndex) {
+    0 => resolveFillingGallonProduct(products: items),
+    1 => resolveFillingBottleProduct(products: items),
+    2 => resolveWaterSmallGallonProduct(products: items),
+    3 => resolveWaterSmallBottleProduct(products: items),
+    4 => resolveMahdiCartonStockProduct(products: items),
+    5 => resolveStationBalanceProduct(
+        products: items,
+        rowIndex: kStationBalanceFirstCouponRowIndex,
+      ),
+    6 => resolveStationBalanceProduct(
+        products: items,
+        rowIndex: kStationBalanceFirstCouponRowIndex + 1,
+      ),
+    7 => resolveStationBalanceProduct(
+        products: items,
+        rowIndex: kStationBalanceFirstCouponRowIndex + 2,
+      ),
     _ => null,
   };
 }

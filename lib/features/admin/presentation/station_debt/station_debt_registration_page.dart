@@ -5,9 +5,9 @@ import 'package:amethyst/l10n/app_localizations.dart';
 import 'package:amethyst/features/admin/presentation/station_debt/station_debt_api_error.dart';
 import 'package:amethyst/features/admin/presentation/station_debt/cubit/station_debt_registration_cubit.dart';
 import 'package:amethyst/features/admin/presentation/station_debt/cubit/station_debt_registration_state.dart';
+import 'package:amethyst/features/admin/presentation/station_debt/station_debt_registration_nav.dart';
 import 'package:amethyst/core/vehicle_sale/vehicle_product_columns.dart';
 import 'package:amethyst/features/admin/presentation/station_debt/station_debt_vehicle_place.dart';
-import 'package:amethyst/features/admin/presentation/station_sale/station_sale_entry_kind.dart';
 import 'package:amethyst/features/admin/presentation/station_sale/station_sale_product_labels.dart';
 import 'package:amethyst/features/admin/presentation/station_sale/widgets/station_sale_product_column.dart';
 import 'package:flutter/material.dart';
@@ -158,20 +158,37 @@ class _StationDebtRegistrationPageState
                         ),
                   ),
                   const SizedBox(height: 12),
-                  for (var start = 0;
-                      start < state.columnCount;
-                      start += state.useVehicleProductLabels ? 3 : 2) ...<Widget>[
-                    if (start > 0) const SizedBox(height: 12),
-                    _productRow(
-                      context,
-                      state: state,
-                      busy: busy,
-                      start: start,
-                      end: math.min(
-                        start + (state.useVehicleProductLabels ? 3 : 2),
-                        state.columnCount,
+                  if (state.useVehicleProductLabels)
+                    for (var start = 0;
+                        start < state.columnCount;
+                        start += 3) ...<Widget>[
+                      if (start > 0) const SizedBox(height: 12),
+                      _productRow(
+                        context,
+                        state: state,
+                        busy: busy,
+                        start: start,
+                        end: math.min(start + 3, state.columnCount),
                       ),
-                    ),
+                    ]
+                  else ...<Widget>[
+                    for (final ({int start, int end}) band
+                        in stationDebtAdminLayoutBands(
+                          entryKind: context
+                              .read<StationDebtRegistrationCubit>()
+                              .stationEntryKind,
+                          columnCount: state.columnCount,
+                        ))
+                      if (band.start < state.columnCount) ...<Widget>[
+                        if (band.start > 0) const SizedBox(height: 12),
+                        _productRow(
+                          context,
+                          state: state,
+                          busy: busy,
+                          start: band.start,
+                          end: math.min(band.end, state.columnCount),
+                        ),
+                      ],
                   ],
                   const SizedBox(height: 24),
                   FilledButton(
@@ -236,7 +253,7 @@ class _StationDebtRegistrationPageState
                         state.columnProductNames[i].isNotEmpty
                     ? state.columnProductNames[i]
                     : stationSaleProductLabel(
-                        StationSaleEntryKind.filling,
+                        cubit.stationEntryKind,
                         i,
                         l10n,
                       ),
@@ -259,18 +276,21 @@ class _StationDebtRegistrationPageState
                       vehiclePlace == StationDebtVehiclePlace.store
                           ? VehicleProductColumnPlace.store
                           : VehicleProductColumnPlace.home;
-                  if (vehicleDebtColumnUsesVehicleLoad(columnPlace, i)) {
-                    return i < state.columnVehicleRemaining.length
-                        ? state.columnVehicleRemaining[i]
-                        : null;
-                  }
-                  if (i < state.columnSkipsStationStock.length &&
-                      !state.columnSkipsStationStock[i]) {
-                    return i < state.columnStationStock.length
-                        ? state.columnStationStock[i]
-                        : null;
-                  }
-                  return null;
+                  final int vehicle = i < state.columnVehicleRemaining.length
+                      ? state.columnVehicleRemaining[i]
+                      : 0;
+                  final int station = i < state.columnStationStock.length
+                      ? state.columnStationStock[i]
+                      : 0;
+                  final bool skipStation = i < state.columnSkipsStationStock.length &&
+                      state.columnSkipsStationStock[i];
+                  return vehicleDebtDisplayedStock(
+                    place: columnPlace,
+                    columnIndex: i,
+                    vehicleRemaining: vehicle,
+                    stationStock: station,
+                    skipsStationStock: skipStation,
+                  );
                 }(),
                 stockSourceLabel: state.useVehicleProductLabels &&
                         vehiclePlace != null

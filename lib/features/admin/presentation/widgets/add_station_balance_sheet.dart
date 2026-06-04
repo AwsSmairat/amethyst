@@ -1,7 +1,9 @@
 import 'package:amethyst/core/l10n/context_l10n.dart';
+import 'package:amethyst/core/theme/app_colors.dart';
 import 'package:amethyst/di/injection.dart';
 import 'package:amethyst/features/admin/domain/usecases/save_station_balance_usecase.dart';
 import 'package:amethyst/features/admin/presentation/station_balance/station_balance_lines.dart';
+import 'package:amethyst/features/admin/presentation/station_balance/station_balance_sections.dart';
 import 'package:amethyst/features/record_operations/domain/usecases/record_operation_usecases.dart';
 import 'package:flutter/material.dart';
 
@@ -52,13 +54,12 @@ class _StationBalanceBodyState extends State<_StationBalanceBody> {
         return;
       }
       for (var i = 0; i <= kStationBalanceLastFixedRowIndex; i++) {
-        final Map<String, dynamic>? match = resolveStationBalanceProduct(
+        final int stock = stationStockForBalanceRow(
           products: items,
           rowIndex: i,
         );
-        if (match != null) {
-          _controllers[i].text =
-              stationStockFromProductJson(match).toString();
+        if (stock > 0) {
+          _controllers[i].text = stock.toString();
         }
       }
     } on Object catch (_) {
@@ -119,6 +120,35 @@ class _StationBalanceBodyState extends State<_StationBalanceBody> {
     }
   }
 
+  Widget _sectionTitle(StationBalanceSection section) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 8, bottom: 10),
+      child: Row(
+        children: <Widget>[
+          Container(
+            width: 32,
+            height: 32,
+            decoration: BoxDecoration(
+              color: section.tint.withValues(alpha: 0.14),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Icon(section.icon, size: 18, color: section.tint),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              section.title,
+              style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                    fontWeight: FontWeight.w800,
+                    color: AppColors.primaryText,
+                  ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _field(BuildContext context, int index) {
     final l10n = context.l10n;
     final bool isOptional = index > kStationBalanceLastFixedRowIndex;
@@ -131,20 +161,30 @@ class _StationBalanceBodyState extends State<_StationBalanceBody> {
           textAlign: TextAlign.right,
           decoration: InputDecoration(
             hintText: stationBalanceRowLabel(l10n, index),
-            border: const OutlineInputBorder(),
+            filled: true,
+            fillColor: AppColors.surfaceContainerLow,
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide.none,
+            ),
           ),
         ),
       );
     }
     return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.only(bottom: 10),
       child: TextField(
         controller: _controllers[index],
         keyboardType: const TextInputType.numberWithOptions(decimal: true),
         textAlign: TextAlign.right,
         decoration: InputDecoration(
           labelText: stationBalanceRowLabel(l10n, index),
-          border: const OutlineInputBorder(),
+          filled: true,
+          fillColor: AppColors.surfaceContainerLow,
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: BorderSide.none,
+          ),
         ),
       ),
     );
@@ -155,6 +195,8 @@ class _StationBalanceBodyState extends State<_StationBalanceBody> {
     final l10n = context.l10n;
     final double bottom = MediaQuery.viewInsetsOf(context).bottom;
     final bool busy = _prefilling || _saving;
+    final List<StationBalanceSection> sections = stationBalanceSections(l10n);
+
     return Padding(
       padding: EdgeInsets.only(
         left: 20,
@@ -187,9 +229,18 @@ class _StationBalanceBodyState extends State<_StationBalanceBody> {
                 child: Center(child: CircularProgressIndicator()),
               )
             else ...<Widget>[
-              for (var i = 0; i < _fieldCount; i++) _field(context, i),
+              for (final StationBalanceSection section in sections) ...<Widget>[
+                _sectionTitle(section),
+                for (final int rowIndex in section.rowIndices)
+                  _field(context, rowIndex),
+              ],
+              const SizedBox(height: 8),
               FilledButton(
                 onPressed: busy ? null : _save,
+                style: FilledButton.styleFrom(
+                  minimumSize: const Size.fromHeight(48),
+                  backgroundColor: AppColors.brandPrimary,
+                ),
                 child: _saving
                     ? const SizedBox(
                         height: 22,

@@ -12,19 +12,27 @@ import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 class SuperAdminProductPricesPage extends StatelessWidget {
-  const SuperAdminProductPricesPage({super.key});
+  const SuperAdminProductPricesPage({
+    super.key,
+    this.allowAddProduct = true,
+  });
+
+  /// سوبر أدمن: إضافة منتج جديد. الأدمن: تعديل الأسعار فقط.
+  final bool allowAddProduct;
 
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
       create: (_) => SuperAdminProductPricesCubit(sl<AmethystApi>())..load(),
-      child: const _SuperAdminProductPricesBody(),
+      child: _SuperAdminProductPricesBody(allowAddProduct: allowAddProduct),
     );
   }
 }
 
 class _SuperAdminProductPricesBody extends StatelessWidget {
-  const _SuperAdminProductPricesBody();
+  const _SuperAdminProductPricesBody({required this.allowAddProduct});
+
+  final bool allowAddProduct;
 
   @override
   Widget build(BuildContext context) {
@@ -41,11 +49,13 @@ class _SuperAdminProductPricesBody extends StatelessWidget {
           ),
         ],
       ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => showAddSuperAdminProductSheet(context),
-        icon: const Icon(Icons.add_shopping_cart_outlined),
-        label: Text(l10n.addProduct),
-      ),
+      floatingActionButton: allowAddProduct
+          ? FloatingActionButton.extended(
+              onPressed: () => showAddSuperAdminProductSheet(context),
+              icon: const Icon(Icons.add_shopping_cart_outlined),
+              label: Text(l10n.addProduct),
+            )
+          : null,
       body: BlocBuilder<SuperAdminProductPricesCubit, ListLoadState>(
         builder: (BuildContext context, ListLoadState state) {
           if (state is ListLoadLoading || state is ListLoadInitial) {
@@ -193,11 +203,7 @@ class _SuperAdminPricingRowCardState extends State<_SuperAdminPricingRowCard> {
   Widget build(BuildContext context) {
     final l10n = context.l10n;
     final ThemeData theme = Theme.of(context);
-    final String storeExtraLabel =
-        superAdminStorePricingRowLabel(widget.rowIndex);
-    final String rowLabel = storeExtraLabel.isNotEmpty
-        ? storeExtraLabel
-        : stationBalanceRowLabel(l10n, widget.rowIndex);
+    final String rowLabel = productPricingRowLabel(l10n, widget.rowIndex);
     final Map<String, dynamic>? product = widget.product;
     final String? apiName = product?['name']?.toString();
     final bool linked = product != null && product['id'] != null;
@@ -228,6 +234,70 @@ class _SuperAdminPricingRowCardState extends State<_SuperAdminPricingRowCard> {
                     fontWeight: FontWeight.w600,
                   ),
             ),
+            if (widget.rowIndex == kSuperAdminFillingGallonPricingExtraSlot) ...<Widget>[
+              const SizedBox(height: 4),
+              Text(
+                'سعر تعبئة المحطة — منتج ١ جالون (بدون خصم مخزون).',
+                style: theme.textTheme.bodySmall?.copyWith(
+                      color: AppColors.onSurfaceVariant,
+                      fontStyle: FontStyle.italic,
+                    ),
+              ),
+            ],
+            if (widget.rowIndex == kSuperAdminFillingBottlePricingExtraSlot) ...<Widget>[
+              const SizedBox(height: 4),
+              Text(
+                'سعر تعبئة المحطة — منتج ٢ قاروره (بدون خصم مخزون).',
+                style: theme.textTheme.bodySmall?.copyWith(
+                      color: AppColors.onSurfaceVariant,
+                      fontStyle: FontStyle.italic,
+                    ),
+              ),
+            ],
+            if (widget.rowIndex ==
+                kSuperAdminFillingSmallGallonPricingExtraSlot) ...<Widget>[
+              const SizedBox(height: 4),
+              Text(
+                'سعر جالون صغير (تعبئة/سيارة) — منتج مستقل عن «ج صغير فارغ».',
+                style: theme.textTheme.bodySmall?.copyWith(
+                      color: AppColors.onSurfaceVariant,
+                      fontStyle: FontStyle.italic,
+                    ),
+              ),
+            ],
+            if (widget.rowIndex ==
+                kSuperAdminFillingSmallBottlePricingExtraSlot) ...<Widget>[
+              const SizedBox(height: 4),
+              Text(
+                'سعر قاروره صغير (تعبئة/سيارة) — منتج مستقل عن «ق صغير فارغ».',
+                style: theme.textTheme.bodySmall?.copyWith(
+                      color: AppColors.onSurfaceVariant,
+                      fontStyle: FontStyle.italic,
+                    ),
+              ),
+            ],
+            if (widget.rowIndex ==
+                kSuperAdminEmptySaleWithFillingRow1PricingExtraSlot) ...<Widget>[
+              const SizedBox(height: 4),
+              Text(
+                'زيادة «مع تعبئة» لكل وحدة — المنتجات ١–٣ في بيع فارغ من المحطة.',
+                style: theme.textTheme.bodySmall?.copyWith(
+                      color: AppColors.onSurfaceVariant,
+                      fontStyle: FontStyle.italic,
+                    ),
+              ),
+            ],
+            if (widget.rowIndex ==
+                kSuperAdminEmptySaleWithFillingRow2PricingExtraSlot) ...<Widget>[
+              const SizedBox(height: 4),
+              Text(
+                'زيادة «مع تعبئة» لكل وحدة — المنتجين ٤–٥ في بيع فارغ من المحطة.',
+                style: theme.textTheme.bodySmall?.copyWith(
+                      color: AppColors.onSurfaceVariant,
+                      fontStyle: FontStyle.italic,
+                    ),
+              ),
+            ],
             if (widget.rowIndex == kSuperAdminStoreGallonPricingExtraSlot) ...<Widget>[
               const SizedBox(height: 4),
               Text(
@@ -248,10 +318,20 @@ class _SuperAdminPricingRowCardState extends State<_SuperAdminPricingRowCard> {
                     ),
               ),
             ],
+            if (widget.rowIndex == 0) ...<Widget>[
+              const SizedBox(height: 4),
+              Text(
+                'سعر موحّد لـ «مهدي» (تعبئة المحطة) و«ك مهدي» (منزل/حمولة) — الخصم من مخزون ك مهدي.',
+                style: theme.textTheme.bodySmall?.copyWith(
+                      color: AppColors.onSurfaceVariant,
+                      fontStyle: FontStyle.italic,
+                    ),
+              ),
+            ],
             if (widget.rowIndex == kSuperAdminStoreMahdiPricingExtraSlot) ...<Widget>[
               const SizedBox(height: 4),
               Text(
-                'الخصم من مخزون «ك مهدي» على السيارة والمحطة.',
+                'سعر «مهدي متجر» فقط (بيع متجر من السيارة) — الخصم من مخزون ك مهدي.',
                 style: theme.textTheme.bodySmall?.copyWith(
                       color: AppColors.onSurfaceVariant,
                       fontStyle: FontStyle.italic,
