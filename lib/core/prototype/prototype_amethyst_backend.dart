@@ -216,6 +216,22 @@ final class PrototypeAmethystBackend {
   Future<Map<String, dynamic>> listStationSales({int page = 1, int limit = 100}) async =>
       _paginate(PrototypeSampleData.stationSales, page: page, limit: limit);
 
+  Future<void> createStationSalesBatch({
+    required List<Map<String, dynamic>> lines,
+    bool fillingSale = false,
+  }) async {
+    for (final Map<String, dynamic> line in lines) {
+      await createStationSale(
+        productId: line['productId'] as String,
+        quantity: (line['quantity'] as num).toInt(),
+        unitPrice: (line['unitPrice'] as num).toDouble(),
+        fillingSale: fillingSale,
+        fillingLineSlot: (line['fillingLineSlot'] as num?)?.toInt(),
+        note: line['note'] as String?,
+      );
+    }
+  }
+
   Future<Map<String, dynamic>> createStationSale({
     required String productId,
     required int quantity,

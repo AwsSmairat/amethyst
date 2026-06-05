@@ -1,7 +1,13 @@
-/// يحوّل قيمة تاريخ من الـ API (نص ISO أو [DateTime] في نموذج العرض).
+import 'package:amethyst/core/firebase/firestore_mappers.dart';
+
+/// يحوّل قيمة تاريخ من الـ API (نص ISO أو [DateTime] أو Firestore Timestamp).
 DateTime? parseApiDateTime(dynamic value) {
   if (value == null) {
     return null;
+  }
+  final DateTime? fromTimestamp = timestampToDate(value);
+  if (fromTimestamp != null) {
+    return fromTimestamp;
   }
   if (value is DateTime) {
     return value;

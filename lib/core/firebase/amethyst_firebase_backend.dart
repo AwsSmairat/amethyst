@@ -12,6 +12,33 @@ import 'package:amethyst/core/network/api_exception.dart';
 import 'package:amethyst/core/station_balance/station_balance_catalog.dart';
 import 'package:amethyst/features/auth/domain/entities/user_entity.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+
+final class _FirestoreTxFailure implements Exception {
+  const _FirestoreTxFailure(this.code, {this.message});
+
+  final String code;
+  final String? message;
+}
+
+ApiException _apiExceptionFromFirestoreTxFailure(_FirestoreTxFailure e) {
+  return ApiException(
+    e.message ??
+        switch (e.code) {
+          'INSUFFICIENT_STOCK' => 'Insufficient station stock',
+          'NOT_FOUND' => 'Product not found or inactive',
+          _ => 'Transaction failed',
+        },
+    code: e.code,
+  );
+}
+
+ApiException _apiExceptionFromFirebase(FirebaseException e) {
+  return ApiException(
+    e.message ?? 'Firestore error',
+    code: e.code.toUpperCase(),
+  );
+}
+
 final class AmethystFirebaseBackend {
   AmethystFirebaseBackend({
     FirebaseAuthService? authService,
@@ -401,6 +428,7 @@ final class AmethystFirebaseBackend {
     required String productId,
     required int quantityLoaded,
     required String loadDate,
+    String? loadBatchId,
   }) async {
     final Map<String, dynamic> actor = await _auth.currentActor();
     final DocumentReference<Map<String, dynamic>> ref =
@@ -415,11 +443,12 @@ final class AmethystFirebaseBackend {
       'loadDate': Timestamp.fromDate(parseYmd(loadDate) ?? DateTime.now()),
       'status': 'open',
       'createdById': actor['id'],
+      if (loadBatchId != null && loadBatchId.isNotEmpty) 'loadBatchId': loadBatchId,
       'createdAt': serverTimestamp(),
       'updatedAt': serverTimestamp(),
     });
     final DocumentSnapshot<Map<String, dynamic>> doc = await ref.get();
-    return _hydrateVehicleLoad(doc);
+    return mapVehicleLoadDoc(doc);
   }
 
   Future<Map<String, dynamic>> listStationSales({int page = 1, int limit = 100}) async {
@@ -428,11 +457,96 @@ final class AmethystFirebaseBackend {
         .collection(FirestorePaths.stationSales)
         .orderBy('createdAt', descending: true)
         .get();
-    final List<Map<String, dynamic>> items = <Map<String, dynamic>>[];
-    for (final QueryDocumentSnapshot<Map<String, dynamic>> doc in snap.docs) {
-      items.add(await _hydrateStationSale(doc));
-    }
+    final List<Object> lookups = await Future.wait(<Future<Object>>[
+      _loadProductsLookup(),
+      _loadUserBriefsLookup(
+        snap.docs.map(
+          (QueryDocumentSnapshot<Map<String, dynamic>> d) =>
+              d.data()['soldById']?.toString() ?? '',
+        ),
+      ),
+    ]);
+    final Map<String, Map<String, dynamic>> productsById =
+        lookups[0] as Map<String, Map<String, dynamic>>;
+    final Map<String, Map<String, dynamic>> usersById =
+        lookups[1] as Map<String, Map<String, dynamic>>;
+    final List<Map<String, dynamic>> items = snap.docs
+        .map((QueryDocumentSnapshot<Map<String, dynamic>> doc) {
+          final Map<String, dynamic> data = doc.data();
+          return mapStationSaleDoc(
+            doc,
+            product: productsById[data['productId']?.toString() ?? ''],
+            soldBy: usersById[data['soldById']?.toString() ?? ''],
+          );
+        })
+        .toList(growable: false);
     return _paginate(items, page: page, limit: limit);
+  }
+
+  void _applyStationSaleInTransaction({
+    required Transaction tx,
+    required Map<String, dynamic> actor,
+    required DocumentReference<Map<String, dynamic>> saleRef,
+    required String productId,
+    required int quantity,
+    required double unitPrice,
+    bool fillingSale = false,
+    int? fillingLineSlot,
+    String? note,
+    required DocumentSnapshot<Map<String, dynamic>> productSnap,
+  }) async {
+    if (!productSnap.exists) {
+      throw ApiException('Product not found or inactive', code: 'NOT_FOUND');
+    }
+    final Map<String, dynamic> product = mapProductDoc(productSnap);
+    if (product['isActive'] == false) {
+      throw ApiException('Product not found or inactive', code: 'NOT_FOUND');
+    }
+    final bool skipStock = shouldSkipStationStockForSale(
+      product: product,
+      fillingSale: fillingSale,
+      fillingLineSlot: fillingLineSlot,
+    );
+    if (!skipStock) {
+      final int stock = (product['stationStock'] as num?)?.toInt() ?? 0;
+      if (stock < quantity) {
+        throw ApiException('Insufficient station stock', code: 'INSUFFICIENT_STOCK');
+      }
+      tx.update(productSnap.reference, <String, dynamic>{
+        'stationStock': stock - quantity,
+        'updatedAt': serverTimestamp(),
+      });
+      final DocumentReference<Map<String, dynamic>> movRef =
+          _db.collection(FirestorePaths.stockMovements).doc();
+      tx.set(movRef, <String, dynamic>{
+        'productId': productId,
+        'type': 'out',
+        'quantity': quantity,
+        'reason': 'station_sale',
+        'referenceId': saleRef.id,
+        'createdById': actor['id'],
+        'createdAt': serverTimestamp(),
+      });
+    }
+    final double totalAmount = quantity * unitPrice;
+    String? noteToSave = note?.trim();
+    if ((noteToSave == null || noteToSave.isEmpty) &&
+        fillingSale &&
+        fillingLineSlot != null &&
+        fillingLineSlot <= 1 &&
+        unitPrice == 0) {
+      noteToSave = 'كوبون';
+    }
+    tx.set(saleRef, <String, dynamic>{
+      'productId': productId,
+      'quantity': quantity,
+      'unitPrice': unitPrice,
+      'totalAmount': totalAmount,
+      'soldById': actor['id'],
+      if (noteToSave != null && noteToSave.isNotEmpty) 'note': noteToSave,
+      'createdAt': serverTimestamp(),
+      'updatedAt': serverTimestamp(),
+    });
   }
 
   Future<Map<String, dynamic>> createStationSale({
@@ -449,117 +563,149 @@ final class AmethystFirebaseBackend {
     await _db.runTransaction((Transaction tx) async {
       final DocumentSnapshot<Map<String, dynamic>> productSnap =
           await tx.get(_db.collection(FirestorePaths.products).doc(productId));
-      if (!productSnap.exists) {
-        throw ApiException('Product not found or inactive', code: 'NOT_FOUND');
-      }
-      final Map<String, dynamic> product = mapProductDoc(productSnap);
-      if (product['isActive'] == false) {
-        throw ApiException('Product not found or inactive', code: 'NOT_FOUND');
-      }
-      final bool skipStock = shouldSkipStationStockForSale(
-        product: product,
+      _applyStationSaleInTransaction(
+        tx: tx,
+        actor: actor,
+        saleRef: saleRef,
+        productId: productId,
+        quantity: quantity,
+        unitPrice: unitPrice,
         fillingSale: fillingSale,
         fillingLineSlot: fillingLineSlot,
+        note: note,
+        productSnap: productSnap,
       );
-      if (!skipStock) {
-        final int stock = (product['stationStock'] as num?)?.toInt() ?? 0;
-        if (stock < quantity) {
-          throw ApiException('Insufficient station stock', code: 'INSUFFICIENT_STOCK');
-        }
-        tx.update(productSnap.reference, <String, dynamic>{
-          'stationStock': stock - quantity,
-          'updatedAt': serverTimestamp(),
-        });
-        final DocumentReference<Map<String, dynamic>> movRef =
-            _db.collection(FirestorePaths.stockMovements).doc();
-        tx.set(movRef, <String, dynamic>{
-          'productId': productId,
-          'type': 'out',
-          'quantity': quantity,
-          'reason': 'station_sale',
-          'referenceId': saleRef.id,
-          'createdById': actor['id'],
-          'createdAt': serverTimestamp(),
-        });
-      }
-      final double totalAmount = quantity * unitPrice;
-      String? noteToSave = note?.trim();
-      if ((noteToSave == null || noteToSave.isEmpty) &&
-          fillingSale &&
-          fillingLineSlot != null &&
-          fillingLineSlot <= 1 &&
-          unitPrice == 0) {
-        noteToSave = 'كوبون';
-      }
-      tx.set(saleRef, <String, dynamic>{
-        'productId': productId,
-        'quantity': quantity,
-        'unitPrice': unitPrice,
-        'totalAmount': totalAmount,
-        'soldById': actor['id'],
-        if (noteToSave != null && noteToSave.isNotEmpty) 'note': noteToSave,
-        'createdAt': serverTimestamp(),
-        'updatedAt': serverTimestamp(),
-      });
     });
-    final DocumentSnapshot<Map<String, dynamic>> doc = await saleRef.get();
-    return _hydrateStationSale(doc);
+    return <String, dynamic>{
+      'id': saleRef.id,
+      'productId': productId,
+      'quantity': quantity,
+      'unitPrice': unitPrice,
+      'totalAmount': quantity * unitPrice,
+    };
+  }
+
+  Future<void> createStationSalesBatch({
+    required List<Map<String, dynamic>> lines,
+    bool fillingSale = false,
+  }) async {
+    if (lines.isEmpty) {
+      throw ApiException('No sale lines', code: 'EMPTY_LINES');
+    }
+    final Map<String, dynamic> actor = await _auth.currentActor();
+    await _db.runTransaction((Transaction tx) async {
+      for (final Map<String, dynamic> line in lines) {
+        final String productId = line['productId'] as String;
+        final int quantity = (line['quantity'] as num).toInt();
+        final double unitPrice = (line['unitPrice'] as num).toDouble();
+        final int? fillingLineSlot = (line['fillingLineSlot'] as num?)?.toInt();
+        final String? note = line['note'] as String?;
+        final DocumentReference<Map<String, dynamic>> saleRef =
+            _db.collection(FirestorePaths.stationSales).doc();
+        final DocumentSnapshot<Map<String, dynamic>> productSnap =
+            await tx.get(_db.collection(FirestorePaths.products).doc(productId));
+        _applyStationSaleInTransaction(
+          tx: tx,
+          actor: actor,
+          saleRef: saleRef,
+          productId: productId,
+          quantity: quantity,
+          unitPrice: unitPrice,
+          fillingSale: fillingSale,
+          fillingLineSlot: fillingLineSlot,
+          note: note,
+          productSnap: productSnap,
+        );
+      }
+    });
   }
 
   Future<void> createStationDebtEntries({
     required String debtorName,
     required List<Map<String, dynamic>> lines,
   }) async {
-    final Map<String, dynamic> actor = await _auth.currentActor();
-    final String recordingSource = actor['role'] == 'driver' ? 'vehicle' : 'station';
-    if (actor['role'] == 'driver') {
-      final QuerySnapshot<Map<String, dynamic>> v = await _db
-          .collection(FirestorePaths.vehicles)
-          .where('driverId', isEqualTo: actor['id'])
-          .where('isActive', isEqualTo: true)
-          .limit(1)
-          .get();
-      if (v.docs.isEmpty) {
-        throw ApiException('No vehicle assigned to you', code: 'FORBIDDEN');
-      }
+    if (lines.isEmpty) {
+      throw ApiException('No debt lines', code: 'EMPTY_LINES');
     }
-    await _db.runTransaction((Transaction tx) async {
-      for (final Map<String, dynamic> line in lines) {
-        final String productId = line['productId'] as String;
-        final int qty = (line['quantity'] as num).toInt();
-        final double unitPriceNum = (line['unitPrice'] as num).toDouble();
-        final DocumentSnapshot<Map<String, dynamic>> productSnap =
-            await tx.get(_db.collection(FirestorePaths.products).doc(productId));
-        if (!productSnap.exists) {
-          throw ApiException('Product not found or inactive', code: 'NOT_FOUND');
+    try {
+      await _requireStaffOrDriver();
+      final Map<String, dynamic> actor = await _auth.currentActor();
+      final String recordingSource =
+          actor['role'] == 'driver' ? 'vehicle' : 'station';
+      if (actor['role'] == 'driver') {
+        final QuerySnapshot<Map<String, dynamic>> v = await _db
+            .collection(FirestorePaths.vehicles)
+            .where('driverId', isEqualTo: actor['id'])
+            .where('isActive', isEqualTo: true)
+            .limit(1)
+            .get();
+        if (v.docs.isEmpty) {
+          throw ApiException('No vehicle assigned to you', code: 'FORBIDDEN');
         }
-        final Map<String, dynamic> product = mapProductDoc(productSnap);
-        if (!shouldSkipStationStockForDebtProduct(product)) {
-          final int stock = (product['stationStock'] as num?)?.toInt() ?? 0;
-          if (stock < qty) {
-            throw ApiException('Insufficient station stock', code: 'INSUFFICIENT_STOCK');
+      }
+      await _db.runTransaction((Transaction tx) async {
+        for (final Map<String, dynamic> line in lines) {
+          final Object? rawProductId = line['productId'];
+          if (rawProductId is! String || rawProductId.isEmpty) {
+            throw const _FirestoreTxFailure('NOT_FOUND', message: 'Invalid product');
           }
-          tx.update(productSnap.reference, <String, dynamic>{
-            'stationStock': stock - qty,
+          final String productId = rawProductId;
+          final Object? rawQty = line['quantity'];
+          final Object? rawUnitPrice = line['unitPrice'];
+          if (rawQty is! num || rawUnitPrice is! num) {
+            throw const _FirestoreTxFailure('VALIDATION', message: 'Invalid debt line');
+          }
+          final int qty = rawQty.toInt();
+          final double unitPriceNum = rawUnitPrice.toDouble();
+          if (qty <= 0) {
+            continue;
+          }
+          final DocumentSnapshot<Map<String, dynamic>> productSnap =
+              await tx.get(_db.collection(FirestorePaths.products).doc(productId));
+          if (!productSnap.exists) {
+            throw const _FirestoreTxFailure(
+              'NOT_FOUND',
+              message: 'Product not found or inactive',
+            );
+          }
+          final Map<String, dynamic> product = mapProductDoc(productSnap);
+          if (product['isActive'] == false) {
+            throw const _FirestoreTxFailure(
+              'NOT_FOUND',
+              message: 'Product not found or inactive',
+            );
+          }
+          if (!shouldSkipStationStockForDebtProduct(product)) {
+            final int stock = (product['stationStock'] as num?)?.toInt() ?? 0;
+            if (stock < qty) {
+              throw const _FirestoreTxFailure('INSUFFICIENT_STOCK');
+            }
+            tx.update(productSnap.reference, <String, dynamic>{
+              'stationStock': stock - qty,
+              'updatedAt': serverTimestamp(),
+            });
+          }
+          final DocumentReference<Map<String, dynamic>> debtRef =
+              _db.collection(FirestorePaths.stationDebtEntries).doc();
+          tx.set(debtRef, <String, dynamic>{
+            'debtorName': debtorName.trim(),
+            'productId': productId,
+            'quantity': qty,
+            'unitPrice': unitPriceNum,
+            'totalAmount': qty * unitPriceNum,
+            'recordedById': actor['id'],
+            'recordingSource': recordingSource,
+            'repaidAt': null,
+            'createdAt': serverTimestamp(),
             'updatedAt': serverTimestamp(),
           });
         }
-        final DocumentReference<Map<String, dynamic>> debtRef =
-            _db.collection(FirestorePaths.stationDebtEntries).doc();
-        tx.set(debtRef, <String, dynamic>{
-          'debtorName': debtorName.trim(),
-          'productId': productId,
-          'quantity': qty,
-          'unitPrice': unitPriceNum,
-          'totalAmount': qty * unitPriceNum,
-          'recordedById': actor['id'],
-          'recordingSource': recordingSource,
-          'repaidAt': null,
-          'createdAt': serverTimestamp(),
-          'updatedAt': serverTimestamp(),
-        });
-      }
-    });
+      });
+    } on _FirestoreTxFailure catch (e) {
+      throw _apiExceptionFromFirestoreTxFailure(e);
+    } on FirebaseException catch (e) {
+      throw _apiExceptionFromFirebase(e);
+    }
   }
 
   Future<Map<String, dynamic>> listStationDebtEntries({
@@ -1590,6 +1736,38 @@ final class AmethystFirebaseBackend {
       driver: driver,
       product: product,
       createdBy: createdBy,
+    );
+  }
+
+  Future<Map<String, Map<String, dynamic>>> _loadProductsLookup() async {
+    final QuerySnapshot<Map<String, dynamic>> snap =
+        await _db.collection(FirestorePaths.products).get();
+    return <String, Map<String, dynamic>>{
+      for (final QueryDocumentSnapshot<Map<String, dynamic>> doc in snap.docs)
+        doc.id: mapProductDoc(doc),
+    };
+  }
+
+  Future<Map<String, Map<String, dynamic>>> _loadUserBriefsLookup(
+    Iterable<String> ids,
+  ) async {
+    final Set<String> unique =
+        ids.map((String id) => id.trim()).where((String id) => id.isNotEmpty).toSet();
+    if (unique.isEmpty) {
+      return <String, Map<String, dynamic>>{};
+    }
+    final List<MapEntry<String, Map<String, dynamic>>?> entries =
+        await Future.wait<MapEntry<String, Map<String, dynamic>>?>(
+      unique.map((String id) async {
+        final Map<String, dynamic>? brief = await _userBrief(id);
+        if (brief == null) {
+          return null;
+        }
+        return MapEntry<String, Map<String, dynamic>>(id, brief);
+      }),
+    );
+    return Map<String, Map<String, dynamic>>.fromEntries(
+      entries.whereType<MapEntry<String, Map<String, dynamic>>>(),
     );
   }
 

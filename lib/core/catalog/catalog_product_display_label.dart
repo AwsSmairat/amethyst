@@ -9,6 +9,24 @@ String catalogProductArabicDisplayLabel(String? raw) {
     return '—';
   }
 
+  for (var i = 0; i < StationSaleApiProductNames.emptySale.length; i++) {
+    if (stationBalanceProductNamesMatch(
+      trimmed,
+      StationSaleApiProductNames.emptySale[i],
+    )) {
+      return _emptySaleColumnArabicLabel(i);
+    }
+  }
+
+  for (var i = 0; i < StationSaleApiProductNames.filling.length; i++) {
+    if (stationBalanceProductNamesMatch(
+      trimmed,
+      StationSaleApiProductNames.filling[i],
+    )) {
+      return _fillingColumnArabicLabel(i);
+    }
+  }
+
   final String? homeLabel = vehicleProductDisplayLabelByNameMatch(
     place: VehicleProductColumnPlace.home,
     productName: trimmed,
@@ -23,24 +41,6 @@ String catalogProductArabicDisplayLabel(String? raw) {
   );
   if (storeLabel != null) {
     return storeLabel;
-  }
-
-  for (var i = 0; i < StationSaleApiProductNames.filling.length; i++) {
-    if (stationBalanceProductNamesMatch(
-      trimmed,
-      StationSaleApiProductNames.filling[i],
-    )) {
-      return _fillingColumnArabicLabel(i);
-    }
-  }
-
-  for (var i = 0; i < StationSaleApiProductNames.emptySale.length; i++) {
-    if (stationBalanceProductNamesMatch(
-      trimmed,
-      StationSaleApiProductNames.emptySale[i],
-    )) {
-      return _emptySaleColumnArabicLabel(i);
-    }
   }
 
   for (var row = 0; row < StationBalanceProductLookup.nameCandidates.length; row++) {
@@ -60,6 +60,12 @@ String catalogProductArabicDisplayLabel(String? raw) {
 }
 
 String? _knownApiProductArabicLabel(String raw) {
+  if (stationBalanceProductNamesMatch(raw, 'Empty Gallon')) {
+    return 'ج فارغ';
+  }
+  if (stationBalanceProductNamesMatch(raw, 'Small Empty Gallon')) {
+    return 'ج صغير فارغ';
+  }
   if (stationBalanceProductNamesMatch(raw, kFillingGallonProductApiName)) {
     return 'جالون';
   }

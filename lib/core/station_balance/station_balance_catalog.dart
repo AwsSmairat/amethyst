@@ -243,12 +243,26 @@ bool _nameIndicatesSmallSize(String normalized) =>
     normalized.contains('small') ||
     normalized.contains('صغيرة');
 
+bool _nameIndicatesEmpty(String normalized) =>
+    normalized.contains('empty') ||
+    normalized.contains('فارغ') ||
+    normalized.contains('فاضي') ||
+    normalized.contains('فارغه');
+
 /// يمنع خلط «ج فارغ» مع «ج صغير فارغ» ونحوها عند التطابق الجزئي.
 bool _stationBalanceSizeClassConflict(String a, String b) {
   if (a == b) {
     return false;
   }
   return _nameIndicatesSmallSize(a) != _nameIndicatesSmallSize(b);
+}
+
+/// يمنع اعتبار «Empty Gallon» مثل «Gallon» أو «Water Gallon».
+bool _stationBalanceEmptyClassConflict(String a, String b) {
+  if (a == b) {
+    return false;
+  }
+  return _nameIndicatesEmpty(a) != _nameIndicatesEmpty(b);
 }
 
 bool _stationBalanceNamesMatch(String dbName, String candidate) {
@@ -267,6 +281,9 @@ bool _stationBalanceNamesMatch(String dbName, String candidate) {
   // أسماء طويلة قد تختلف بلاحقة (مثل "ق سعودي — مخزن")
   if (a.length >= 6 && b.length >= 6 && (a.contains(b) || b.contains(a))) {
     if (_stationBalanceSizeClassConflict(a, b)) {
+      return false;
+    }
+    if (_stationBalanceEmptyClassConflict(a, b)) {
       return false;
     }
     return true;

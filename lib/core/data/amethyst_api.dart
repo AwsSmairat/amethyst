@@ -213,6 +213,12 @@ final class AmethystApi {
         note: note,
       );
 
+  Future<void> createStationSalesBatch({
+    required List<Map<String, dynamic>> lines,
+    bool fillingSale = false,
+  }) =>
+      _b.createStationSalesBatch(lines: lines, fillingSale: fillingSale);
+
   Future<void> createStationDebtEntries({
     required String debtorName,
     required List<Map<String, dynamic>> lines,

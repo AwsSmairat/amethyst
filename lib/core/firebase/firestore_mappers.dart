@@ -35,6 +35,14 @@ Map<String, dynamic> mapStationSaleDoc(
   }
   final Object? note = s['note'];
   s['note'] = note != null && note.toString().trim().isNotEmpty ? note.toString() : null;
+  final DateTime? created = timestampToDate(s['createdAt']);
+  if (created != null) {
+    s['createdAt'] = created;
+  }
+  final DateTime? updated = timestampToDate(s['updatedAt']);
+  if (updated != null) {
+    s['updatedAt'] = updated;
+  }
   return s;
 }
 

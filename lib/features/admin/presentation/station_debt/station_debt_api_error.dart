@@ -17,6 +17,9 @@ String mapStationDebtApiException(ApiException e) {
   if (e.code == 'INSUFFICIENT_STOCK') {
     return kStationDebtInsufficientStockSubmitMarker;
   }
+  if (e.code == 'PERMISSION-DENIED') {
+    return kStationDebtForbiddenMarker;
+  }
   final String msg = e.message.trim();
   final String lower = msg.toLowerCase();
   if (e.statusCode == 403 &&
@@ -41,8 +44,13 @@ String mapStationDebtApiException(ApiException e) {
 
 /// لتحميل القوائم ([JsonListCubit]) عند فشل الطلب.
 String mapStationDebtListLoadError(Object error) {
+  return mapStationDebtSubmitError(error);
+}
+
+/// أخطاء إرسال نموذج تسجيل الدين.
+String mapStationDebtSubmitError(Object error) {
   if (error is ApiException) {
     return mapStationDebtApiException(error);
   }
-  return error.toString();
+  return errorMessageFrom(error);
 }

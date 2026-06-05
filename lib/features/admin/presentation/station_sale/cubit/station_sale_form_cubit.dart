@@ -358,7 +358,6 @@ final class StationSaleFormCubit extends Cubit<StationSaleFormState> {
     try {
       final bool fillingSale =
           state.entryKind == StationSaleEntryKind.filling;
-      final List<Map<String, dynamic>> catalog = await _listProductItems();
       final Map<String, ({int quantity, double unitPrice, int? columnIndex, String? note})>
           mergedByProduct = <String,
               ({int quantity, double unitPrice, int? columnIndex, String? note})>{};
@@ -371,10 +370,7 @@ final class StationSaleFormCubit extends Cubit<StationSaleFormState> {
               row1Surcharge: state.emptySaleWithFillingSurchargeRow1,
               row2Surcharge: state.emptySaleWithFillingSurchargeRow2,
             );
-        final String pid = canonicalProductIdForMahdiStoreSale(
-          productId: line.productId,
-          products: catalog,
-        );
+        final String pid = line.productId;
         final ({int quantity, double unitPrice, int? columnIndex, String? note})?
             existing = mergedByProduct[pid];
         if (existing != null) {
@@ -393,18 +389,24 @@ final class StationSaleFormCubit extends Cubit<StationSaleFormState> {
           );
         }
       }
-      for (final MapEntry<String,
-              ({int quantity, double unitPrice, int? columnIndex, String? note})>
-          entry in mergedByProduct.entries) {
-        await _createStationSale(
-          productId: entry.key,
-          quantity: entry.value.quantity,
-          unitPrice: entry.value.unitPrice,
-          fillingSale: fillingSale,
-          fillingLineSlot: fillingSale ? entry.value.columnIndex : null,
-          note: entry.value.note,
-        );
-      }
+      final List<Map<String, dynamic>> batchLines =
+          mergedByProduct.entries
+              .map(
+                (MapEntry<String,
+                        ({int quantity, double unitPrice, int? columnIndex, String? note})>
+                    entry) => <String, dynamic>{
+                  'productId': entry.key,
+                  'quantity': entry.value.quantity,
+                  'unitPrice': entry.value.unitPrice,
+                  if (fillingSale) 'fillingLineSlot': entry.value.columnIndex,
+                  if (entry.value.note != null) 'note': entry.value.note,
+                },
+              )
+              .toList(growable: false);
+      await _createStationSale.callBatch(
+        lines: batchLines,
+        fillingSale: fillingSale,
+      );
       emit(
         state.copyWith(
           submitting: false,

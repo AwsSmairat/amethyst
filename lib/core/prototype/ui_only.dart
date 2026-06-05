@@ -1,4 +1,5 @@
 import 'package:amethyst/core/network/api_exception.dart';
+import 'package:firebase_core/firebase_core.dart';
 
 /// Shown when a write/delete action is attempted in UI-only mode.
 const String kUiOnlyMessage =
@@ -15,6 +16,20 @@ String? uiOnlyErrorMessage(Object error) {
   return null;
 }
 
-String errorMessageFrom(Object error) =>
-    uiOnlyErrorMessage(error) ??
-    (error is ApiException ? error.message : error.toString());
+String errorMessageFrom(Object error) {
+  final String? uiOnly = uiOnlyErrorMessage(error);
+  if (uiOnly != null) {
+    return uiOnly;
+  }
+  if (error is ApiException) {
+    return error.message;
+  }
+  if (error is FirebaseException) {
+    return error.message ?? error.code;
+  }
+  final String text = error.toString();
+  if (text.contains('Dart exception thrown from converted Future')) {
+    return 'حدث خطأ أثناء الاتصال بالخادم. حاول مرة أخرى.';
+  }
+  return text;
+}

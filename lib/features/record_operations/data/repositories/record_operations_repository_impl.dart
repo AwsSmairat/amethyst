@@ -82,6 +82,13 @@ final class RecordOperationsRepositoryImpl implements RecordOperationsRepository
       );
 
   @override
+  Future<void> createStationSalesBatch({
+    required List<Map<String, dynamic>> lines,
+    bool fillingSale = false,
+  }) =>
+      _api.createStationSalesBatch(lines: lines, fillingSale: fillingSale);
+
+  @override
   Future<void> createStationDebtEntries({
     required String debtorName,
     required List<Map<String, dynamic>> lines,

@@ -31,6 +31,11 @@ abstract class RecordOperationsRepository {
     String? note,
   });
 
+  Future<void> createStationSalesBatch({
+    required List<Map<String, dynamic>> lines,
+    bool fillingSale = false,
+  });
+
   /// دين محطة — منفصل عن مبيعات المحطة.
   Future<void> createStationDebtEntries({
     required String debtorName,

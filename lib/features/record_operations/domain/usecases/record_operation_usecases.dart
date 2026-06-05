@@ -30,6 +30,15 @@ final class CreateStationSaleUseCase {
         fillingLineSlot: fillingLineSlot,
         note: note,
       );
+
+  Future<void> callBatch({
+    required List<Map<String, dynamic>> lines,
+    bool fillingSale = false,
+  }) =>
+      _repository.createStationSalesBatch(
+        lines: lines,
+        fillingSale: fillingSale,
+      );
 }
 
 final class CreateStationDebtEntriesUseCase {

@@ -382,54 +382,6 @@ final class StationDebtRegistrationCubit extends Cubit<StationDebtRegistrationSt
       return;
     }
     final String debtor = debtorNameRaw.trim();
-    final List<Map<String, dynamic>> catalog = await _listProductItems();
-    final List<Map<String, dynamic>> lines = <Map<String, dynamic>>[];
-    final List<
-        ({
-          int columnIndex,
-          String productId,
-          String? stockProductId,
-          int quantity,
-          double unitPrice,
-        })> vehicleLines = <({
-      int columnIndex,
-      String productId,
-      String? stockProductId,
-      int quantity,
-      double unitPrice,
-    })>[];
-    for (var i = 0; i < state.columnCount; i++) {
-      final int q = state.quantities[i];
-      if (q <= 0) {
-        continue;
-      }
-      final String pid = canonicalProductIdForMahdiStoreSale(
-        productId: state.productIds[i]!,
-        products: catalog,
-      );
-      final double price = state.unitPrices[i]!;
-      lines.add(<String, dynamic>{
-        'productId': pid,
-        'quantity': q,
-        'unitPrice': price,
-      });
-      final String? stockId = i < _stockProductIds.length
-          ? _stockProductIds[i]
-          : null;
-      vehicleLines.add(
-        (
-          columnIndex: i,
-          productId: pid,
-          stockProductId: vehiclePlace != null &&
-                  stockId != null &&
-                  stockId.isNotEmpty
-              ? stockId
-              : null,
-          quantity: q,
-          unitPrice: price,
-        ),
-      );
-    }
     emit(
       state.copyWith(
         submitting: true,
@@ -438,6 +390,54 @@ final class StationDebtRegistrationCubit extends Cubit<StationDebtRegistrationSt
       ),
     );
     try {
+      final List<Map<String, dynamic>> catalog = await _listProductItems();
+      final List<Map<String, dynamic>> lines = <Map<String, dynamic>>[];
+      final List<
+          ({
+            int columnIndex,
+            String productId,
+            String? stockProductId,
+            int quantity,
+            double unitPrice,
+          })> vehicleLines = <({
+        int columnIndex,
+        String productId,
+        String? stockProductId,
+        int quantity,
+        double unitPrice,
+      })>[];
+      for (var i = 0; i < state.columnCount; i++) {
+        final int q = state.quantities[i];
+        if (q <= 0) {
+          continue;
+        }
+        final String pid = canonicalProductIdForMahdiStoreSale(
+          productId: state.productIds[i]!,
+          products: catalog,
+        );
+        final double price = state.unitPrices[i]!;
+        lines.add(<String, dynamic>{
+          'productId': pid,
+          'quantity': q,
+          'unitPrice': price,
+        });
+        final String? stockId = i < _stockProductIds.length
+            ? _stockProductIds[i]
+            : null;
+        vehicleLines.add(
+          (
+            columnIndex: i,
+            productId: pid,
+            stockProductId: vehiclePlace != null &&
+                    stockId != null &&
+                    stockId.isNotEmpty
+                ? stockId
+                : null,
+            quantity: q,
+            unitPrice: price,
+          ),
+        );
+      }
       // تسجيل دين من المركبة: تحقق من حمولة السيارة قبل الإرسال.
       if (vehiclePlace != null) {
         final StationDebtVehiclePlace place = vehiclePlace!;
@@ -560,7 +560,7 @@ final class StationDebtRegistrationCubit extends Cubit<StationDebtRegistrationSt
       emit(
         state.copyWith(
           submitting: false,
-          submitError: e.toString(),
+          submitError: mapStationDebtSubmitError(e),
         ),
       );
     }
