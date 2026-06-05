@@ -8,50 +8,14 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 export 'package:amethyst/core/expenses/expense_category_match.dart'
-    show expenseNoteMatchesCategory, kExpenseReportCategoryKeys;
+    show
+        expenseCategoryArabicTitle,
+        expenseNoteArabicDisplayLabel,
+        expenseNoteMatchesCategory,
+        kExpenseReportCategoryKeys;
 
-String expenseReportCategoryTitle(String categoryKey, AppLocalizations l10n) {
-  switch (categoryKey) {
-    case 'gasoline':
-      return l10n.gasolineExpenses;
-    case 'carRepair':
-      return l10n.carRepairExpenses;
-    case 'other':
-      return l10n.otherExpenses;
-    case 'tankWater':
-      return l10n.expenseTankWater;
-    case 'cartons':
-      return l10n.expenseCartons;
-    case 'workersWages':
-      return l10n.expenseWorkersWages;
-    case 'stationCards':
-      return l10n.expenseStationCards;
-    case 'stationCarTracking':
-      return l10n.expenseStationCarTracking;
-    case 'stationInternet':
-      return l10n.expenseStationInternet;
-    case 'stationShopRent':
-      return l10n.expenseStationShopRent;
-    case 'stationRoomRent':
-      return l10n.expenseStationRoomRent;
-    case 'stationElectricity':
-      return l10n.expenseStationElectricity;
-    case 'stationBags':
-      return l10n.expenseStationBags;
-    case 'stationEmptyBottles':
-      return l10n.expenseStationEmptyBottles;
-    case 'stationEmptyGallon':
-      return l10n.expenseStationEmptyGallon;
-    case 'stationSalt':
-      return l10n.expenseStationSalt;
-    case 'stationShrinkWrap':
-      return l10n.expenseStationShrinkWrap;
-    case 'stationFilters':
-      return l10n.expenseStationFilters;
-    default:
-      return l10n.notFound;
-  }
-}
+String expenseReportCategoryTitle(String categoryKey, AppLocalizations l10n) =>
+    expenseCategoryArabicTitle(categoryKey, l10n);
 
 /// تقرير مصاريف حسب تصنيف الملاحظة (للأدمن / السوبر أدمن).
 class ExpenseCategoryReportPage extends StatefulWidget {

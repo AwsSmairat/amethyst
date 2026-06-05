@@ -1,3 +1,4 @@
+import 'package:amethyst/core/catalog/catalog_product_display_label.dart';
 import 'package:amethyst/core/l10n/context_l10n.dart';
 import 'package:amethyst/core/station_balance/station_balance_catalog.dart';
 import 'package:amethyst/core/theme/app_colors.dart';
@@ -210,6 +211,17 @@ class _AddProductBodyState extends State<_AddProductBody> {
                     v == null || v.trim().isEmpty ? ' ' : null,
                 onChanged: (_) => setState(() {}),
               ),
+              if (_name.text.trim().isNotEmpty) ...<Widget>[
+                const SizedBox(height: 6),
+                Text(
+                  '${l10n.product}: ${catalogProductArabicDisplayLabel(_name.text)}',
+                  textAlign: TextAlign.right,
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: AppColors.onSurfaceVariant,
+                        fontWeight: FontWeight.w600,
+                      ),
+                ),
+              ],
               if (isStoreMahdiProductName(_name.text)) ...<Widget>[
                 const SizedBox(height: 8),
                 Text(

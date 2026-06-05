@@ -1,3 +1,4 @@
+import 'package:amethyst/core/catalog/catalog_product_display_label.dart';
 import 'package:amethyst/core/l10n/context_l10n.dart';
 import 'package:amethyst/core/theme/app_colors.dart';
 import 'package:amethyst/features/admin/presentation/station_balance/station_balance_sections.dart';
@@ -45,10 +46,13 @@ class StationBalanceItemCard extends StatelessWidget {
                 ? const Color(0xFFE65100)
                 : const Color(0xFF1B5E20);
 
-    final String? subtitle = apiName != null &&
-            apiName!.trim().isNotEmpty &&
-            apiName!.trim() != rowLabel.trim()
-        ? apiName!.trim()
+    final String? linkedArabic = apiName != null && apiName!.trim().isNotEmpty
+        ? catalogProductArabicDisplayLabel(apiName)
+        : null;
+    final String? subtitle = linkedArabic != null &&
+            linkedArabic.trim().isNotEmpty &&
+            linkedArabic.trim() != rowLabel.trim()
+        ? linkedArabic.trim()
         : null;
 
     return Card(

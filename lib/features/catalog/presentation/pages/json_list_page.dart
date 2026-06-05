@@ -1,3 +1,4 @@
+import 'package:amethyst/core/catalog/catalog_product_display_label.dart';
 import 'package:amethyst/core/l10n/context_l10n.dart';
 import 'package:amethyst/core/presentation/list_load_state.dart';
 import 'package:amethyst/features/catalog/presentation/cubit/json_list_cubit.dart';
@@ -108,12 +109,24 @@ class JsonListPage extends StatelessWidget {
   }
 
   String _primaryLabel(Map<String, dynamic> item) {
-    if (item['name'] != null) return item['name'].toString();
+    if (item['name'] != null) {
+      final String name = item['name'].toString();
+      if (_looksLikeCatalogProduct(item)) {
+        return catalogProductArabicDisplayLabel(name);
+      }
+      return name;
+    }
     if (item['fullName'] != null) return item['fullName'].toString();
     if (item['email'] != null) return item['email'].toString();
     if (item['id'] != null) return item['id'].toString();
     return item.toString();
   }
+
+  bool _looksLikeCatalogProduct(Map<String, dynamic> item) =>
+      item['unitType'] != null ||
+      item['type'] != null ||
+      item['price'] != null ||
+      item['stationStock'] != null;
 }
 
 /// Branded empty wrapper for list screens that need a [FloatingActionButton].
@@ -173,7 +186,15 @@ class JsonListPageWithFab extends StatelessWidget {
                   itemBuilder: (BuildContext context, int i) {
                     final Map<String, dynamic> item = items[i];
                     final String titleText = titleBuilder?.call(context, item) ??
-                        item['name']?.toString() ??
+                        (item['name'] != null &&
+                                (item['unitType'] != null ||
+                                    item['type'] != null ||
+                                    item['price'] != null ||
+                                    item['stationStock'] != null)
+                            ? catalogProductArabicDisplayLabel(
+                                item['name']?.toString(),
+                              )
+                            : item['name']?.toString()) ??
                         item['fullName']?.toString() ??
                         item['id'].toString();
                     final String? subtitle = subtitleBuilder?.call(context, item);

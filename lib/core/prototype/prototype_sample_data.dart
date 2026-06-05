@@ -1,3 +1,7 @@
+import 'dart:async';
+
+import 'package:amethyst/core/prototype/prototype_credentials.dart';
+import 'package:amethyst/core/prototype/prototype_local_store.dart';
 import 'package:amethyst/core/prototype/prototype_session.dart';
 import 'package:amethyst/core/station_balance/station_balance_catalog.dart';
 import 'package:amethyst/core/utils/parse_dynamic_double.dart';
@@ -5,43 +9,36 @@ import 'package:amethyst/core/vehicle_load/vehicle_load_aggregates.dart';
 import 'package:amethyst/core/vehicle_load/vehicle_load_catalog.dart';
 import 'package:amethyst/features/auth/domain/entities/user_entity.dart';
 
-/// Static sample maps for UI prototype lists and dashboards.
+/// Sample maps for UI prototype with optional local persistence.
 final class PrototypeSampleData {
   PrototypeSampleData._();
 
   static final DateTime _now = DateTime.now();
   static DateTime get _today => DateTime(_now.year, _now.month, _now.day);
 
-  static List<Map<String, dynamic>> get users => <Map<String, dynamic>>[
-        _user(
-          id: 'proto_super',
-          fullName: 'صهيب بيك',
-          email: 'super@preview.local',
-          phone: '+201000000001',
-          role: 'super_admin',
-        ),
-        _user(
-          id: 'proto_admin',
-          fullName: 'مسؤول المحطة',
-          email: 'admin@preview.local',
-          phone: '+201000000002',
-          role: 'admin',
-        ),
-        _user(
-          id: 'proto_driver',
-          fullName: 'سائق (عرض)',
-          email: 'driver@preview.local',
-          phone: '+201000000003',
-          role: 'driver',
-        ),
-        _user(
-          id: 'proto_driver2',
-          fullName: 'أحمد السائق',
-          email: 'driver2@preview.local',
-          phone: '+201000000005',
-          role: 'driver',
-        ),
-      ];
+  static bool _loaded = false;
+  static Timer? _persistTimer;
+
+  static final List<Map<String, dynamic>> _users = <Map<String, dynamic>>[];
+  static final List<Map<String, dynamic>> _vehicles = <Map<String, dynamic>>[];
+
+  static Future<void> ensureLoaded() async {
+    if (_loaded) {
+      return;
+    }
+    final Map<String, dynamic>? snapshot =
+        await PrototypeLocalStore.loadSnapshot();
+    if (snapshot != null) {
+      _importSnapshot(snapshot);
+    } else {
+      _seedUsersAndVehicles();
+    }
+    _loaded = true;
+  }
+
+  static List<Map<String, dynamic>> get users => _users
+      .map((Map<String, dynamic> u) => _publicUserMap(u))
+      .toList(growable: false);
 
   static final List<Map<String, dynamic>> _products = <Map<String, dynamic>>[
     _product(
@@ -104,6 +101,7 @@ final class PrototypeSampleData {
     ensureWaterSmallBottleProduct();
     ensureEmptySaleWithFillingRow1Product();
     ensureEmptySaleWithFillingRow2Product();
+    _persist();
   }
 
   /// بيع فارغ — زيادة «مع تعبئة» للمنتجات ١–٣.
@@ -270,6 +268,7 @@ final class PrototypeSampleData {
     for (final Map<String, dynamic> p in _products) {
       if (p['id']?.toString() == productId) {
         p['price'] = price;
+        _persist();
         return true;
       }
     }
@@ -278,6 +277,235 @@ final class PrototypeSampleData {
 
   static void addProduct(Map<String, dynamic> product) {
     _products.add(product);
+    _persist();
+  }
+
+  static bool deleteProduct(String id) {
+    final int idx =
+        _products.indexWhere((Map<String, dynamic> p) => p['id'] == id);
+    if (idx < 0) {
+      return false;
+    }
+    _products.removeAt(idx);
+    _persist();
+    return true;
+  }
+
+  static Map<String, dynamic> createVehicle({
+    required String vehicleNumber,
+    String? driverId,
+    String? notes,
+  }) {
+    final Map<String, dynamic> row = <String, dynamic>{
+      'id': 'v_${DateTime.now().millisecondsSinceEpoch}',
+      'vehicleNumber': vehicleNumber.trim(),
+      'driverId': driverId,
+      'isActive': true,
+      'notes': notes?.trim(),
+    };
+    _vehicles.add(row);
+    _persist();
+    return Map<String, dynamic>.from(row);
+  }
+
+  static void deleteVehicle(String id) {
+    for (final Map<String, dynamic> load in _vehicleLoads) {
+      if (load['vehicleId']?.toString() != id) {
+        continue;
+      }
+      if (load['status']?.toString() == 'closed') {
+        continue;
+      }
+      if (_remainingForLoad(load) > 0) {
+        throw StateError('VEHICLE_HAS_OPEN_LOAD');
+      }
+    }
+    final int idx =
+        _vehicles.indexWhere((Map<String, dynamic> v) => v['id'] == id);
+    if (idx < 0) {
+      throw StateError('NOT_FOUND');
+    }
+    _vehicles.removeAt(idx);
+    _persist();
+  }
+
+  static UserEntity? authenticate({
+    required String email,
+    required String password,
+  }) {
+    final String wantEmail = email.trim().toLowerCase();
+    for (final Map<String, dynamic> u in _users) {
+      if (u['isActive'] == false) {
+        continue;
+      }
+      final String rowEmail = u['email']?.toString().trim().toLowerCase() ?? '';
+      if (rowEmail != wantEmail) {
+        continue;
+      }
+      final String rowPassword = u['password']?.toString() ?? '';
+      if (rowPassword != password) {
+        return null;
+      }
+      return userEntityFromMap(u);
+    }
+    return null;
+  }
+
+  static UserEntity? userEntityById(String id) {
+    for (final Map<String, dynamic> u in _users) {
+      if (u['id']?.toString() == id) {
+        return userEntityFromMap(u);
+      }
+    }
+    return null;
+  }
+
+  static UserEntity previewUserForRole(String role) {
+    for (final Map<String, dynamic> u in _users) {
+      if (u['role']?.toString() == role && u['isActive'] != false) {
+        return userEntityFromMap(u);
+      }
+    }
+    return switch (role) {
+      'super_admin' => const UserEntity(
+          id: 'proto_super',
+          email: 'super@preview.local',
+          fullName: 'صهيب بيك',
+          role: 'super_admin',
+          phone: '+201000000001',
+          isActive: true,
+        ),
+      'driver' => const UserEntity(
+          id: 'proto_driver',
+          email: 'driver@preview.local',
+          fullName: 'سائق (عرض)',
+          role: 'driver',
+          phone: '+201000000003',
+          isActive: true,
+        ),
+      _ => const UserEntity(
+          id: 'proto_admin',
+          email: 'admin@preview.local',
+          fullName: 'مسؤول المحطة',
+          role: 'admin',
+          phone: '+201000000002',
+          isActive: true,
+        ),
+    };
+  }
+
+  static UserEntity userEntityFromMap(Map<String, dynamic> u) => UserEntity(
+        id: u['id']!.toString(),
+        email: u['email']?.toString() ?? '',
+        fullName: u['fullName']?.toString() ?? '',
+        role: u['role']?.toString() ?? 'admin',
+        phone: u['phone']?.toString(),
+        isActive: u['isActive'] as bool? ?? true,
+      );
+
+  static String? createUser({
+    required String fullName,
+    required String email,
+    required String password,
+    String? phone,
+    required String role,
+  }) {
+    final String trimmedEmail = email.trim().toLowerCase();
+    if (trimmedEmail.isEmpty || password.isEmpty || fullName.trim().isEmpty) {
+      return 'بيانات غير مكتملة';
+    }
+    for (final Map<String, dynamic> u in _users) {
+      if (u['email']?.toString().trim().toLowerCase() == trimmedEmail) {
+        return 'البريد الإلكتروني مستخدم مسبقاً';
+      }
+    }
+    final String id = 'user_${DateTime.now().millisecondsSinceEpoch}';
+    _users.add(
+      _user(
+        id: id,
+        fullName: fullName.trim(),
+        email: trimmedEmail,
+        phone: phone?.trim() ?? '',
+        role: role,
+        password: password,
+      ),
+    );
+    _persist();
+    return null;
+  }
+
+  static String? updateUser({
+    required String uid,
+    required String fullName,
+    String? phone,
+    required String role,
+  }) {
+    final int idx =
+        _users.indexWhere((Map<String, dynamic> u) => u['id'] == uid);
+    if (idx < 0) {
+      return 'المستخدم غير موجود';
+    }
+    _users[idx]['fullName'] = fullName.trim();
+    _users[idx]['phone'] = phone?.trim() ?? '';
+    _users[idx]['role'] = role;
+    _users[idx]['updatedAt'] = DateTime.now();
+    _syncSessionIfCurrentUser(uid);
+    _persist();
+    return null;
+  }
+
+  static String? setUserActive({
+    required String uid,
+    required bool isActive,
+  }) {
+    final int idx =
+        _users.indexWhere((Map<String, dynamic> u) => u['id'] == uid);
+    if (idx < 0) {
+      return 'المستخدم غير موجود';
+    }
+    if (!isActive && _users[idx]['role']?.toString() == 'super_admin') {
+      final int activeSuperAdmins = _users
+          .where(
+            (Map<String, dynamic> u) =>
+                u['role']?.toString() == 'super_admin' && u['isActive'] != false,
+          )
+          .length;
+      if (activeSuperAdmins <= 1) {
+        return 'لا يمكن تعطيل آخر سوبر أدمن';
+      }
+    }
+    _users[idx]['isActive'] = isActive;
+    _users[idx]['updatedAt'] = DateTime.now();
+    if (!isActive && PrototypeSession.current?.id == uid) {
+      unawaited(PrototypeSession.signOut());
+    } else {
+      _syncSessionIfCurrentUser(uid);
+    }
+    _persist();
+    return null;
+  }
+
+  static String? resetUserPassword({required String email}) {
+    final String want = email.trim().toLowerCase();
+    for (final Map<String, dynamic> u in _users) {
+      if (u['email']?.toString().trim().toLowerCase() == want) {
+        u['password'] = kPrototypeDefaultPassword;
+        u['updatedAt'] = DateTime.now();
+        _persist();
+        return null;
+      }
+    }
+    return 'البريد الإلكتروني غير موجود';
+  }
+
+  static void _syncSessionIfCurrentUser(String uid) {
+    if (PrototypeSession.current?.id != uid) {
+      return;
+    }
+    final UserEntity? refreshed = userEntityById(uid);
+    if (refreshed != null && refreshed.isActive) {
+      unawaited(PrototypeSession.signIn(refreshed));
+    }
   }
 
   /// خصم مخزون المحطة بعد بيع/دين — يطابق صفوف رصيد المحطة (عدة أسماء API لنفس البند).
@@ -291,6 +519,7 @@ final class PrototypeSampleData {
         productId: productId,
         quantity: quantity,
       );
+      _persist();
     } on StateError {
       throw StateError('INSUFFICIENT_STOCK');
     }
@@ -302,6 +531,7 @@ final class PrototypeSampleData {
       if (p['id']?.toString() == productId) {
         p['stationStock'] = stationStock;
         p['stock'] = stationStock;
+        _persist();
         return true;
       }
     }
@@ -343,24 +573,11 @@ final class PrototypeSampleData {
         stationStock: stationStock,
       ),
     );
+    _persist();
   }
 
-  static List<Map<String, dynamic>> get vehicles => <Map<String, dynamic>>[
-        <String, dynamic>{
-          'id': 'v1',
-          'vehicleNumber': 'أ ب ج 1234',
-          'driverId': 'proto_driver',
-          'isActive': true,
-          'notes': 'مركبة العرض',
-        },
-        <String, dynamic>{
-          'id': 'v2',
-          'vehicleNumber': 'د هـ و 5678',
-          'driverId': 'proto_driver2',
-          'isActive': true,
-          'notes': null,
-        },
-      ];
+  static List<Map<String, dynamic>> get vehicles =>
+      List<Map<String, dynamic>>.from(_vehicles);
 
   static Map<String, dynamic> vehicleById(String? id) {
     for (final Map<String, dynamic> v in vehicles) {
@@ -439,6 +656,7 @@ final class PrototypeSampleData {
       'createdAt': _now,
     };
     _stationSales.add(row);
+    _persist();
     return row;
   }
 
@@ -474,6 +692,9 @@ final class PrototypeSampleData {
         settledFromDebtId: debt['id']?.toString(),
       );
       count++;
+    }
+    if (count > 0) {
+      _persist();
     }
     return count;
   }
@@ -562,6 +783,7 @@ final class PrototypeSampleData {
         },
       );
     }
+    _persist();
   }
 
   static final List<Map<String, dynamic>> _vehicleLoads =
@@ -713,6 +935,7 @@ final class PrototypeSampleData {
         'loadBatchId': loadBatchId,
     };
     _vehicleLoads.add(row);
+    _persist();
     return row;
   }
 
@@ -801,6 +1024,9 @@ final class PrototypeSampleData {
       );
       count++;
     }
+    if (count > 0) {
+      _persist();
+    }
     return count;
   }
 
@@ -862,6 +1088,7 @@ final class PrototypeSampleData {
       _closeLoadLineIfSettled(load);
       remaining -= take;
     }
+    _persist();
   }
 
   static Map<String, dynamic> addVehicleSale({
@@ -912,6 +1139,7 @@ final class PrototypeSampleData {
         'saleKind': 'debt_repayment',
     };
     _vehicleSales.add(row);
+    _persist();
     return row;
   }
 
@@ -951,6 +1179,7 @@ final class PrototypeSampleData {
       'createdAt': _now,
     };
     _expenses.add(row);
+    _persist();
     return row;
   }
 
@@ -1029,6 +1258,7 @@ final class PrototypeSampleData {
       if (automaticEndOfDay) 'source': 'end_of_day',
     };
     _returns.add(row);
+    _persist();
     return row;
   }
 
@@ -1643,14 +1873,38 @@ final class PrototypeSampleData {
     };
   }
 
-  static Map<String, dynamic> reportsSalesMonthly() {
-    final double stationAmount = _stationSalesAmountThisMonth();
-    final double vehicleAmount = _vehicleSalesAmountThisMonth();
+  static Map<String, dynamic> reportsSalesMonthly({int? year, int? month}) {
+    final DateTime ref = year != null && month != null
+        ? DateTime(year, month, 1)
+        : DateTime(_now.year, _now.month, 1);
+    final List<Map<String, dynamic>> stationRows = _stationSales
+        .where(
+          (Map<String, dynamic> s) =>
+              _isSameCalendarMonth(_rowDateOnly(s), ref),
+        )
+        .map((Map<String, dynamic> s) => Map<String, dynamic>.from(s))
+        .toList(growable: false);
+    final List<Map<String, dynamic>> vehicleRows = _vehicleSales
+        .where(
+          (Map<String, dynamic> vs) =>
+              _isCashVehicleSale(vs) &&
+              _isSameCalendarMonth(_rowDateOnly(vs), ref),
+        )
+        .map((Map<String, dynamic> vs) => Map<String, dynamic>.from(vs))
+        .toList(growable: false);
+    var stationAmount = 0.0;
+    for (final Map<String, dynamic> s in stationRows) {
+      stationAmount += _rowMoney(s);
+    }
+    var vehicleAmount = 0.0;
+    for (final Map<String, dynamic> vs in vehicleRows) {
+      vehicleAmount += _rowMoney(vs);
+    }
     return <String, dynamic>{
-      'year': _now.year,
-      'month': _now.month,
-      'stationSales': stationSales,
-      'vehicleSales': vehicleSales,
+      'year': ref.year,
+      'month': ref.month,
+      'stationSales': stationRows,
+      'vehicleSales': vehicleRows,
       'totals': <String, dynamic>{
         'stationAmount': stationAmount,
         'vehicleAmount': vehicleAmount,
@@ -1679,6 +1933,7 @@ final class PrototypeSampleData {
     required String email,
     required String phone,
     required String role,
+    required String password,
   }) =>
       <String, dynamic>{
         'id': id,
@@ -1686,6 +1941,7 @@ final class PrototypeSampleData {
         'email': email,
         'phone': phone,
         'role': role,
+        'password': password,
         'isActive': true,
         'createdBy': 'proto_super',
         'createdAt': _today,
@@ -1787,6 +2043,7 @@ final class PrototypeSampleData {
     if (created.isEmpty) {
       throw StateError('NO_RECIPIENTS');
     }
+    _persist();
     return created;
   }
 
@@ -1829,8 +2086,223 @@ final class PrototypeSampleData {
         return;
       }
       n['readAt'] = DateTime.now().toIso8601String();
+      _persist();
       return;
     }
+  }
+
+  static void _seedUsersAndVehicles() {
+    _users
+      ..clear()
+      ..addAll(<Map<String, dynamic>>[
+        _user(
+          id: 'proto_super',
+          fullName: 'صهيب بيك',
+          email: 'super@preview.local',
+          phone: '+201000000001',
+          role: 'super_admin',
+          password: kPrototypeDefaultPassword,
+        ),
+        _user(
+          id: 'proto_admin',
+          fullName: 'مسؤول المحطة',
+          email: 'admin@preview.local',
+          phone: '+201000000002',
+          role: 'admin',
+          password: kPrototypeDefaultPassword,
+        ),
+        _user(
+          id: 'proto_driver',
+          fullName: 'سائق (عرض)',
+          email: 'driver@preview.local',
+          phone: '+201000000003',
+          role: 'driver',
+          password: kPrototypeDefaultPassword,
+        ),
+        _user(
+          id: 'proto_driver2',
+          fullName: 'أحمد السائق',
+          email: 'driver2@preview.local',
+          phone: '+201000000005',
+          role: 'driver',
+          password: kPrototypeDefaultPassword,
+        ),
+      ]);
+    _vehicles
+      ..clear()
+      ..addAll(<Map<String, dynamic>>[
+        <String, dynamic>{
+          'id': 'v1',
+          'vehicleNumber': 'أ ب ج 1234',
+          'driverId': 'proto_driver',
+          'isActive': true,
+          'notes': 'مركبة العرض',
+        },
+        <String, dynamic>{
+          'id': 'v2',
+          'vehicleNumber': 'د هـ و 5678',
+          'driverId': 'proto_driver2',
+          'isActive': true,
+          'notes': null,
+        },
+      ]);
+  }
+
+  static Map<String, dynamic> _publicUserMap(Map<String, dynamic> u) {
+    final Map<String, dynamic> copy = Map<String, dynamic>.from(u);
+    copy.remove('password');
+    return copy;
+  }
+
+  static void _persist() {
+    if (!_loaded) {
+      return;
+    }
+    _persistTimer?.cancel();
+    _persistTimer = Timer(const Duration(milliseconds: 250), () {
+      unawaited(
+        PrototypeLocalStore.saveSnapshot(_exportSnapshot()),
+      );
+    });
+  }
+
+  static Map<String, dynamic> _exportSnapshot() => <String, dynamic>{
+        'version': 1,
+        'users': _encodeList(_users),
+        'vehicles': _encodeList(_vehicles),
+        'products': _encodeList(_products),
+        'stationSales': _encodeList(_stationSales),
+        'stationDebtEntries': _encodeList(_stationDebtEntries),
+        'vehicleLoads': _encodeList(_vehicleLoads),
+        'vehicleSales': _encodeList(_vehicleSales),
+        'expenses': _encodeList(_expenses),
+        'returns': _encodeList(_returns),
+        'staffNotes': _encodeList(_staffNotes),
+        'pricingCatalogEnsured': _pricingCatalogEnsured,
+      };
+
+  static void _importSnapshot(Map<String, dynamic> snapshot) {
+    _users
+      ..clear()
+      ..addAll(_decodeList(snapshot['users']));
+    _vehicles
+      ..clear()
+      ..addAll(_decodeList(snapshot['vehicles']));
+    _products
+      ..clear()
+      ..addAll(_decodeList(snapshot['products']));
+    _stationSales
+      ..clear()
+      ..addAll(_decodeList(snapshot['stationSales']));
+    _stationDebtEntries
+      ..clear()
+      ..addAll(_decodeList(snapshot['stationDebtEntries']));
+    _vehicleLoads
+      ..clear()
+      ..addAll(_decodeList(snapshot['vehicleLoads']));
+    _vehicleSales
+      ..clear()
+      ..addAll(_decodeList(snapshot['vehicleSales']));
+    _expenses
+      ..clear()
+      ..addAll(_decodeList(snapshot['expenses']));
+    _returns
+      ..clear()
+      ..addAll(_decodeList(snapshot['returns']));
+    _staffNotes
+      ..clear()
+      ..addAll(_decodeList(snapshot['staffNotes']));
+    _pricingCatalogEnsured = snapshot['pricingCatalogEnsured'] == true;
+    if (_users.isEmpty || _vehicles.isEmpty) {
+      _seedUsersAndVehicles();
+    }
+    if (_products.isEmpty) {
+      _products.addAll(<Map<String, dynamic>>[
+        _product(
+          id: 'p_water',
+          name: 'Water Bottle',
+          unitType: 'bottle',
+          price: 25,
+          stationStock: 0,
+        ),
+        _product(
+          id: 'p_mahdi_carton',
+          name: 'ك مهدي',
+          unitType: 'carton',
+          price: 180,
+          stationStock: 0,
+        ),
+        _product(
+          id: 'p_gallon',
+          name: 'Water Gallon',
+          unitType: 'gallon',
+          price: 12,
+          stationStock: 0,
+        ),
+        _product(
+          id: 'p_coupon50',
+          name: 'كوبون ٥٠',
+          unitType: 'coupon',
+          price: 0,
+          stationStock: 0,
+        ),
+      ]);
+    }
+  }
+
+  static List<Map<String, dynamic>> _encodeList(List<Map<String, dynamic>> rows) =>
+      rows
+          .map(
+            (Map<String, dynamic> row) =>
+                _encodeValue(row) as Map<String, dynamic>,
+          )
+          .toList(growable: false);
+
+  static List<Map<String, dynamic>> _decodeList(Object? raw) {
+    if (raw is! List<dynamic>) {
+      return <Map<String, dynamic>>[];
+    }
+    return raw
+        .whereType<Map<String, dynamic>>()
+        .map(
+          (Map<String, dynamic> row) =>
+              _decodeValue(row) as Map<String, dynamic>,
+        )
+        .toList(growable: false);
+  }
+
+  static Object? _encodeValue(Object? value) {
+    if (value is DateTime) {
+      return value.toIso8601String();
+    }
+    if (value is Map) {
+      return value.map(
+        (Object? k, Object? v) => MapEntry(k, _encodeValue(v)),
+      );
+    }
+    if (value is List) {
+      return value.map(_encodeValue).toList(growable: false);
+    }
+    return value;
+  }
+
+  static Object? _decodeValue(Object? value) {
+    if (value is String) {
+      final DateTime? dt = DateTime.tryParse(value);
+      if (dt != null && value.contains('T')) {
+        return dt;
+      }
+      return value;
+    }
+    if (value is Map) {
+      return value.map(
+        (Object? k, Object? v) => MapEntry(k, _decodeValue(v)),
+      );
+    }
+    if (value is List) {
+      return value.map(_decodeValue).toList(growable: false);
+    }
+    return value;
   }
 
 }

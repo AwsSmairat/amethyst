@@ -32,11 +32,15 @@ final class AuthCubit extends Cubit<AuthState> {
     }
   }
 
-  /// UI preview: sign in as a role without any backend.
-  void previewAsRole(String role) {
+  /// UI preview: sign in as a role (persists session like normal login).
+  Future<void> previewAsRole(String role) async {
     emit(const AuthLoading());
-    final UserEntity user = PrototypeSession.signInAsRole(role);
-    emit(AuthAuthenticated(user));
+    try {
+      final UserEntity user = await PrototypeSession.signInAsRole(role);
+      emit(AuthAuthenticated(user));
+    } on Object catch (e) {
+      emit(AuthUnauthenticated(message: e.toString()));
+    }
   }
 
   Future<void> login({required String email, required String password}) async {

@@ -1317,8 +1317,12 @@ class AppLocalizationsAr extends AppLocalizations {
   String get stationSaleWithFilling => 'مع تعبئة';
 
   @override
+  String get stationSaleWithFillingNeedQuantity =>
+      'أضف كمية لأحد منتجات هذا الصف أولاً.';
+
+  @override
   String stationSaleWithFillingPriceHint(String amount) {
-    return 'يُضاف $amount لسعر كل وحدة على منتجات هذا الصف.';
+    return 'يُضاف $amount لسعر كل وحدة على المنتجات المباعة في هذا الصف.';
   }
 
   @override

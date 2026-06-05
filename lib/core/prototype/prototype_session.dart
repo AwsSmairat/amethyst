@@ -1,6 +1,8 @@
+import 'package:amethyst/core/prototype/prototype_local_store.dart';
+import 'package:amethyst/core/prototype/prototype_sample_data.dart';
 import 'package:amethyst/features/auth/domain/entities/user_entity.dart';
 
-/// In-memory session for UI prototype role preview (no Firebase Auth).
+/// Prototype session with optional persistence across app restarts.
 final class PrototypeSession {
   PrototypeSession._();
 
@@ -10,45 +12,33 @@ final class PrototypeSession {
 
   static bool get isSignedIn => _current != null;
 
-  static UserEntity signInAsRole(String role) {
-    final UserEntity user = switch (role) {
-      'super_admin' => _superAdmin,
-      'admin' => _admin,
-      'driver' => _driver,
-      _ => _admin,
-    };
-    _current = user;
+  static Future<UserEntity> signInAsRole(String role) async {
+    final UserEntity user = PrototypeSampleData.previewUserForRole(role);
+    await signIn(user);
     return user;
   }
 
-  static void signOut() {
-    _current = null;
+  static Future<void> signIn(UserEntity user) async {
+    _current = user;
+    await PrototypeLocalStore.persistSessionUserId(user.id);
   }
 
-  static const UserEntity _superAdmin = UserEntity(
-    id: 'proto_super',
-    email: 'super@preview.local',
-    fullName: 'صهيب بيك',
-    role: 'super_admin',
-    phone: '+201000000001',
-    isActive: true,
-  );
+  static Future<bool> restoreFromStorage() async {
+    final String? userId = await PrototypeLocalStore.readSessionUserId();
+    if (userId == null || userId.isEmpty) {
+      return false;
+    }
+    final UserEntity? user = PrototypeSampleData.userEntityById(userId);
+    if (user == null || !user.isActive) {
+      await PrototypeLocalStore.persistSessionUserId(null);
+      return false;
+    }
+    _current = user;
+    return true;
+  }
 
-  static const UserEntity _admin = UserEntity(
-    id: 'proto_admin',
-    email: 'admin@preview.local',
-    fullName: 'مسؤول (عرض)',
-    role: 'admin',
-    phone: '+201000000002',
-    isActive: true,
-  );
-
-  static const UserEntity _driver = UserEntity(
-    id: 'proto_driver',
-    email: 'driver@preview.local',
-    fullName: 'سائق (عرض)',
-    role: 'driver',
-    phone: '+201000000003',
-    isActive: true,
-  );
+  static Future<void> signOut() async {
+    _current = null;
+    await PrototypeLocalStore.persistSessionUserId(null);
+  }
 }

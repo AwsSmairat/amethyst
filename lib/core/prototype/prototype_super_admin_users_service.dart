@@ -1,15 +1,14 @@
+import 'package:amethyst/core/network/api_exception.dart';
 import 'package:amethyst/core/prototype/prototype_sample_data.dart';
 import 'package:amethyst/core/prototype/prototype_session.dart';
-import 'package:amethyst/core/prototype/ui_only.dart';
-import 'package:amethyst/core/network/api_exception.dart';
-
-/// UI-only user admin: lists sample users; writes return [kUiOnlyMessage].
 import 'package:amethyst/core/users/super_admin_users_port.dart';
 
+/// Prototype user admin with local persistence.
 final class PrototypeSuperAdminUsersService implements SuperAdminUsersPort {
   @override
   Future<List<Map<String, dynamic>>> listUsers({String? roleFilter}) async {
     _requireSuperAdmin();
+    await PrototypeSampleData.ensureLoaded();
     List<Map<String, dynamic>> items =
         List<Map<String, dynamic>>.from(PrototypeSampleData.users);
     if (roleFilter != null && roleFilter.isNotEmpty) {
@@ -27,15 +26,27 @@ final class PrototypeSuperAdminUsersService implements SuperAdminUsersPort {
     required String password,
     String? phone,
     required String role,
-  }) async =>
-      kUiOnlyMessage;
+  }) async {
+    _requireSuperAdmin();
+    await PrototypeSampleData.ensureLoaded();
+    return PrototypeSampleData.createUser(
+      fullName: fullName,
+      email: email,
+      password: password,
+      phone: phone,
+      role: role,
+    );
+  }
 
   @override
   Future<String?> setUserActive({
     required String uid,
     required bool isActive,
-  }) async =>
-      kUiOnlyMessage;
+  }) async {
+    _requireSuperAdmin();
+    await PrototypeSampleData.ensureLoaded();
+    return PrototypeSampleData.setUserActive(uid: uid, isActive: isActive);
+  }
 
   @override
   Future<String?> updateUser({
@@ -43,12 +54,23 @@ final class PrototypeSuperAdminUsersService implements SuperAdminUsersPort {
     required String fullName,
     String? phone,
     required String role,
-  }) async =>
-      kUiOnlyMessage;
+  }) async {
+    _requireSuperAdmin();
+    await PrototypeSampleData.ensureLoaded();
+    return PrototypeSampleData.updateUser(
+      uid: uid,
+      fullName: fullName,
+      phone: phone,
+      role: role,
+    );
+  }
 
   @override
-  Future<String?> sendPasswordReset({required String email}) async =>
-      kUiOnlyMessage;
+  Future<String?> sendPasswordReset({required String email}) async {
+    _requireSuperAdmin();
+    await PrototypeSampleData.ensureLoaded();
+    return PrototypeSampleData.resetUserPassword(email: email);
+  }
 
   void _requireSuperAdmin() {
     final user = PrototypeSession.current;

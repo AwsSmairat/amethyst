@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:amethyst/core/data/amethyst_api.dart';
+import 'package:amethyst/core/catalog/catalog_product_display_label.dart';
 import 'package:amethyst/core/l10n/context_l10n.dart';
 import 'package:amethyst/core/presentation/dashboard_load_state.dart';
 import 'package:amethyst/core/theme/app_colors.dart';
@@ -273,7 +274,12 @@ List<_DebtGroup> _parseStationDebtOpenPreview(dynamic v) {
             ? q
             : int.tryParse(q?.toString() ?? '') ?? 0;
         if (pn.isNotEmpty && iq > 0) {
-          lines.add(_DebtLine(productName: pn, quantity: iq));
+          lines.add(
+            _DebtLine(
+              productName: catalogProductArabicDisplayLabel(pn),
+              quantity: iq,
+            ),
+          );
         }
       }
     }

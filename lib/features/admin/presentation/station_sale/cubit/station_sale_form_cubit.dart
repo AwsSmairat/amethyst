@@ -231,20 +231,36 @@ final class StationSaleFormCubit extends Cubit<StationSaleFormState> {
         c2 = false;
       }
     }
+    var withFillingRow1On = state.withFillingRow1On;
+    var withFillingRow2On = state.withFillingRow2On;
+    if (withFillingRow1On && !_hasQuantityInRange(nextQty, 0, 3)) {
+      withFillingRow1On = false;
+    }
+    if (withFillingRow2On && !_hasQuantityInRange(nextQty, 3, 5)) {
+      withFillingRow2On = false;
+    }
     emit(
       state.copyWith(
         quantities: nextQty,
         couponLine1On: c1,
         couponLine2On: c2,
+        withFillingRow1On: withFillingRow1On,
+        withFillingRow2On: withFillingRow2On,
       ),
     );
   }
 
   void toggleWithFillingRow1() {
+    if (!state.withFillingRow1On && !state.hasQuantityInEmptySaleRow1) {
+      return;
+    }
     emit(state.copyWith(withFillingRow1On: !state.withFillingRow1On));
   }
 
   void toggleWithFillingRow2() {
+    if (!state.withFillingRow2On && !state.hasQuantityInEmptySaleRow2) {
+      return;
+    }
     emit(state.copyWith(withFillingRow2On: !state.withFillingRow2On));
   }
 
@@ -441,6 +457,15 @@ String? _unitTypeFromProductJson(Map<String, dynamic> pr) {
 ///
 /// بيع فارغ: ق سعودي / ق اردني / ج فارغ / ق صغير فارغ / ج صغير فارغ — بالاسم أو صف الرصيد.
 /// حتى لا يُختار نفس منتج [bottle] مرتين عند التراجع عن التطابق بالاسم.
+bool _hasQuantityInRange(List<int> quantities, int start, int end) {
+  for (var i = start; i < end && i < quantities.length; i++) {
+    if (quantities[i] > 0) {
+      return true;
+    }
+  }
+  return false;
+}
+
 String? _unitTypeForStationSaleSlot(StationSaleEntryKind kind, int index) {
   if (kind == StationSaleEntryKind.emptySale) {
     return null;

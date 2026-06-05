@@ -1,3 +1,4 @@
+import 'package:amethyst/core/catalog/catalog_product_display_label.dart';
 import 'package:amethyst/features/user_dashboard/domain/entities/driver_dashboard.dart';
 
 DriverDashboard mapDriverDashboardApi(
@@ -19,7 +20,9 @@ DriverDashboard mapDriverDashboardApi(
     final loaded = sold + rem + ret;
     inventory.add(
       InventoryItem(
-        name: m['productName'] as String? ?? 'منتج',
+        name: catalogProductArabicDisplayLabel(
+          m['productName'] as String? ?? 'منتج',
+        ),
         loaded: loaded,
         sold: sold,
         left: rem,

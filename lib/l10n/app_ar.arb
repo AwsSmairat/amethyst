@@ -588,7 +588,8 @@
   "stationSaleProductSmallBottle": "قاروره صغير",
   "stationSaleProductMahdi": "مهدي",
   "stationSaleWithFilling": "مع تعبئة",
-  "stationSaleWithFillingPriceHint": "يُضاف {amount} لسعر كل وحدة على منتجات هذا الصف.",
+  "stationSaleWithFillingNeedQuantity": "أضف كمية لأحد منتجات هذا الصف أولاً.",
+  "stationSaleWithFillingPriceHint": "يُضاف {amount} لسعر كل وحدة على المنتجات المباعة في هذا الصف.",
   "@stationSaleWithFillingPriceHint": {
     "placeholders": {
       "amount": {

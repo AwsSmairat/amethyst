@@ -1,3 +1,4 @@
+import 'package:amethyst/core/catalog/catalog_product_display_label.dart';
 import 'package:amethyst/core/l10n/context_l10n.dart';
 import 'package:amethyst/core/presentation/list_load_state.dart';
 import 'package:amethyst/core/theme/app_colors.dart';
@@ -225,7 +226,7 @@ class _SuperAdminPricingRowCardState extends State<_SuperAdminPricingRowCard> {
             const SizedBox(height: 4),
             Text(
               linked && apiName != null && apiName.trim().isNotEmpty
-                  ? '${l10n.product}: $apiName'
+                  ? '${l10n.product}: ${catalogProductArabicDisplayLabel(apiName)}'
                   : l10n.stationBalanceSaveRowUnlinked(rowLabel),
               style: theme.textTheme.bodySmall?.copyWith(
                     color: linked

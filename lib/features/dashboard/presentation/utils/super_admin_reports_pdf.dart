@@ -1,5 +1,7 @@
 import 'dart:typed_data';
 
+import 'package:amethyst/core/catalog/catalog_product_display_label.dart';
+import 'package:amethyst/core/expenses/expense_category_match.dart';
 import 'package:amethyst/core/utils/parse_dynamic_double.dart';
 import 'package:amethyst/core/station_balance/station_balance_catalog.dart';
 import 'package:amethyst/l10n/app_localizations.dart';
@@ -60,26 +62,28 @@ Future<Uint8List> buildStationStockPdf({
     if (pr['isActive'] == false) {
       continue;
     }
-    final String name = pr['name']?.toString() ?? '—';
-    if (_isHiddenFromStationStockReport(name)) {
+    final String rawName = pr['name']?.toString() ?? '—';
+    if (_isHiddenFromStationStockReport(rawName)) {
       continue;
     }
 
     // امنع تكرار أصناف الكرتون المرتبطة: نعرض صف Water Carton فقط ونخفي البقية.
-    final String normalizedName = normalizeStationBalanceProductName(name);
+    final String normalizedName = normalizeStationBalanceProductName(rawName);
     if (normalizedWaterCartonCandidates.contains(normalizedName) &&
-        name.trim() != 'Water Carton') {
+        rawName.trim() != 'Water Carton') {
       continue;
     }
 
     final Object? st = pr['stationStock'] ?? pr['stock'];
-    final String stockStr = name.trim() == 'Water Carton'
+    final String stockStr = rawName.trim() == 'Water Carton'
         ? aggregatedWaterCartonStock.toString()
         : (st is int ? '$st' : (int.tryParse(st?.toString() ?? '') ?? 0).toString());
-    final String ut =
-        pr['unitType']?.toString() ?? pr['type']?.toString() ?? '—';
+    final String displayName = catalogProductArabicDisplayLabel(rawName);
+    final String ut = productUnitTypeArabicLabel(
+      pr['unitType']?.toString() ?? pr['type']?.toString(),
+    );
     rows.add(
-      _pdfDataRow(font, <String>[name, ut, stockStr]),
+      _pdfDataRow(font, <String>[displayName, ut, stockStr]),
     );
   }
 
@@ -132,7 +136,7 @@ Future<Uint8List> buildStationSalesPdf({
     for (final Map<String, dynamic> s in sales) {
       final Object? p = s['product'];
       final String name = p is Map<String, dynamic>
-          ? (p['name']?.toString() ?? '—')
+          ? catalogProductArabicDisplayLabel(p['name']?.toString())
           : '—';
       final int q = int.tryParse(s['quantity']?.toString() ?? '') ?? 0;
       final double total = parseDynamicDouble(s['totalAmount']) ?? 0;
@@ -192,7 +196,10 @@ Future<Uint8List> buildExpensesPdf({
     for (final Map<String, dynamic> e in expenses) {
       final String created = e['createdAt']?.toString() ?? '';
       final double amt = parseDynamicDouble(e['amount']) ?? 0;
-      String note = e['note']?.toString() ?? '';
+      String note = expenseNoteArabicDisplayLabel(
+        e['note']?.toString() ?? '',
+        l10n,
+      );
       if (note.length > 120) {
         note = '${note.substring(0, 117)}…';
       }

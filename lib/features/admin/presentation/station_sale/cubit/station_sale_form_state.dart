@@ -73,6 +73,34 @@ final class StationSaleFormState extends Equatable {
   bool get showCouponUnderProduct1And2 =>
       entryKind == StationSaleEntryKind.filling;
 
+  /// بيع فارغ — هل يوجد كمية على أحد المنتجات ١–٣؟
+  bool get hasQuantityInEmptySaleRow1 {
+    if (entryKind != StationSaleEntryKind.emptySale) {
+      return false;
+    }
+    for (var i = 0; i <= kStationEmptySaleWithFillingRow1LastColumn; i++) {
+      if (i < quantities.length && quantities[i] > 0) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  /// بيع فارغ — هل يوجد كمية على أحد المنتجين ٤–٥؟
+  bool get hasQuantityInEmptySaleRow2 {
+    if (entryKind != StationSaleEntryKind.emptySale) {
+      return false;
+    }
+    for (var i = kStationEmptySaleWithFillingRow2FirstColumn;
+        i < kStationEmptySaleColumnCount;
+        i++) {
+      if (i < quantities.length && quantities[i] > 0) {
+        return true;
+      }
+    }
+    return false;
+  }
+
   StationSaleFormState copyWith({
     bool? loadingProducts,
     String? loadError,

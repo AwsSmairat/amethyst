@@ -1,4 +1,5 @@
 import 'package:amethyst/core/data/amethyst_api.dart';
+import 'package:amethyst/core/catalog/catalog_product_display_label.dart';
 import 'package:amethyst/core/l10n/context_l10n.dart';
 import 'package:amethyst/di/injection.dart';
 import 'package:amethyst/features/record_operations/domain/usecases/record_operation_usecases.dart';
@@ -124,7 +125,9 @@ class _AddReturnBodyState extends State<_AddReturnBody> {
                         value: l['id'] as String,
                         child: Text(
                           l10n.loadDropdownItem(
-                            '${l['product']?['name'] ?? l10n.product}',
+                            catalogProductArabicDisplayLabel(
+                              l['product']?['name']?.toString() ?? l10n.product,
+                            ),
                             '${l['remaining'] ?? ''}',
                           ),
                         ),

@@ -51,7 +51,68 @@ String catalogProductArabicDisplayLabel(String? raw) {
     }
   }
 
+  final String? known = _knownApiProductArabicLabel(trimmed);
+  if (known != null && known.isNotEmpty) {
+    return known;
+  }
+
   return trimmed;
+}
+
+String? _knownApiProductArabicLabel(String raw) {
+  if (stationBalanceProductNamesMatch(raw, kFillingGallonProductApiName)) {
+    return 'جالون';
+  }
+  if (stationBalanceProductNamesMatch(raw, kFillingBottleProductApiName)) {
+    return 'قاروره';
+  }
+  if (stationBalanceProductNamesMatch(raw, kWaterSmallGallonProductApiName)) {
+    return 'جالون صغير';
+  }
+  if (stationBalanceProductNamesMatch(raw, kWaterSmallBottleProductApiName)) {
+    return 'قاروره صغير';
+  }
+  if (stationBalanceProductNamesMatch(raw, kStoreGallonProductApiName)) {
+    return kStoreGallonProductApiName;
+  }
+  if (stationBalanceProductNamesMatch(raw, kStoreBottleProductApiName)) {
+    return kStoreBottleProductApiName;
+  }
+  if (stationBalanceProductNamesMatch(raw, kStoreMahdiProductApiName)) {
+    return kStoreMahdiProductApiName;
+  }
+  if (stationBalanceProductNamesMatch(
+    raw,
+    kEmptySaleWithFillingRow1ProductApiName,
+  )) {
+    return kEmptySaleWithFillingRow1ProductApiName;
+  }
+  if (stationBalanceProductNamesMatch(
+    raw,
+    kEmptySaleWithFillingRow2ProductApiName,
+  )) {
+    return kEmptySaleWithFillingRow2ProductApiName;
+  }
+  return null;
+}
+
+/// نوع الوحدة في الكتالوج — للعرض فقط (المخزون، القوائم، PDF).
+String productUnitTypeArabicLabel(String? raw) {
+  switch (raw?.trim().toLowerCase()) {
+    case 'gallon':
+      return 'جالون';
+    case 'bottle':
+      return 'قارورة';
+    case 'carton':
+      return 'كرتون';
+    case 'coupon':
+      return 'كوبون';
+    case 'piece':
+      return 'قطعة';
+    default:
+      final String t = raw?.trim() ?? '';
+      return t.isEmpty ? '—' : t;
+  }
 }
 
 String _fillingColumnArabicLabel(int index) => switch (index) {

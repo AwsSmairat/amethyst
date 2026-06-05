@@ -2529,10 +2529,16 @@ abstract class AppLocalizations {
   /// **'مع تعبئة'**
   String get stationSaleWithFilling;
 
+  /// No description provided for @stationSaleWithFillingNeedQuantity.
+  ///
+  /// In ar, this message translates to:
+  /// **'أضف كمية لأحد منتجات هذا الصف أولاً.'**
+  String get stationSaleWithFillingNeedQuantity;
+
   /// No description provided for @stationSaleWithFillingPriceHint.
   ///
   /// In ar, this message translates to:
-  /// **'يُضاف {amount} لسعر كل وحدة على منتجات هذا الصف.'**
+  /// **'يُضاف {amount} لسعر كل وحدة على المنتجات المباعة في هذا الصف.'**
   String stationSaleWithFillingPriceHint(String amount);
 
   /// No description provided for @stationSaleBack.

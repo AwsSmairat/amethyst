@@ -158,10 +158,17 @@ class StationSaleFormView extends StatelessWidget {
                     context,
                     busy: busy,
                     active: state.withFillingRow1On,
+                    enabled: state.withFillingRow1On ||
+                        state.hasQuantityInEmptySaleRow1,
                     surcharge: state.emptySaleWithFillingSurchargeRow1,
-                    onToggle: () => context
-                        .read<StationSaleFormCubit>()
-                        .toggleWithFillingRow1(),
+                    onToggle: () => _toggleWithFilling(
+                      context,
+                      canEnable: state.hasQuantityInEmptySaleRow1,
+                      isActive: state.withFillingRow1On,
+                      onToggle: context
+                          .read<StationSaleFormCubit>()
+                          .toggleWithFillingRow1,
+                    ),
                   ),
                   const SizedBox(height: 12),
                   _productRow(
@@ -175,10 +182,17 @@ class StationSaleFormView extends StatelessWidget {
                     context,
                     busy: busy,
                     active: state.withFillingRow2On,
+                    enabled: state.withFillingRow2On ||
+                        state.hasQuantityInEmptySaleRow2,
                     surcharge: state.emptySaleWithFillingSurchargeRow2,
-                    onToggle: () => context
-                        .read<StationSaleFormCubit>()
-                        .toggleWithFillingRow2(),
+                    onToggle: () => _toggleWithFilling(
+                      context,
+                      canEnable: state.hasQuantityInEmptySaleRow2,
+                      isActive: state.withFillingRow2On,
+                      onToggle: context
+                          .read<StationSaleFormCubit>()
+                          .toggleWithFillingRow2,
+                    ),
                   ),
                 ],
                 const SizedBox(height: 20),
@@ -217,10 +231,28 @@ class StationSaleFormView extends StatelessWidget {
     );
   }
 
+  void _toggleWithFilling(
+    BuildContext context, {
+    required bool canEnable,
+    required bool isActive,
+    required VoidCallback onToggle,
+  }) {
+    if (!isActive && !canEnable) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(context.l10n.stationSaleWithFillingNeedQuantity),
+        ),
+      );
+      return;
+    }
+    onToggle();
+  }
+
   Widget _withFillingRowControls(
     BuildContext context, {
     required bool busy,
     required bool active,
+    required bool enabled,
     required double surcharge,
     required VoidCallback onToggle,
   }) {
@@ -232,7 +264,7 @@ class StationSaleFormView extends StatelessWidget {
         const SizedBox(height: 12),
         Center(
           child: FilledButton(
-            onPressed: busy ? null : onToggle,
+            onPressed: busy || !enabled ? null : onToggle,
             style: FilledButton.styleFrom(
               padding: const EdgeInsets.symmetric(
                 horizontal: 24,
@@ -241,8 +273,11 @@ class StationSaleFormView extends StatelessWidget {
               backgroundColor: active
                   ? scheme.primary
                   : scheme.surfaceContainerHighest,
-              foregroundColor:
-                  active ? scheme.onPrimary : scheme.onSurface,
+              foregroundColor: active
+                  ? scheme.onPrimary
+                  : enabled
+                      ? scheme.onSurface
+                      : scheme.onSurface.withValues(alpha: 0.38),
             ),
             child: Text(l10n.stationSaleWithFilling),
           ),

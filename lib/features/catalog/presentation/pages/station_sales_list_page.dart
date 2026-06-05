@@ -1,6 +1,8 @@
+import 'package:amethyst/core/catalog/catalog_product_display_label.dart';
 import 'package:amethyst/core/l10n/context_l10n.dart';
 import 'package:amethyst/core/presentation/list_load_state.dart';
 import 'package:amethyst/core/theme/app_colors.dart';
+import 'package:amethyst/core/utils/parse_api_datetime.dart';
 import 'package:amethyst/features/catalog/presentation/cubit/json_list_cubit.dart';
 import 'package:amethyst/features/catalog/presentation/widgets/product_sales_day_summary.dart';
 import 'package:flutter/material.dart';
@@ -93,7 +95,7 @@ List<_StationSalesDayGroup> _groupBySaleDay(
   final List<Map<String, dynamic>> unknown = <Map<String, dynamic>>[];
 
   for (final Map<String, dynamic> item in items) {
-    final DateTime? d = _parseDate(item['createdAt']);
+    final DateTime? d = parseApiDateTime(item['createdAt']);
     if (d == null) {
       unknown.add(item);
       continue;
@@ -276,7 +278,10 @@ class _StationSaleLine extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = context.l10n;
     final theme = Theme.of(context);
-    final String productTitle = _nestedString(item['product'], 'name');
+    final String rawProductName = _nestedString(item['product'], 'name');
+    final String productTitle = rawProductName.isNotEmpty
+        ? catalogProductArabicDisplayLabel(rawProductName)
+        : '';
     final String seller = _nestedString(item['soldBy'], 'fullName');
     final dynamic qty = item['quantity'];
     final String unitStr = _formatMoney(item['unitPrice']);
@@ -397,12 +402,6 @@ double? _parseMoneyAmount(dynamic v) {
     return v.toDouble();
   }
   return double.tryParse(v.toString());
-}
-
-DateTime? _parseDate(dynamic v) {
-  if (v == null) return null;
-  if (v is String) return DateTime.tryParse(v);
-  return null;
 }
 
 bool _isSameDay(DateTime a, DateTime b) =>

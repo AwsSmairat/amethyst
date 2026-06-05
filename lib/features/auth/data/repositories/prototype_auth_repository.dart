@@ -1,4 +1,5 @@
 import 'package:amethyst/core/network/api_exception.dart';
+import 'package:amethyst/core/prototype/prototype_sample_data.dart';
 import 'package:amethyst/core/prototype/prototype_session.dart';
 import 'package:amethyst/features/auth/domain/entities/user_entity.dart';
 import 'package:amethyst/features/auth/domain/repositories/auth_repository.dart';
@@ -9,23 +10,36 @@ final class PrototypeAuthRepository implements AuthRepository {
     required String email,
     required String password,
   }) async {
-    throw ApiException(
-      'Use role preview buttons on the login screen.',
-      code: 'UI_ONLY',
+    await PrototypeSampleData.ensureLoaded();
+    final UserEntity? user = PrototypeSampleData.authenticate(
+      email: email,
+      password: password,
     );
-  }
-
-  @override
-  Future<UserEntity> loadCurrentUser() async {
-    final UserEntity? user = PrototypeSession.current;
     if (user == null) {
-      throw ApiException('Not authenticated', code: 'UNAUTHORIZED');
+      throw ApiException(
+        'البريد الإلكتروني أو كلمة المرور غير صحيحة',
+        code: 'INVALID_CREDENTIALS',
+      );
     }
+    await PrototypeSession.signIn(user);
     return user;
   }
 
   @override
+  Future<UserEntity> loadCurrentUser() async {
+    await PrototypeSampleData.ensureLoaded();
+    if (PrototypeSession.current != null) {
+      return PrototypeSession.current!;
+    }
+    final bool restored = await PrototypeSession.restoreFromStorage();
+    if (!restored || PrototypeSession.current == null) {
+      throw ApiException('Not authenticated', code: 'UNAUTHORIZED');
+    }
+    return PrototypeSession.current!;
+  }
+
+  @override
   Future<void> logout() async {
-    PrototypeSession.signOut();
+    await PrototypeSession.signOut();
   }
 }

@@ -5,15 +5,26 @@ import 'package:amethyst/core/station_balance/station_balance_catalog.dart';
 import 'package:amethyst/core/prototype/prototype_sample_data.dart';
 import 'package:amethyst/core/utils/parse_api_datetime.dart';
 import 'package:amethyst/core/prototype/prototype_session.dart';
-import 'package:amethyst/core/prototype/ui_only.dart';
 import 'package:amethyst/features/auth/domain/entities/user_entity.dart';
 
-/// UI-only backend: static sample reads, writes show [kUiOnlyMessage].
+/// Prototype backend backed by local sample data and persistence.
 final class PrototypeAmethystBackend {
   Future<Map<String, dynamic>> login({
     required String email,
     required String password,
   }) async {
+    await PrototypeSampleData.ensureLoaded();
+    final UserEntity? user = PrototypeSampleData.authenticate(
+      email: email,
+      password: password,
+    );
+    if (user == null) {
+      throw ApiException(
+        'البريد الإلكتروني أو كلمة المرور غير صحيحة',
+        code: 'INVALID_CREDENTIALS',
+      );
+    }
+    await PrototypeSession.signIn(user);
     return PrototypeSampleData.meFromSession();
   }
 
@@ -97,7 +108,10 @@ final class PrototypeAmethystBackend {
   }
 
   Future<void> deleteProduct(String id) async {
-    throwUiOnlyWrite();
+    await PrototypeSampleData.ensureLoaded();
+    if (!PrototypeSampleData.deleteProduct(id)) {
+      throw ApiException('Product not found', code: 'NOT_FOUND');
+    }
   }
 
   Future<Map<String, dynamic>> listVehicles({int page = 1, int limit = 100}) async =>
@@ -108,11 +122,32 @@ final class PrototypeAmethystBackend {
     String? driverId,
     String? notes,
   }) async {
-    throwUiOnlyWrite();
+    await PrototypeSampleData.ensureLoaded();
+    final Map<String, dynamic> row = PrototypeSampleData.createVehicle(
+      vehicleNumber: vehicleNumber,
+      driverId: driverId,
+      notes: notes,
+    );
+    return row;
   }
 
   Future<void> deleteVehicle(String id) async {
-    throwUiOnlyWrite();
+    await PrototypeSampleData.ensureLoaded();
+    try {
+      PrototypeSampleData.deleteVehicle(id);
+    } on StateError catch (e) {
+      switch (e.message) {
+        case 'VEHICLE_HAS_OPEN_LOAD':
+          throw ApiException(
+            'Cannot delete vehicle with open load',
+            code: 'VEHICLE_HAS_OPEN_LOAD',
+          );
+        case 'NOT_FOUND':
+          throw ApiException('Vehicle not found', code: 'NOT_FOUND');
+        default:
+          rethrow;
+      }
+    }
   }
 
   Future<Map<String, dynamic>> listUsers({int page = 1, int limit = 100}) async =>
@@ -311,8 +346,21 @@ final class PrototypeAmethystBackend {
     int limit = 100,
     String? dateFrom,
     String? dateTo,
-  }) async =>
-      _paginate(PrototypeSampleData.expenses, page: page, limit: limit);
+  }) async {
+    List<Map<String, dynamic>> items = PrototypeSampleData.expenses;
+    if (dateFrom != null || dateTo != null) {
+      items = items
+          .where(
+            (Map<String, dynamic> e) => apiDateMatchesRange(
+              createdAt: e['createdAt'],
+              dateFrom: dateFrom,
+              dateTo: dateTo,
+            ),
+          )
+          .toList(growable: false);
+    }
+    return _paginate(items, page: page, limit: limit);
+  }
 
   Future<Map<String, dynamic>> createExpense({
     String? vehicleId,
@@ -383,7 +431,7 @@ final class PrototypeAmethystBackend {
     int? year,
     int? month,
   }) async =>
-      PrototypeSampleData.reportsSalesMonthly();
+      PrototypeSampleData.reportsSalesMonthly(year: year, month: month);
 
   Future<Map<String, dynamic>> getDashboardSuperAdmin() async =>
       PrototypeSampleData.getDashboardSuperAdmin();

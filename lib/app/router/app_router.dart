@@ -1,3 +1,4 @@
+import 'package:amethyst/core/catalog/catalog_product_display_label.dart';
 import 'package:amethyst/core/l10n/context_l10n.dart';
 import 'package:amethyst/core/data/amethyst_api.dart';
 import 'package:amethyst/core/widgets/fab_hero_tags.dart';
@@ -503,7 +504,13 @@ GoRouter createAppRouter(AuthCubit authCubit) {
                   create: (_) =>
                       JsonListCubit(() => sl<AmethystApi>().listProducts())
                         ..load(),
-                  child: JsonListPage(title: context.l10n.titleInventoryProducts),
+                  child: JsonListPage(
+                    title: context.l10n.titleInventoryProducts,
+                    subtitleBuilder: (_, Map<String, dynamic> item) =>
+                        productUnitTypeArabicLabel(
+                          item['unitType']?.toString() ?? item['type']?.toString(),
+                        ),
+                  ),
                 ),
               ),
               GoRoute(

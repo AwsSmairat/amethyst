@@ -1,4 +1,5 @@
 import 'package:amethyst/core/data/amethyst_api.dart';
+import 'package:amethyst/core/catalog/catalog_product_display_label.dart';
 import 'package:amethyst/core/l10n/context_l10n.dart';
 import 'package:amethyst/core/theme/app_colors.dart';
 import 'package:amethyst/core/widgets/fab_hero_tags.dart';
@@ -41,7 +42,7 @@ class _DriverSalesPageState extends State<DriverSalesPage> {
     final p = m['product'] as Map<String, dynamic>?;
     final name = p?['name']?.toString().trim();
     if (name != null && name.isNotEmpty) {
-      return name;
+      return catalogProductArabicDisplayLabel(name);
     }
     return context.l10n.product;
   }

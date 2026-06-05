@@ -1,7 +1,9 @@
 import 'package:amethyst/core/data/amethyst_api.dart';
+import 'package:amethyst/core/expenses/expense_category_match.dart';
 import 'package:amethyst/core/l10n/context_l10n.dart';
 import 'package:amethyst/core/theme/app_colors.dart';
 import 'package:amethyst/di/injection.dart';
+import 'package:amethyst/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
@@ -551,7 +553,7 @@ class _ProfitMetricCard extends StatelessWidget {
   }
 }
 
-String _expenseLineSubtitle(Map<String, dynamic> m) {
+String _expenseLineSubtitle(Map<String, dynamic> m, AppLocalizations l10n) {
   final Map<String, dynamic>? driver = m['driver'] is Map<String, dynamic>
       ? m['driver'] as Map<String, dynamic>
       : null;
@@ -568,7 +570,8 @@ String _expenseLineSubtitle(Map<String, dynamic> m) {
   }
   String subtitle = driverName;
   if (note != null && note.isNotEmpty) {
-    subtitle = '$subtitle · $note';
+    subtitle =
+        '$subtitle · ${expenseNoteArabicDisplayLabel(note, l10n)}';
   }
   if (at != null) {
     subtitle = '$subtitle · ${DateFormat.Hm().format(at)}';
@@ -747,7 +750,7 @@ class _DailyExpensesDayCard extends StatelessWidget {
                 final double amount = _toDouble(m['amount']);
                 final String id =
                     m['id']?.toString() ?? '${dateYmd}_$i';
-                final String label = _expenseLineSubtitle(m);
+                final String label = _expenseLineSubtitle(m, context.l10n);
                 return Padding(
                   padding: EdgeInsets.only(top: i == 0 ? 0 : 10),
                   child: TextFormField(
@@ -948,7 +951,7 @@ class _MonthlyExpensesMonthCard extends StatelessWidget {
                 final double amount = _toDouble(m['amount']);
                 final String id =
                     m['id']?.toString() ?? '${year}_${month}_$i';
-                final String label = _expenseLineSubtitle(m);
+                final String label = _expenseLineSubtitle(m, context.l10n);
                 return Padding(
                   padding: EdgeInsets.only(top: i == 0 ? 0 : 10),
                   child: TextFormField(

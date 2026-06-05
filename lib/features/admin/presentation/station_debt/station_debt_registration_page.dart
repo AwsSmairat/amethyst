@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 
 import 'package:amethyst/core/l10n/context_l10n.dart';
+import 'package:amethyst/core/station_balance/station_balance_list_refresh.dart';
 import 'package:amethyst/l10n/app_localizations.dart';
 import 'package:amethyst/features/admin/presentation/station_debt/station_debt_api_error.dart';
 import 'package:amethyst/features/admin/presentation/station_debt/cubit/station_debt_registration_cubit.dart';
@@ -77,6 +78,7 @@ class _StationDebtRegistrationPageState
               (c.submitError != null && c.submitError != p.submitError),
           listener: (BuildContext context, StationDebtRegistrationState state) {
             if (state.submitSucceeded) {
+              StationBalanceListRefresh.request();
               _debtorNameController.clear();
               context.read<StationDebtRegistrationCubit>().clearSubmitSucceeded();
               ScaffoldMessenger.of(context).showSnackBar(

@@ -104,9 +104,7 @@ Widget buildStationDebtRegistrationRoute(
       api: place != null ? sl<AmethystApi>() : null,
       createVehicleSale:
           place != null ? sl<CreateVehicleSaleUseCase>() : null,
-      deductStationStockForSale: place != null
-          ? sl<DeductStationStockForSaleUseCase>()
-          : null,
+      deductStationStockForSale: sl<DeductStationStockForSaleUseCase>(),
     ),
     child: const StationDebtRegistrationPage(),
   );

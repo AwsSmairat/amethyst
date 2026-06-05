@@ -30,7 +30,7 @@ final class StationDebtRegistrationCubit extends Cubit<StationDebtRegistrationSt
     this.stationEntryKind = StationSaleEntryKind.filling,
     AmethystApi? api,
     CreateVehicleSaleUseCase? createVehicleSale,
-    DeductStationStockForSaleUseCase? deductStationStockForSale,
+    required DeductStationStockForSaleUseCase deductStationStockForSale,
   })  : _listProductItems = listProductItems,
         _createStationDebtEntries = createStationDebtEntries,
         _api = api,
@@ -60,7 +60,7 @@ final class StationDebtRegistrationCubit extends Cubit<StationDebtRegistrationSt
   final StationSaleEntryKind stationEntryKind;
   final AmethystApi? _api;
   final CreateVehicleSaleUseCase? _createVehicleSale;
-  final DeductStationStockForSaleUseCase? _deductStationStockForSale;
+  final DeductStationStockForSaleUseCase _deductStationStockForSale;
 
   String? _vehicleId;
   List<Map<String, dynamic>> _driverLoadLines = <Map<String, dynamic>>[];
@@ -489,7 +489,7 @@ final class StationDebtRegistrationCubit extends Cubit<StationDebtRegistrationSt
             : 'home';
         final CreateVehicleSaleUseCase createVehicleSale = _createVehicleSale!;
         final DeductStationStockForSaleUseCase deductStock =
-            _deductStationStockForSale!;
+            _deductStationStockForSale;
 
         final VehicleProductColumnPlace columnPlace = _vehicleColumnPlace(place);
         for (final line in vehicleLines) {
@@ -516,6 +516,45 @@ final class StationDebtRegistrationCubit extends Cubit<StationDebtRegistrationSt
           }
         }
       } else {
+        for (var i = 0; i < state.columnCount; i++) {
+          final int q = state.quantities[i];
+          if (q <= 0) {
+            continue;
+          }
+          if (i < state.columnSkipsStationStock.length &&
+              state.columnSkipsStationStock[i]) {
+            continue;
+          }
+          final int available = i < state.columnStationStock.length
+              ? state.columnStationStock[i]
+              : 0;
+          if (q > available) {
+            emit(
+              state.copyWith(
+                submitting: false,
+                submitError: kStationDebtInsufficientStockSubmitMarker,
+              ),
+            );
+            return;
+          }
+        }
+        for (var i = 0; i < state.columnCount; i++) {
+          final int q = state.quantities[i];
+          if (q <= 0) {
+            continue;
+          }
+          if (i < state.columnSkipsStationStock.length &&
+              state.columnSkipsStationStock[i]) {
+            continue;
+          }
+          await _deductStationStockForSale(
+            productId: canonicalProductIdForMahdiStoreSale(
+              productId: state.productIds[i]!,
+              products: catalog,
+            ),
+            quantity: q,
+          );
+        }
         await _createStationDebtEntries(debtorName: debtor, lines: lines);
       }
 
