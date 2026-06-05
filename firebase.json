@@ -20,7 +20,7 @@
     "rules": "storage.rules"
   },
   "hosting": {
-    "public": "build/web",
+    "public": "public",
     "ignore": [
       "firebase.json",
       "**/.*",
@@ -37,35 +37,36 @@
     "platforms": {
       "android": {
         "default": {
-          "projectId": "amethyst-6a511",
-          "appId": "1:963427966128:android:d95d8b2a6644e479352f75",
+          "projectId": "amethyst-3328a",
+          "appId": "1:131297170179:android:dba1e8d35aecc20abd8f36",
           "fileOutput": "android/app/google-services.json"
         }
       },
       "ios": {
         "default": {
-          "projectId": "amethyst-6a511",
-          "appId": "1:963427966128:ios:73feee188126971e352f75",
+          "projectId": "amethyst-3328a",
+          "appId": "1:131297170179:ios:57642811672da183bd8f36",
           "uploadDebugSymbols": false,
           "fileOutput": "ios/Runner/GoogleService-Info.plist"
         }
       },
       "macos": {
         "default": {
-          "projectId": "amethyst-6a511",
-          "appId": "1:963427966128:ios:73feee188126971e352f75",
+          "projectId": "amethyst-3328a",
+          "appId": "1:131297170179:ios:57642811672da183bd8f36",
           "uploadDebugSymbols": false,
           "fileOutput": "macos/Runner/GoogleService-Info.plist"
         }
       },
       "dart": {
         "lib/firebase_options.dart": {
-          "projectId": "amethyst-6a511",
+          "projectId": "amethyst-3328a",
           "configurations": {
-            "android": "1:963427966128:android:d95d8b2a6644e479352f75",
-            "ios": "1:963427966128:ios:73feee188126971e352f75",
-            "macos": "1:963427966128:ios:73feee188126971e352f75",
-            "web": "1:963427966128:web:2d42382a73c9608e352f75"
+            "android": "1:131297170179:android:dba1e8d35aecc20abd8f36",
+            "ios": "1:131297170179:ios:57642811672da183bd8f36",
+            "macos": "1:131297170179:ios:57642811672da183bd8f36",
+            "web": "1:131297170179:web:999be99f88b7fd6ebd8f36",
+            "windows": "1:131297170179:web:f4556734b41aa905bd8f36"
           }
         }
       }

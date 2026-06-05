@@ -1,4 +1,5 @@
 import 'package:amethyst/core/data/amethyst_api.dart';
+import 'package:amethyst/core/network/api_exception.dart';
 import 'package:amethyst/core/presentation/dashboard_load_state.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
@@ -8,12 +9,25 @@ final class SuperAdminDashboardCubit extends Cubit<DashboardLoadState> {
   final AmethystApi _api;
 
   Future<void> load() async {
+    if (isClosed) {
+      return;
+    }
     emit(const DashboardLoadLoading());
     try {
-      final data = await _api.getDashboardSuperAdmin();
-      emit(DashboardLoadSuccess(data));
+      final data = await _api
+          .getDashboardSuperAdmin()
+          .timeout(const Duration(seconds: 45));
+      if (!isClosed) {
+        emit(DashboardLoadSuccess(data));
+      }
+    } on ApiException catch (e) {
+      if (!isClosed) {
+        emit(DashboardLoadFailure(e.message));
+      }
     } on Object catch (e) {
-      emit(DashboardLoadFailure(e.toString()));
+      if (!isClosed) {
+        emit(DashboardLoadFailure(e.toString()));
+      }
     }
   }
 }

@@ -538,23 +538,7 @@ final class StationDebtRegistrationCubit extends Cubit<StationDebtRegistrationSt
             return;
           }
         }
-        for (var i = 0; i < state.columnCount; i++) {
-          final int q = state.quantities[i];
-          if (q <= 0) {
-            continue;
-          }
-          if (i < state.columnSkipsStationStock.length &&
-              state.columnSkipsStationStock[i]) {
-            continue;
-          }
-          await _deductStationStockForSale(
-            productId: canonicalProductIdForMahdiStoreSale(
-              productId: state.productIds[i]!,
-              products: catalog,
-            ),
-            quantity: q,
-          );
-        }
+        // Firebase backend يخصم المخزون داخل createStationDebtEntries.
         await _createStationDebtEntries(debtorName: debtor, lines: lines);
       }
 

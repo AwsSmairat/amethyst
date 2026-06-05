@@ -1,7 +1,6 @@
 import 'package:amethyst/app/app.dart';
 import 'package:amethyst/app/app_splash_screen.dart';
 import 'package:amethyst/app/router/app_router.dart';
-import 'package:amethyst/core/prototype/prototype_sample_data.dart';
 import 'package:amethyst/core/theme/app_theme.dart';
 import 'package:amethyst/di/injection.dart';
 import 'package:amethyst/features/auth/presentation/cubit/auth_cubit.dart';
@@ -27,7 +26,6 @@ class _AmethystBootstrapState extends State<AmethystBootstrap> {
   }
 
   Future<void> _start() async {
-    await PrototypeSampleData.ensureLoaded();
     setupDependencies();
     final AuthCubit authCubit = sl<AuthCubit>();
     try {

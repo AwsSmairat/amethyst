@@ -8,7 +8,8 @@
   "scripts": {
     "lint": "eslint .",
     "serve": "firebase emulators:start --only functions",
-    "deploy": "firebase deploy --only functions"
+    "deploy": "firebase deploy --only functions",
+    "seed-profiles": "node scripts/seed_user_profiles.js"
   },
   "dependencies": {
     "firebase-admin": "^12.7.0",

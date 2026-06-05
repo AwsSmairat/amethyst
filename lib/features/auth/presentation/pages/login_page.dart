@@ -109,8 +109,6 @@ class _LoginPageState extends State<LoginPage> {
                             ),
                           ),
                         ),
-                        const SizedBox(height: 20),
-                        const _PrototypeRolePreview(),
                       ],
                     ),
                   ),
@@ -187,95 +185,6 @@ class _LoginStoreLogo extends StatelessWidget {
             ),
           ),
         ),
-      ),
-    );
-  }
-}
-
-class _PrototypeRolePreview extends StatelessWidget {
-  const _PrototypeRolePreview();
-
-  @override
-  Widget build(BuildContext context) {
-    final TextTheme textTheme = Theme.of(context).textTheme;
-    return Center(
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 420),
-        child: Material(
-          color: Colors.white.withValues(alpha: 0.08),
-          borderRadius: BorderRadius.circular(20),
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(20, 16, 20, 16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: <Widget>[
-                Text(
-                  'وضع العرض — تصميم فقط',
-                  textAlign: TextAlign.center,
-                  style: textTheme.titleSmall?.copyWith(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  'Preview as role (no Firebase required)',
-                  textAlign: TextAlign.center,
-                  style: textTheme.bodySmall?.copyWith(
-                    color: Colors.white70,
-                  ),
-                ),
-                const SizedBox(height: 14),
-                _PreviewRoleButton(
-                  label: 'Preview as Super Admin',
-                  icon: Icons.admin_panel_settings_outlined,
-                  onPressed: () =>
-                      context.read<AuthCubit>().previewAsRole('super_admin'),
-                ),
-                const SizedBox(height: 8),
-                _PreviewRoleButton(
-                  label: 'Preview as Admin',
-                  icon: Icons.manage_accounts_outlined,
-                  onPressed: () =>
-                      context.read<AuthCubit>().previewAsRole('admin'),
-                ),
-                const SizedBox(height: 8),
-                _PreviewRoleButton(
-                  label: 'Preview as Driver',
-                  icon: Icons.local_shipping_outlined,
-                  onPressed: () =>
-                      context.read<AuthCubit>().previewAsRole('driver'),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _PreviewRoleButton extends StatelessWidget {
-  const _PreviewRoleButton({
-    required this.label,
-    required this.icon,
-    required this.onPressed,
-  });
-
-  final String label;
-  final IconData icon;
-  final VoidCallback onPressed;
-
-  @override
-  Widget build(BuildContext context) {
-    return OutlinedButton.icon(
-      onPressed: onPressed,
-      icon: Icon(icon, color: Colors.white),
-      label: Text(label),
-      style: OutlinedButton.styleFrom(
-        foregroundColor: Colors.white,
-        side: BorderSide(color: Colors.white.withValues(alpha: 0.35)),
-        padding: const EdgeInsets.symmetric(vertical: 12),
       ),
     );
   }

@@ -35,7 +35,12 @@ service cloud.firestore {
     }
 
     match /users/{userId} {
-      allow read: if isActiveUser() && (isSuperAdmin() || request.auth.uid == userId);
+      allow get: if isSignedIn() && (
+        request.auth.uid == userId
+        || (isActiveUser() && isSuperAdmin())
+        || (isActiveUser() && isAdmin() && resource.data.role in ['admin', 'driver'])
+      );
+      allow list: if isActiveUser() && (isSuperAdmin() || isAdmin());
       allow create, update, delete: if false;
     }
 
@@ -68,7 +73,14 @@ service cloud.firestore {
 
     match /vehicle_sales/{saleId} {
       allow read: if isActiveUser();
-      allow create: if isDriver();
+      allow create: if isDriver() || isStaff();
+    }
+
+    match /staff_notes/{noteId} {
+      allow read: if isActiveUser()
+        && (isStaff() || resource.data.toUserId == request.auth.uid);
+      allow create: if isStaff();
+      allow update: if isActiveUser() && resource.data.toUserId == request.auth.uid;
     }
 
     match /expenses/{expenseId} {

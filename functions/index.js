@@ -1,5 +1,5 @@
 const admin = require('firebase-admin');
-const { onCall, HttpsError } = require('firebase-functions/v2/https');
+const { onCall, onRequest, HttpsError } = require('firebase-functions/v2/https');
 const { setGlobalOptions } = require('firebase-functions/v2');
 
 setGlobalOptions({ region: 'us-central1' });
@@ -43,6 +43,289 @@ async function getTargetUser(uid) {
   }
   return { uid, data: snap.data() };
 }
+
+/** سرّ استدعاء bootstrap — غيّره في Firebase Console → Functions → Environment variables */
+const BOOTSTRAP_SECRET =
+  process.env.BOOTSTRAP_SECRET || 'amethyst-3328a-setup';
+
+/** @type {Record<string, { fullName: string, role: string }>} */
+const PROFILE_BY_EMAIL = {
+  'sohaib@super.com': { fullName: 'صهيب', role: 'super_admin' },
+  'admin@admin.com': { fullName: 'مسؤول المحطة', role: 'admin' },
+  'driver@driver.com': { fullName: 'سائق بينقو', role: 'driver' },
+  'driver2@driver.com': { fullName: 'سائق الباص', role: 'driver' },
+};
+
+function requireBootstrapSecret(req, res) {
+  const secret =
+    req.get('x-bootstrap-secret') || req.query.secret || req.body?.secret;
+  if (secret !== BOOTSTRAP_SECRET) {
+    res.status(403).json({ error: 'Forbidden — invalid bootstrap secret' });
+    return false;
+  }
+  return true;
+}
+
+async function listAllAuthUsers() {
+  const users = [];
+  let pageToken;
+  do {
+    const result = await auth.listUsers(1000, pageToken);
+    users.push(...result.users);
+    pageToken = result.pageToken;
+  } while (pageToken);
+  return users;
+}
+
+async function seedMissingUserProfiles() {
+  const authUsers = await listAllAuthUsers();
+  const results = [];
+
+  for (const user of authUsers) {
+    const email = normalizeEmail(user.email);
+    const spec = PROFILE_BY_EMAIL[email];
+    if (!spec) {
+      results.push({ email, uid: user.uid, action: 'skipped' });
+      continue;
+    }
+
+    const ref = db.collection('users').doc(user.uid);
+    const snap = await ref.get();
+    const payload = {
+      fullName: spec.fullName,
+      email,
+      role: spec.role,
+      isActive: true,
+      phone: user.phoneNumber || null,
+      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+    };
+
+    if (snap.exists) {
+      await ref.set(payload, { merge: true });
+      results.push({ email, uid: user.uid, action: 'updated', role: spec.role });
+      continue;
+    }
+
+    await ref.set({
+      ...payload,
+      createdAt: admin.firestore.FieldValue.serverTimestamp(),
+    });
+    results.push({ email, uid: user.uid, action: 'created', role: spec.role });
+  }
+
+  return results;
+}
+
+/** منتجات رصيد المحطة + كتالوج التطبيق (مطابقة Flutter). */
+const SEED_PRODUCTS = [
+  { name: 'Water Carton', unitType: 'carton', price: 180, stationStock: 100 },
+  { name: 'Carton Yafa', unitType: 'carton', price: 160, stationStock: 80 },
+  { name: 'Shrink Large', unitType: 'carton', price: 140, stationStock: 60 },
+  { name: 'Shrink Medium', unitType: 'carton', price: 120, stationStock: 60 },
+  { name: 'Shrink Small', unitType: 'carton', price: 100, stationStock: 50 },
+  { name: 'Saudi Bottle', unitType: 'bottle', price: 8, stationStock: 40 },
+  { name: 'Jordanian Bottle', unitType: 'bottle', price: 8, stationStock: 40 },
+  { name: 'Empty Gallon', unitType: 'gallon', price: 15, stationStock: 30 },
+  { name: 'Ground Bottle', unitType: 'bottle', price: 5, stationStock: 25 },
+  { name: 'Ground Gallon', unitType: 'gallon', price: 10, stationStock: 25 },
+  { name: 'Coupon', unitType: 'coupon', price: 12, stationStock: 20 },
+  { name: 'Coupon 2', unitType: 'coupon', price: 24, stationStock: 15 },
+  { name: 'Coupon 3', unitType: 'coupon', price: 50, stationStock: 10 },
+  { name: 'Small Empty Bottle', unitType: 'bottle', price: 5, stationStock: 30 },
+  { name: 'Small Empty Gallon', unitType: 'gallon', price: 8, stationStock: 30 },
+  { name: 'Water Gallon', unitType: 'gallon', price: 12, stationStock: 80 },
+  { name: 'Water Bottle', unitType: 'bottle', price: 25, stationStock: 80 },
+  { name: 'جالون صغير', unitType: 'gallon', price: 10, stationStock: 40 },
+  { name: 'قاروره صغير', unitType: 'bottle', price: 15, stationStock: 40 },
+  { name: 'مهدي متجر', unitType: 'carton', price: 200, stationStock: 0 },
+  { name: 'جالون متجر', unitType: 'gallon', price: 12, stationStock: 0 },
+  { name: 'قاروره متجر', unitType: 'bottle', price: 25, stationStock: 0 },
+  { name: 'مع تعبئة — منتجات ١–٣', unitType: 'piece', price: 0.5, stationStock: 0 },
+  { name: 'مع تعبئة — منتجات ٤–٥', unitType: 'piece', price: 0.5, stationStock: 0 },
+];
+
+const SEED_VEHICLES = [
+  {
+    vehicleNumber: 'بينقو',
+    driverEmail: 'driver@driver.com',
+    notes: 'مركبة بينقو',
+  },
+  {
+    vehicleNumber: 'الباص',
+    driverEmail: 'driver2@driver.com',
+    notes: 'مركبة الباص',
+  },
+];
+
+function normalizeName(name) {
+  return String(name || '').trim().toLowerCase();
+}
+
+async function listActiveProducts() {
+  const snap = await db.collection('products').where('isActive', '==', true).get();
+  return snap.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+}
+
+async function findProductByName(products, name) {
+  const want = normalizeName(name);
+  return products.find((p) => normalizeName(p.name) === want) || null;
+}
+
+async function seedCatalogProducts() {
+  const existing = await listActiveProducts();
+  const byName = [...existing];
+  const results = [];
+
+  for (const spec of SEED_PRODUCTS) {
+    const found = await findProductByName(byName, spec.name);
+    const now = admin.firestore.FieldValue.serverTimestamp();
+    const stock = spec.stationStock ?? 0;
+    if (found) {
+      await db.collection('products').doc(found.id).set(
+        {
+          price: spec.price,
+          stationStock: stock,
+          updatedAt: now,
+        },
+        { merge: true },
+      );
+      results.push({
+        name: spec.name,
+        id: found.id,
+        action: 'updated',
+        stationStock: stock,
+      });
+      continue;
+    }
+    const ref = db.collection('products').doc();
+    await ref.set({
+      name: spec.name,
+      unitType: spec.unitType,
+      price: spec.price,
+      stationStock: stock,
+      isActive: true,
+      createdAt: now,
+      updatedAt: now,
+    });
+    byName.push({ id: ref.id, name: spec.name, unitType: spec.unitType });
+    results.push({
+      name: spec.name,
+      id: ref.id,
+      action: 'created',
+      stationStock: stock,
+    });
+  }
+
+  return results;
+}
+
+async function uidForEmail(email) {
+  const normalized = normalizeEmail(email);
+  const authUsers = await listAllAuthUsers();
+  const match = authUsers.find((u) => normalizeEmail(u.email) === normalized);
+  return match ? match.uid : null;
+}
+
+async function seedVehicles() {
+  const results = [];
+  const snap = await db.collection('vehicles').where('isActive', '==', true).get();
+  const existing = snap.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+
+  for (const spec of SEED_VEHICLES) {
+    const driverId = await uidForEmail(spec.driverEmail);
+    if (!driverId) {
+      results.push({
+        vehicleNumber: spec.vehicleNumber,
+        action: 'skipped',
+        reason: `driver not found: ${spec.driverEmail}`,
+      });
+      continue;
+    }
+
+    const found =
+      existing.find((v) => v.driverId === driverId) ||
+      existing.find(
+        (v) => normalizeName(v.vehicleNumber) === normalizeName(spec.vehicleNumber),
+      );
+    const now = admin.firestore.FieldValue.serverTimestamp();
+    const payload = {
+      vehicleNumber: spec.vehicleNumber,
+      driverId,
+      isActive: true,
+      notes: spec.notes,
+      updatedAt: now,
+    };
+
+    if (found) {
+      await db.collection('vehicles').doc(found.id).set(payload, { merge: true });
+      results.push({
+        vehicleNumber: spec.vehicleNumber,
+        id: found.id,
+        driverId,
+        action: 'updated',
+      });
+      continue;
+    }
+
+    const ref = db.collection('vehicles').doc();
+    await ref.set({ ...payload, createdAt: now });
+    existing.push({ id: ref.id, vehicleNumber: spec.vehicleNumber });
+    results.push({
+      vehicleNumber: spec.vehicleNumber,
+      id: ref.id,
+      driverId,
+      action: 'created',
+    });
+  }
+
+  return results;
+}
+
+async function seedAppCatalog() {
+  const products = await seedCatalogProducts();
+  const vehicles = await seedVehicles();
+  return { products, vehicles };
+}
+
+/** One-time bootstrap: products + vehicles. POST only. */
+exports.bootstrapAppCatalog = onRequest(async (req, res) => {
+  if (req.method !== 'POST') {
+    res.status(405).json({ error: 'POST only' });
+    return;
+  }
+  if (!requireBootstrapSecret(req, res)) {
+    return;
+  }
+
+  try {
+    const results = await seedAppCatalog();
+    res.json({ ok: true, ...results });
+  } catch (err) {
+    res.status(500).json({ error: err.message || 'Catalog bootstrap failed.' });
+  }
+});
+
+/** One-time bootstrap: creates users/{uid} for known Auth accounts. POST only. */
+exports.bootstrapUserProfiles = onRequest(async (req, res) => {
+  if (req.method !== 'POST') {
+    res.status(405).json({ error: 'POST only' });
+    return;
+  }
+  if (!requireBootstrapSecret(req, res)) {
+    return;
+  }
+
+  try {
+    const users = await seedMissingUserProfiles();
+    const payload = { ok: true, users };
+    if (req.query.all === '1') {
+      payload.catalog = await seedAppCatalog();
+    }
+    res.json(payload);
+  } catch (err) {
+    res.status(500).json({ error: err.message || 'Bootstrap failed.' });
+  }
+});
 
 exports.createUserBySuperAdmin = onCall(async (request) => {
   const { callerUid } = await requireSuperAdmin(request);
