@@ -1,9 +1,11 @@
 import 'package:amethyst/core/station_balance/station_balance_list_refresh.dart';
 import 'package:amethyst/core/utils/parse_dynamic_double.dart';
 import 'package:amethyst/core/data/amethyst_api.dart';
+import 'package:amethyst/core/data/api_list_fetch.dart';
 import 'package:amethyst/core/l10n/context_l10n.dart';
 import 'package:amethyst/core/station_balance/station_balance_catalog.dart';
 import 'package:amethyst/core/vehicle_sale/vehicle_product_columns.dart';
+import 'package:amethyst/core/vehicle_load/vehicle_load_aggregates.dart';
 import 'package:amethyst/core/vehicle_load/vehicle_load_catalog.dart';
 import 'package:amethyst/core/theme/app_colors.dart';
 import 'package:amethyst/di/injection.dart';
@@ -24,11 +26,10 @@ Future<void> showAddVehicleSaleSheet(BuildContext context) {
     isScrollControlled: true,
     showDragHandle: true,
     builder: (context) => BlocProvider(
-      create: (_) =>
-          VehicleSaleSubmitCubit(
-            sl<CreateVehicleSaleUseCase>(),
-            sl<DeductStationStockForSaleUseCase>(),
-          ),
+      create: (_) => VehicleSaleSubmitCubit(
+        sl<CreateVehicleSaleUseCase>(),
+        sl<CreateVehicleSalesBatchUseCase>(),
+      ),
       child: const _AddVehicleSaleBody(),
     ),
   );
@@ -91,32 +92,8 @@ class _AddVehicleSaleBodyState extends State<_AddVehicleSaleBody> {
     _load();
   }
 
-  static Future<List<Map<String, dynamic>>> _fetchAllProducts(
-    AmethystApi api,
-  ) async {
-    final List<Map<String, dynamic>> all = <Map<String, dynamic>>[];
-    var page = 1;
-    const int limit = 100;
-    while (true) {
-      final Map<String, dynamic> p =
-          await api.listProducts(page: page, limit: limit);
-      final List<Map<String, dynamic>> items =
-          (p['items'] as List<dynamic>? ?? <dynamic>[])
-              .whereType<Map<String, dynamic>>()
-              .toList(growable: false);
-      all.addAll(items);
-      final int total = switch (p['total']) {
-        final int t => t,
-        final num t => t.toInt(),
-        _ => all.length,
-      };
-      if (items.length < limit || all.length >= total) {
-        break;
-      }
-      page++;
-    }
-    return all;
-  }
+  static Future<List<Map<String, dynamic>>> _fetchAllProducts(AmethystApi api) =>
+      fetchAllProducts(api);
 
   Future<void> _load() async {
     try {
@@ -126,8 +103,8 @@ class _AddVehicleSaleBodyState extends State<_AddVehicleSaleBody> {
       final items = await _fetchAllProducts(api);
       final currentLoad = await api.driverCurrentLoad();
       final List<Map<String, dynamic>> loads =
-          (currentLoad['loadLines'] as List<dynamic>? ??
-                  currentLoad['loads'] as List<dynamic>? ??
+          (currentLoad['loads'] as List<dynamic>? ??
+                  currentLoad['loadLines'] as List<dynamic>? ??
                   <dynamic>[])
               .whereType<Map<String, dynamic>>()
               .toList(growable: false);
@@ -288,7 +265,7 @@ class _AddVehicleSaleBodyState extends State<_AddVehicleSaleBody> {
       var fromProductId = 0;
       for (final Map<String, dynamic> line in _driverLoadLines) {
         if (line['productId']?.toString() == columnProductId) {
-          fromProductId += (line['remaining'] as int?) ?? 0;
+          fromProductId += vehicleLoadRemainingQty(line);
         }
       }
       if (fromProductId > 0) {
@@ -311,7 +288,7 @@ class _AddVehicleSaleBodyState extends State<_AddVehicleSaleBody> {
       }
       for (final String candidate in candidates) {
         if (stationBalanceProductNamesMatch(loadName, candidate)) {
-          sum += (line['remaining'] as int?) ?? 0;
+          sum += vehicleLoadRemainingQty(line);
           break;
         }
       }

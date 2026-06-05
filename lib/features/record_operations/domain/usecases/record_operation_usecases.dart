@@ -103,6 +103,23 @@ final class CreateVehicleSaleUseCase {
       );
 }
 
+final class CreateVehicleSalesBatchUseCase {
+  CreateVehicleSalesBatchUseCase(this._repository);
+
+  final RecordOperationsRepository _repository;
+
+  Future<void> call({
+    required String vehicleId,
+    required List<Map<String, dynamic>> lines,
+    String saleDestination = 'home',
+  }) =>
+      _repository.createVehicleSalesBatch(
+        vehicleId: vehicleId,
+        lines: lines,
+        saleDestination: saleDestination,
+      );
+}
+
 final class PatchProductStationStockUseCase {
   PatchProductStationStockUseCase(this._repository);
 
@@ -188,6 +205,21 @@ final class CreateVehicleLoadUseCase {
         productId: productId,
         quantityLoaded: quantityLoaded,
         loadDate: loadDate,
+        loadBatchId: loadBatchId,
+      );
+
+  Future<void> callBatch({
+    required String vehicleId,
+    required String driverId,
+    required String loadDate,
+    required List<Map<String, dynamic>> lines,
+    String? loadBatchId,
+  }) =>
+      _repository.createVehicleLoadsBatch(
+        vehicleId: vehicleId,
+        driverId: driverId,
+        loadDate: loadDate,
+        lines: lines,
         loadBatchId: loadBatchId,
       );
 }

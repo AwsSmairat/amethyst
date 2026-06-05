@@ -1,6 +1,7 @@
 const admin = require('firebase-admin');
 const { onCall, onRequest, HttpsError } = require('firebase-functions/v2/https');
 const { setGlobalOptions } = require('firebase-functions/v2');
+const { resetOperationalData } = require('./operational_reset');
 
 setGlobalOptions({ region: 'us-central1' });
 
@@ -302,6 +303,27 @@ exports.bootstrapAppCatalog = onRequest(async (req, res) => {
     res.json({ ok: true, ...results });
   } catch (err) {
     res.status(500).json({ error: err.message || 'Catalog bootstrap failed.' });
+  }
+});
+
+/**
+ * One-time reset: delete transactional data and zero product stock.
+ * Keeps users, vehicles, and product catalog. POST only.
+ */
+exports.resetOperationalData = onRequest(async (req, res) => {
+  if (req.method !== 'POST') {
+    res.status(405).json({ error: 'POST only' });
+    return;
+  }
+  if (!requireBootstrapSecret(req, res)) {
+    return;
+  }
+
+  try {
+    const result = await resetOperationalData(db);
+    res.json({ ok: true, ...result });
+  } catch (err) {
+    res.status(500).json({ error: err.message || 'Operational reset failed.' });
   }
 });
 

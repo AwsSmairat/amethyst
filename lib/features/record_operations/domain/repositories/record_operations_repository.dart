@@ -22,6 +22,11 @@ abstract class RecordOperationsRepository {
     required int stationStock,
   });
 
+  /// حفظ عدة صفوف رصيد دفعة واحدة (أسرع من استدعاء [upsertStationBalanceRowStock] لكل صف).
+  Future<void> saveStationBalanceRows({
+    required List<Map<String, dynamic>> rows,
+  });
+
   Future<void> createStationSale({
     required String productId,
     required int quantity,
@@ -67,6 +72,13 @@ abstract class RecordOperationsRepository {
     bool skipLoadDeduction = false,
   });
 
+  /// عدة أسطر بيع + خصم حمولة/مخزون محطة في طلب Firestore واحد.
+  Future<void> createVehicleSalesBatch({
+    required String vehicleId,
+    required List<Map<String, dynamic>> lines,
+    String saleDestination = 'home',
+  });
+
   Future<void> createExpense({
     String? vehicleId,
     required double amount,
@@ -86,6 +98,15 @@ abstract class RecordOperationsRepository {
     required String productId,
     required int quantityLoaded,
     required String loadDate,
+    String? loadBatchId,
+  });
+
+  /// عدة منتجات في نفس التحميل — طلب Firestore واحد.
+  Future<void> createVehicleLoadsBatch({
+    required String vehicleId,
+    required String driverId,
+    required String loadDate,
+    required List<Map<String, dynamic>> lines,
     String? loadBatchId,
   });
 }

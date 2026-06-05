@@ -102,9 +102,8 @@ Widget buildStationDebtRegistrationRoute(
       vehiclePlace: place,
       stationEntryKind: place == null ? entryKind : StationSaleEntryKind.filling,
       api: place != null ? sl<AmethystApi>() : null,
-      createVehicleSale:
-          place != null ? sl<CreateVehicleSaleUseCase>() : null,
-      deductStationStockForSale: sl<DeductStationStockForSaleUseCase>(),
+      createVehicleSalesBatch:
+          place != null ? sl<CreateVehicleSalesBatchUseCase>() : null,
     ),
     child: const StationDebtRegistrationPage(),
   );

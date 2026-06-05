@@ -1,4 +1,5 @@
 import 'package:amethyst/core/data/amethyst_api.dart';
+import 'package:amethyst/core/data/api_list_fetch.dart';
 import 'package:amethyst/core/expenses/expense_aggregates.dart';
 import 'package:amethyst/core/utils/parse_api_datetime.dart';
 /// ملخص تحميل مركبة: محمّل اليوم/الشهر والمتبقي على السيارة (مفتوح).
@@ -115,31 +116,8 @@ List<Map<String, dynamic>> aggregateDriverLoadsByProduct(
   return byProduct.values.toList(growable: false);
 }
 
-Future<List<Map<String, dynamic>>> fetchAllVehicleLoadRows(
-  AmethystApi api, {
-  int limit = 100,
-  int maxPages = 50,
-}) async {
-  final List<Map<String, dynamic>> all = <Map<String, dynamic>>[];
-  for (var page = 1; page <= maxPages; page++) {
-    final Map<String, dynamic> res =
-        await api.listVehicleLoads(page: page, limit: limit);
-    final List<Map<String, dynamic>> pageItems =
-        (res['items'] as List<dynamic>? ?? <dynamic>[])
-            .whereType<Map<String, dynamic>>()
-            .toList(growable: false);
-    all.addAll(pageItems);
-    final int total = switch (res['total']) {
-      final int t => t,
-      final num t => t.toInt(),
-      _ => all.length,
-    };
-    if (pageItems.isEmpty || pageItems.length < limit || all.length >= total) {
-      break;
-    }
-  }
-  return all;
-}
+Future<List<Map<String, dynamic>>> fetchAllVehicleLoadRows(AmethystApi api) =>
+    fetchAllVehicleLoads(api);
 
 Map<String, VehicleLoadTotals> summarizeVehicleLoadsByVehicleId(
   List<Map<String, dynamic>> loads, {

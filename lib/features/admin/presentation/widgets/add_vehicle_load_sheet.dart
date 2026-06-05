@@ -1,4 +1,5 @@
 import 'package:amethyst/core/data/amethyst_api.dart';
+import 'package:amethyst/core/data/api_list_fetch.dart';
 import 'package:amethyst/core/l10n/context_l10n.dart';
 import 'package:amethyst/core/vehicle_load/vehicle_load_catalog.dart';
 import 'package:amethyst/core/utils/parse_quantity_input.dart';
@@ -58,33 +59,8 @@ class _AddVehicleLoadBodyState extends State<_AddVehicleLoadBody> {
     _load();
   }
 
-  /// جلب كل الصفحات — تجنّباً لفقدان تطابق أسماء القالب عندما يتجاوز عدد المنتجات [limit].
-  static Future<List<Map<String, dynamic>>> _fetchAllProducts(
-    AmethystApi api,
-  ) async {
-    final List<Map<String, dynamic>> all = <Map<String, dynamic>>[];
-    var page = 1;
-    const int limit = 100;
-    while (true) {
-      final Map<String, dynamic> p =
-          await api.listProducts(page: page, limit: limit);
-      final List<Map<String, dynamic>> items =
-          (p['items'] as List<dynamic>? ?? <dynamic>[])
-              .whereType<Map<String, dynamic>>()
-              .toList(growable: false);
-      all.addAll(items);
-      final int total = switch (p['total']) {
-        final int t => t,
-        final num t => t.toInt(),
-        _ => all.length,
-      };
-      if (items.length < limit || all.length >= total) {
-        break;
-      }
-      page++;
-    }
-    return all;
-  }
+  static Future<List<Map<String, dynamic>>> _fetchAllProducts(AmethystApi api) =>
+      fetchAllProducts(api);
 
   Future<void> _load() async {
     try {

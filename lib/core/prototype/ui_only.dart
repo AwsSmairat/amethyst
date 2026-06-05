@@ -16,7 +16,29 @@ String? uiOnlyErrorMessage(Object error) {
   return null;
 }
 
+Object _unwrapInteropError(Object error, {int depth = 0}) {
+  if (depth > 6) {
+    return error;
+  }
+  try {
+    // على Flutter Web تُغلَّف أخطاء JS داخل Future عبر خاصية error.
+    // ignore: avoid_dynamic_calls
+    final dynamic boxed = error;
+    final Object? inner = boxed.error;
+    if (inner != null) {
+      return _unwrapInteropError(inner, depth: depth + 1);
+    }
+  } on Object {
+    // ليس خطأاً مُغلَّفاً من JS.
+  }
+  return error;
+}
+
 String errorMessageFrom(Object error) {
+  return _errorMessageFromUnwrapped(_unwrapInteropError(error));
+}
+
+String _errorMessageFromUnwrapped(Object error) {
   final String? uiOnly = uiOnlyErrorMessage(error);
   if (uiOnly != null) {
     return uiOnly;

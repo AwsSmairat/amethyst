@@ -62,6 +62,14 @@ Map<String, dynamic> mapStationDebtDoc(
   if (recordedBy != null) {
     s['recordedBy'] = recordedBy;
   }
+  final DateTime? created = timestampToDate(s['createdAt']);
+  if (created != null) {
+    s['createdAt'] = created;
+  }
+  final DateTime? repaid = timestampToDate(s['repaidAt']);
+  if (repaid != null) {
+    s['repaidAt'] = repaid;
+  }
   return s;
 }
 
@@ -83,6 +91,14 @@ Map<String, dynamic> mapVehicleSaleDoc(
   }
   if (driver != null) {
     s['driver'] = driver;
+  }
+  final DateTime? created = timestampToDate(s['createdAt']);
+  if (created != null) {
+    s['createdAt'] = created;
+  }
+  final DateTime? repaid = timestampToDate(s['repaidAt']);
+  if (repaid != null) {
+    s['repaidAt'] = repaid;
   }
   return s;
 }
@@ -129,6 +145,11 @@ Map<String, dynamic> mapVehicleLoadDoc(
   if (createdBy != null) {
     l['createdBy'] = createdBy;
   }
+  final int loaded = (l['quantityLoaded'] as num?)?.toInt() ?? 0;
+  final int sold = (l['quantitySold'] as num?)?.toInt() ?? 0;
+  final int returned = (l['quantityReturned'] as num?)?.toInt() ?? 0;
+  final int remaining = loaded - sold - returned;
+  l['remaining'] = remaining < 0 ? 0 : remaining;
   return l;
 }
 

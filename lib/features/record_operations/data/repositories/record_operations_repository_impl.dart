@@ -1,4 +1,5 @@
 import 'package:amethyst/core/data/amethyst_api.dart';
+import 'package:amethyst/core/data/api_list_fetch.dart';
 import 'package:amethyst/features/record_operations/domain/repositories/record_operations_repository.dart';
 import 'dart:typed_data';
 
@@ -8,30 +9,8 @@ final class RecordOperationsRepositoryImpl implements RecordOperationsRepository
   final AmethystApi _api;
 
   @override
-  Future<List<Map<String, dynamic>>> listProductItems() async {
-    final List<Map<String, dynamic>> all = <Map<String, dynamic>>[];
-    var page = 1;
-    const int limit = 100;
-    while (true) {
-      final Map<String, dynamic> p =
-          await _api.listProducts(page: page, limit: limit);
-      final List<Map<String, dynamic>> items =
-          (p['items'] as List<dynamic>? ?? <dynamic>[])
-              .whereType<Map<String, dynamic>>()
-              .toList(growable: false);
-      all.addAll(items);
-      final int total = switch (p['total']) {
-        final int t => t,
-        final num t => t.toInt(),
-        _ => all.length,
-      };
-      if (items.length < limit || all.length >= total) {
-        break;
-      }
-      page++;
-    }
-    return all;
-  }
+  Future<List<Map<String, dynamic>>> listProductItems() =>
+      fetchAllProducts(_api);
 
   @override
   Future<void> patchProductStationStock({
@@ -62,6 +41,12 @@ final class RecordOperationsRepositoryImpl implements RecordOperationsRepository
         rowIndex: rowIndex,
         stationStock: stationStock,
       );
+
+  @override
+  Future<void> saveStationBalanceRows({
+    required List<Map<String, dynamic>> rows,
+  }) =>
+      _api.saveStationBalanceRows(rows: rows);
 
   @override
   Future<void> createStationSale({
@@ -135,6 +120,18 @@ final class RecordOperationsRepositoryImpl implements RecordOperationsRepository
       );
 
   @override
+  Future<void> createVehicleSalesBatch({
+    required String vehicleId,
+    required List<Map<String, dynamic>> lines,
+    String saleDestination = 'home',
+  }) =>
+      _api.createVehicleSalesBatch(
+        vehicleId: vehicleId,
+        lines: lines,
+        saleDestination: saleDestination,
+      );
+
+  @override
   Future<void> createExpense({
     String? vehicleId,
     required double amount,
@@ -175,6 +172,22 @@ final class RecordOperationsRepositoryImpl implements RecordOperationsRepository
         productId: productId,
         quantityLoaded: quantityLoaded,
         loadDate: loadDate,
+        loadBatchId: loadBatchId,
+      );
+
+  @override
+  Future<void> createVehicleLoadsBatch({
+    required String vehicleId,
+    required String driverId,
+    required String loadDate,
+    required List<Map<String, dynamic>> lines,
+    String? loadBatchId,
+  }) =>
+      _api.createVehicleLoadsBatch(
+        vehicleId: vehicleId,
+        driverId: driverId,
+        loadDate: loadDate,
+        lines: lines,
         loadBatchId: loadBatchId,
       );
 }

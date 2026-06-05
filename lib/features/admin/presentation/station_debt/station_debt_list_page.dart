@@ -201,7 +201,10 @@ List<_DebtorGroup> _groupByDebtorName(List<Map<String, dynamic>> items) {
   final Map<String, List<Map<String, dynamic>>> byName =
       <String, List<Map<String, dynamic>>>{};
   for (final Map<String, dynamic> e in items) {
-    final String key = (e['debtorName']?.toString() ?? '').trim();
+    if (!isUnpaidDebtEntry(e)) {
+      continue;
+    }
+    final String key = normalizeDebtorName(e['debtorName']?.toString());
     if (key.isEmpty) {
       continue;
     }

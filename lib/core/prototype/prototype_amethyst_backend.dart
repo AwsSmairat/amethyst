@@ -98,6 +98,17 @@ final class PrototypeAmethystBackend {
     );
   }
 
+  Future<void> saveStationBalanceRows({
+    required List<Map<String, dynamic>> rows,
+  }) async {
+    for (final Map<String, dynamic> row in rows) {
+      PrototypeSampleData.upsertStationBalanceRow(
+        rowIndex: (row['rowIndex'] as num).toInt(),
+        stationStock: (row['stationStock'] as num).toInt(),
+      );
+    }
+  }
+
   Future<Map<String, dynamic>> updateProduct({
     required String id,
     double? price,
@@ -213,6 +224,25 @@ final class PrototypeAmethystBackend {
     return <String, dynamic>{'item': row};
   }
 
+  Future<void> createVehicleLoadsBatch({
+    required String vehicleId,
+    required String driverId,
+    required String loadDate,
+    required List<Map<String, dynamic>> lines,
+    String? loadBatchId,
+  }) async {
+    for (final Map<String, dynamic> line in lines) {
+      PrototypeSampleData.addVehicleLoad(
+        vehicleId: vehicleId,
+        driverId: driverId,
+        productId: line['productId'] as String,
+        quantityLoaded: (line['quantityLoaded'] as num).toInt(),
+        loadDate: loadDate,
+        loadBatchId: loadBatchId,
+      );
+    }
+  }
+
   Future<Map<String, dynamic>> listStationSales({int page = 1, int limit = 100}) async =>
       _paginate(PrototypeSampleData.stationSales, page: page, limit: limit);
 
@@ -276,12 +306,26 @@ final class PrototypeAmethystBackend {
   Future<Map<String, dynamic>> listStationDebtEntries({
     int page = 1,
     int limit = 100,
-  }) async =>
-      _paginate(
-        PrototypeSampleData.openStationDebtEntries,
+  }) async {
+    final List<Map<String, dynamic>> items =
+        PrototypeSampleData.openStationDebtEntries;
+    final UserEntity? user = PrototypeSession.current;
+    if (user?.role == 'driver') {
+      final String driverId = user!.id;
+      return _paginate(
+        items
+            .where(
+              (Map<String, dynamic> e) =>
+                  e['recordingSource']?.toString() == 'vehicle' &&
+                  e['recordedById']?.toString() == driverId,
+            )
+            .toList(growable: false),
         page: page,
         limit: limit,
       );
+    }
+    return _paginate(items, page: page, limit: limit);
+  }
 
   Future<Map<String, dynamic>> repayStationDebt({required String debtorName}) async {
     final int n = PrototypeSampleData.repayStationDebtForDebtor(
@@ -356,6 +400,31 @@ final class PrototypeAmethystBackend {
       skipLoadDeduction: skipLoadDeduction,
     );
     return <String, dynamic>{'item': row};
+  }
+
+  Future<void> createVehicleSalesBatch({
+    required String vehicleId,
+    required List<Map<String, dynamic>> lines,
+    String saleDestination = 'home',
+  }) async {
+    for (final Map<String, dynamic> line in lines) {
+      PrototypeSampleData.addVehicleSale(
+        vehicleId: vehicleId,
+        productId: line['productId'] as String,
+        quantity: (line['quantity'] as num).toInt(),
+        unitPrice: (line['unitPrice'] as num).toDouble(),
+        saleDestination: saleDestination,
+        stockProductId: line['stockProductId'] as String?,
+        skipLoadDeduction: line['skipLoadDeduction'] == true,
+      );
+      if (line['deductStationStock'] == true) {
+        PrototypeSampleData.deductStationStockForSale(
+          productId: (line['stockProductId'] as String?) ??
+              line['productId'] as String,
+          quantity: (line['quantity'] as num).toInt(),
+        );
+      }
+    }
   }
 
   Future<Map<String, dynamic>> listExpenses({

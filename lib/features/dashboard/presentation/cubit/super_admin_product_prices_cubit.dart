@@ -1,4 +1,5 @@
 import 'package:amethyst/core/data/amethyst_api.dart';
+import 'package:amethyst/core/data/api_list_fetch.dart';
 import 'package:amethyst/core/prototype/prototype_sample_data.dart';
 import 'package:amethyst/core/prototype/ui_only.dart';
 import 'package:amethyst/core/presentation/list_load_state.dart';
@@ -76,30 +77,8 @@ final class SuperAdminProductPricesCubit extends Cubit<ListLoadState> {
     }
   }
 
-  Future<List<Map<String, dynamic>>> _fetchAllProducts() async {
-    final List<Map<String, dynamic>> all = <Map<String, dynamic>>[];
-    var page = 1;
-    const int limit = 100;
-    while (true) {
-      final Map<String, dynamic> res =
-          await _api.listProducts(page: page, limit: limit);
-      final List<Map<String, dynamic>> items =
-          (res['items'] as List<dynamic>? ?? <dynamic>[])
-              .whereType<Map<String, dynamic>>()
-              .toList(growable: false);
-      all.addAll(items);
-      final int total = switch (res['total']) {
-        final int t => t,
-        final num t => t.toInt(),
-        _ => all.length,
-      };
-      if (items.length < limit || all.length >= total) {
-        break;
-      }
-      page++;
-    }
-    return all;
-  }
+  Future<List<Map<String, dynamic>>> _fetchAllProducts() =>
+      fetchAllProducts(_api);
 
   List<Map<String, dynamic>> _rowsToItems(List<SuperAdminPricingRow> rows) {
     return rows

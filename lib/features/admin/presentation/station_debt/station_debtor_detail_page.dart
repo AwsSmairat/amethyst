@@ -91,15 +91,35 @@ class _StationDebtorDetailPageState extends State<StationDebtorDetailPage> {
     try {
       var vehicleRepaid = 0;
       var stationRepaid = 0;
-      if (hasVehicle) {
-        await sl<RepayStationDebtFromVehicleUseCase>().call(
+      try {
+        final Map<String, dynamic> result =
+            await sl<RepayStationDebtFromVehicleUseCase>().call(
           debtorName: widget.debtorName,
         );
-        vehicleRepaid = 1;
+        vehicleRepaid =
+            (result['salesCreated'] as num?)?.toInt() ?? 0;
+      } on ApiException catch (e) {
+        if (e.code != 'NOT_FOUND') {
+          rethrow;
+        }
       }
-      if (hasStation) {
-        await sl<RepayStationDebtUseCase>().call(debtorName: widget.debtorName);
-        stationRepaid = 1;
+      try {
+        final Map<String, dynamic> result =
+            await sl<RepayStationDebtUseCase>().call(
+          debtorName: widget.debtorName,
+        );
+        stationRepaid =
+            (result['salesCreated'] as num?)?.toInt() ?? 0;
+      } on ApiException catch (e) {
+        if (e.code != 'NOT_FOUND') {
+          rethrow;
+        }
+      }
+      if (vehicleRepaid + stationRepaid == 0) {
+        throw ApiException(
+          'No unpaid debt for this person',
+          code: 'NOT_FOUND',
+        );
       }
       if (!mounted) {
         return;

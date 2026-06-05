@@ -16,11 +16,11 @@ typedef VehicleSaleLineInput = ({
 final class VehicleSaleSubmitCubit extends Cubit<SubmitState> {
   VehicleSaleSubmitCubit(
     this._useCase,
-    this._deductStationStock,
+    this._batchUseCase,
   ) : super(const SubmitIdle());
 
   final CreateVehicleSaleUseCase _useCase;
-  final DeductStationStockForSaleUseCase _deductStationStock;
+  final CreateVehicleSalesBatchUseCase _batchUseCase;
 
   Future<void> submit({
     required String vehicleId,
@@ -51,15 +51,20 @@ final class VehicleSaleSubmitCubit extends Cubit<SubmitState> {
   }) async {
     emit(const SubmitLoading());
     try {
-      for (final line in lines) {
-        await _useCase(
-          vehicleId: vehicleId,
-          productId: line.productId,
-          quantity: line.quantity,
-          unitPrice: line.unitPrice,
-          saleDestination: saleDestination,
-        );
-      }
+      await _batchUseCase(
+        vehicleId: vehicleId,
+        saleDestination: saleDestination,
+        lines: lines
+            .map(
+              (({String productId, int quantity, double unitPrice}) line) =>
+                  <String, dynamic>{
+                'productId': line.productId,
+                'quantity': line.quantity,
+                'unitPrice': line.unitPrice,
+              },
+            )
+            .toList(growable: false),
+      );
       emit(const SubmitSuccess());
     } on Object catch (e) {
       emit(SubmitFailure(errorMessageFrom(e)));
@@ -77,22 +82,22 @@ final class VehicleSaleSubmitCubit extends Cubit<SubmitState> {
   }) async {
     emit(const SubmitLoading());
     try {
-      for (final line in lines) {
-        await _useCase(
-          vehicleId: vehicleId,
-          productId: line.productId,
-          quantity: line.quantity,
-          unitPrice: line.unitPrice,
-          saleDestination: saleDestination,
-          stockProductId: line.stockProductId,
-        );
-        if (line.deductStationStock) {
-          await _deductStationStock(
-            productId: line.stockProductId ?? line.productId,
-            quantity: line.quantity,
-          );
-        }
-      }
+      await _batchUseCase(
+        vehicleId: vehicleId,
+        saleDestination: saleDestination,
+        lines: lines
+            .map(
+              (VehicleSaleLineInput line) => <String, dynamic>{
+                'productId': line.productId,
+                'quantity': line.quantity,
+                'unitPrice': line.unitPrice,
+                if (line.stockProductId != null)
+                  'stockProductId': line.stockProductId,
+                'deductStationStock': line.deductStationStock,
+              },
+            )
+            .toList(growable: false),
+      );
       emit(const SubmitSuccess());
     } on Object catch (e) {
       emit(SubmitFailure(errorMessageFrom(e)));

@@ -1,5 +1,6 @@
 import 'package:amethyst/core/network/api_exception.dart';
 import 'package:amethyst/core/prototype/ui_only.dart';
+import 'package:firebase_core/firebase_core.dart';
 
 /// يُستبدَل في الواجهة برسالة `stationSaleSubmitInsufficientStock`.
 const String kStationDebtInsufficientStockSubmitMarker =
@@ -49,8 +50,29 @@ String mapStationDebtListLoadError(Object error) {
 
 /// أخطاء إرسال نموذج تسجيل الدين.
 String mapStationDebtSubmitError(Object error) {
-  if (error is ApiException) {
-    return mapStationDebtApiException(error);
+  final Object unwrapped = _unwrapStationDebtError(error);
+  if (unwrapped is ApiException) {
+    return mapStationDebtApiException(unwrapped);
   }
-  return errorMessageFrom(error);
+  return errorMessageFrom(unwrapped);
+}
+
+Object _unwrapStationDebtError(Object error, {int depth = 0}) {
+  if (depth > 6) {
+    return error;
+  }
+  if (error is ApiException || error is FirebaseException) {
+    return error;
+  }
+  try {
+    // ignore: avoid_dynamic_calls
+    final dynamic boxed = error;
+    final Object? inner = boxed.error;
+    if (inner != null) {
+      return _unwrapStationDebtError(inner, depth: depth + 1);
+    }
+  } on Object {
+    // ليس خطأً مُغلَّفاً.
+  }
+  return error;
 }

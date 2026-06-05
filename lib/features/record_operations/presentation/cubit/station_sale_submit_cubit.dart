@@ -26,19 +26,24 @@ final class StationSaleSubmitCubit extends Cubit<SubmitState> {
     }
   }
 
-  /// عدة منتجات (طلب API لكل سطر بنفس سعر الوحدة المحفوظ للمنتج).
+  /// عدة منتجات — طلب Firestore واحد.
   Future<void> submitLines({
     required List<({String productId, int quantity, double unitPrice})> lines,
   }) async {
     emit(const SubmitLoading());
     try {
-      for (final line in lines) {
-        await _useCase(
-          productId: line.productId,
-          quantity: line.quantity,
-          unitPrice: line.unitPrice,
-        );
-      }
+      await _useCase.callBatch(
+        lines: lines
+            .map(
+              (({String productId, int quantity, double unitPrice}) line) =>
+                  <String, dynamic>{
+                'productId': line.productId,
+                'quantity': line.quantity,
+                'unitPrice': line.unitPrice,
+              },
+            )
+            .toList(growable: false),
+      );
       emit(const SubmitSuccess());
     } on Object catch (e) {
       emit(SubmitFailure(errorMessageFrom(e)));

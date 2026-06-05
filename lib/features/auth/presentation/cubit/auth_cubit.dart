@@ -37,7 +37,7 @@ final class AuthCubit extends Cubit<AuthState> {
       emit(AuthAuthenticated(user));
     } on Object {
       await _logoutUseCase();
-      sl<AmethystFirebaseBackend>().clearDashboardCache();
+      sl<AmethystFirebaseBackend>().clearCatalogCache();
       sl<SuperAdminDashboardCubit>().reset();
       emit(const AuthUnauthenticated());
     }
@@ -60,7 +60,7 @@ final class AuthCubit extends Cubit<AuthState> {
 
   Future<void> logout() async {
     await _logoutUseCase();
-    sl<AmethystFirebaseBackend>().clearDashboardCache();
+    sl<AmethystFirebaseBackend>().clearCatalogCache();
     sl<SuperAdminDashboardCubit>().reset();
     emit(const AuthUnauthenticated());
   }

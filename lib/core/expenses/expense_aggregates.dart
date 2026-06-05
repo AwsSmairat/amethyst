@@ -1,4 +1,5 @@
 import 'package:amethyst/core/data/amethyst_api.dart';
+import 'package:amethyst/core/data/api_list_fetch.dart';
 import 'package:amethyst/core/expenses/expense_category_match.dart';
 import 'package:amethyst/core/firebase/firestore_mappers.dart';
 import 'package:amethyst/core/utils/parse_dynamic_double.dart';
@@ -71,32 +72,9 @@ bool expenseIsCurrentMonth(DateTime? created, DateTime now) {
   return created.year == now.year && created.month == now.month;
 }
 
-/// جلب كل سجلات المصاريف (صفحات متعددة، بحد أقصى للأمان).
-Future<List<Map<String, dynamic>>> fetchAllExpenseRows(
-  AmethystApi api, {
-  int limit = 100,
-  int maxPages = 50,
-}) async {
-  final List<Map<String, dynamic>> all = <Map<String, dynamic>>[];
-  for (var page = 1; page <= maxPages; page++) {
-    final Map<String, dynamic> res =
-        await api.listExpenses(page: page, limit: limit);
-    final List<Map<String, dynamic>> pageItems =
-        (res['items'] as List<dynamic>? ?? <dynamic>[])
-            .whereType<Map<String, dynamic>>()
-            .toList(growable: false);
-    all.addAll(pageItems);
-    final int total = switch (res['total']) {
-      final int t => t,
-      final num t => t.toInt(),
-      _ => all.length,
-    };
-    if (pageItems.isEmpty || pageItems.length < limit || all.length >= total) {
-      break;
-    }
-  }
-  return all;
-}
+/// جلب كل سجلات المصاريف دفعة واحدة.
+Future<List<Map<String, dynamic>>> fetchAllExpenseRows(AmethystApi api) =>
+    fetchAllExpenses(api);
 
 ExpenseSummaryTotals summarizeExpenseRows(
   List<Map<String, dynamic>> rows, {

@@ -80,6 +80,9 @@ void setupDependencies() {
   sl.registerLazySingleton<CreateVehicleSaleUseCase>(
     () => CreateVehicleSaleUseCase(sl<RecordOperationsRepository>()),
   );
+  sl.registerLazySingleton<CreateVehicleSalesBatchUseCase>(
+    () => CreateVehicleSalesBatchUseCase(sl<RecordOperationsRepository>()),
+  );
   sl.registerLazySingleton<PatchProductStationStockUseCase>(
     () => PatchProductStationStockUseCase(sl<RecordOperationsRepository>()),
   );

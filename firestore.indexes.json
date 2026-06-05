@@ -97,6 +97,44 @@
       ]
     },
     {
+      "collectionGroup": "vehicle_sales",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "isDebt", "order": "ASCENDING" },
+        { "fieldPath": "repaidAt", "order": "ASCENDING" },
+        { "fieldPath": "createdAt", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "vehicle_sales",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "driverId", "order": "ASCENDING" },
+        { "fieldPath": "isDebt", "order": "ASCENDING" },
+        { "fieldPath": "repaidAt", "order": "ASCENDING" },
+        { "fieldPath": "createdAt", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "vehicle_sales",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "debtorName", "order": "ASCENDING" },
+        { "fieldPath": "isDebt", "order": "ASCENDING" },
+        { "fieldPath": "repaidAt", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "vehicle_sales",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "driverId", "order": "ASCENDING" },
+        { "fieldPath": "debtorName", "order": "ASCENDING" },
+        { "fieldPath": "isDebt", "order": "ASCENDING" },
+        { "fieldPath": "repaidAt", "order": "ASCENDING" }
+      ]
+    },
+    {
       "collectionGroup": "station_debt_entries",
       "queryScope": "COLLECTION",
       "fields": [

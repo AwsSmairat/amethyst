@@ -583,9 +583,8 @@ GoRouter createAppRouter(AuthCubit authCubit) {
                                   sl<CreateStationDebtEntriesUseCase>(),
                               vehiclePlace: place,
                               api: sl<AmethystApi>(),
-                              createVehicleSale: sl<CreateVehicleSaleUseCase>(),
-                              deductStationStockForSale:
-                                  sl<DeductStationStockForSaleUseCase>(),
+                              createVehicleSalesBatch:
+                                  sl<CreateVehicleSalesBatchUseCase>(),
                             ),
                             child: const StationDebtRegistrationPage(),
                           );

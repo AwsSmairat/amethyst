@@ -126,6 +126,11 @@ final class AmethystApi {
         stationStock: stationStock,
       );
 
+  Future<void> saveStationBalanceRows({
+    required List<Map<String, dynamic>> rows,
+  }) =>
+      _b.saveStationBalanceRows(rows: rows);
+
   Future<Map<String, dynamic>> updateProduct({
     required String id,
     double? price,
@@ -190,6 +195,21 @@ final class AmethystApi {
         productId: productId,
         quantityLoaded: quantityLoaded,
         loadDate: loadDate,
+        loadBatchId: loadBatchId,
+      );
+
+  Future<void> createVehicleLoadsBatch({
+    required String vehicleId,
+    required String driverId,
+    required String loadDate,
+    required List<Map<String, dynamic>> lines,
+    String? loadBatchId,
+  }) =>
+      _b.createVehicleLoadsBatch(
+        vehicleId: vehicleId,
+        driverId: driverId,
+        loadDate: loadDate,
+        lines: lines,
         loadBatchId: loadBatchId,
       );
 
@@ -277,6 +297,17 @@ final class AmethystApi {
         debtorName: debtorName,
         isDebt: isDebt,
         skipLoadDeduction: skipLoadDeduction,
+      );
+
+  Future<void> createVehicleSalesBatch({
+    required String vehicleId,
+    required List<Map<String, dynamic>> lines,
+    String saleDestination = 'home',
+  }) =>
+      _b.createVehicleSalesBatch(
+        vehicleId: vehicleId,
+        lines: lines,
+        saleDestination: saleDestination,
       );
 
   Future<Map<String, dynamic>> listExpenses({

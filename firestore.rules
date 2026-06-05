@@ -34,6 +34,19 @@ service cloud.firestore {
       return isSuperAdmin() || isAdmin();
     }
 
+    function isAssignedDriverForVehicle(vehicleId) {
+      return isDriver()
+        && get(/databases/$(database)/documents/vehicles/$(vehicleId)).data.driverId
+            == request.auth.uid;
+    }
+
+    function isAssignedDriverForLoad() {
+      return isDriver() && (
+        resource.data.driverId == request.auth.uid
+        || isAssignedDriverForVehicle(resource.data.vehicleId)
+      );
+    }
+
     match /users/{userId} {
       // السماح بقراءة أسماء السوبر أدمن/الأدمن (مثلاً عند عرض ملاحظة واردة).
       allow get: if isActiveUser() && (
@@ -48,7 +61,15 @@ service cloud.firestore {
 
     match /products/{productId} {
       allow read: if isActiveUser();
-      allow write: if isSuperAdmin() || isAdmin();
+      allow create, delete: if isSuperAdmin() || isAdmin();
+      // السائق يعدّل مخزون المحطة فقط: خصم عند البيع، زيادة عند الإرجاع.
+      allow update: if isSuperAdmin() || isAdmin()
+        || (isDriver()
+            && request.resource.data.diff(resource.data).affectedKeys()
+                .hasOnly(['stationStock', 'updatedAt'])
+            && request.resource.data.stationStock is int
+            && resource.data.stationStock is int
+            && request.resource.data.stationStock != resource.data.stationStock);
     }
 
     match /vehicles/{vehicleId} {
@@ -59,7 +80,7 @@ service cloud.firestore {
     match /vehicle_loads/{loadId} {
       allow read: if isActiveUser();
       allow create: if isStaff() || isDriver();
-      allow update: if isStaff() || (isDriver() && resource.data.driverId == request.auth.uid);
+      allow update: if isStaff() || isAssignedDriverForLoad();
     }
 
     match /station_sales/{saleId} {
@@ -76,6 +97,11 @@ service cloud.firestore {
     match /vehicle_sales/{saleId} {
       allow read: if isActiveUser();
       allow create: if isDriver() || isStaff();
+      allow update: if isStaff()
+        || (isDriver()
+            && resource.data.driverId == request.auth.uid
+            && request.resource.data.diff(resource.data).affectedKeys()
+                .hasOnly(['repaidAt', 'updatedAt']));
     }
 
     match /staff_notes/{noteId} {

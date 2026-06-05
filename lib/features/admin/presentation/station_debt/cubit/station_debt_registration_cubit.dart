@@ -1,5 +1,4 @@
 import 'package:amethyst/core/catalog/catalog_product_display_label.dart';
-import 'package:amethyst/core/network/api_exception.dart';
 import 'package:amethyst/core/data/amethyst_api.dart';
 import 'package:amethyst/core/vehicle_sale/vehicle_product_columns.dart';
 import 'package:amethyst/features/admin/presentation/station_debt/station_debt_api_error.dart';
@@ -29,13 +28,11 @@ final class StationDebtRegistrationCubit extends Cubit<StationDebtRegistrationSt
     this.vehiclePlace,
     this.stationEntryKind = StationSaleEntryKind.filling,
     AmethystApi? api,
-    CreateVehicleSaleUseCase? createVehicleSale,
-    required DeductStationStockForSaleUseCase deductStationStockForSale,
+    CreateVehicleSalesBatchUseCase? createVehicleSalesBatch,
   })  : _listProductItems = listProductItems,
         _createStationDebtEntries = createStationDebtEntries,
         _api = api,
-        _createVehicleSale = createVehicleSale,
-        _deductStationStockForSale = deductStationStockForSale,
+        _createVehicleSalesBatch = createVehicleSalesBatch,
         super(
           StationDebtRegistrationState.initial(
             columnCount: vehiclePlace == null
@@ -59,8 +56,7 @@ final class StationDebtRegistrationCubit extends Cubit<StationDebtRegistrationSt
   final StationDebtVehiclePlace? vehiclePlace;
   final StationSaleEntryKind stationEntryKind;
   final AmethystApi? _api;
-  final CreateVehicleSaleUseCase? _createVehicleSale;
-  final DeductStationStockForSaleUseCase _deductStationStockForSale;
+  final CreateVehicleSalesBatchUseCase? _createVehicleSalesBatch;
 
   String? _vehicleId;
   List<Map<String, dynamic>> _driverLoadLines = <Map<String, dynamic>>[];
@@ -487,34 +483,37 @@ final class StationDebtRegistrationCubit extends Cubit<StationDebtRegistrationSt
         final String destination = place == StationDebtVehiclePlace.store
             ? 'store'
             : 'home';
-        final CreateVehicleSaleUseCase createVehicleSale = _createVehicleSale!;
-        final DeductStationStockForSaleUseCase deductStock =
-            _deductStationStockForSale;
-
+        final CreateVehicleSalesBatchUseCase createVehicleSalesBatch =
+            _createVehicleSalesBatch!;
         final VehicleProductColumnPlace columnPlace = _vehicleColumnPlace(place);
-        for (final line in vehicleLines) {
-          await createVehicleSale(
-            vehicleId: vehicleId,
-            productId: line.productId,
-            quantity: line.quantity,
-            unitPrice: line.unitPrice,
-            saleDestination: destination,
-            stockProductId: line.stockProductId,
-            debtorName: debtor,
-            isDebt: true,
-            skipLoadDeduction: false,
-          );
-          final bool deductStationStock = vehicleProductColumnDeductsStationStock(
-            columnPlace,
-            line.columnIndex,
-          );
-          if (deductStationStock) {
-            await deductStock(
-              productId: line.stockProductId ?? line.productId,
-              quantity: line.quantity,
-            );
-          }
+        final List<Map<String, dynamic>> batchLines =
+            <Map<String, dynamic>>[];
+        for (final ({
+              int columnIndex,
+              String productId,
+              String? stockProductId,
+              int quantity,
+              double unitPrice,
+            }) line in vehicleLines) {
+          batchLines.add(<String, dynamic>{
+            'productId': line.productId,
+            'quantity': line.quantity,
+            'unitPrice': line.unitPrice,
+            if (line.stockProductId != null)
+              'stockProductId': line.stockProductId,
+            'debtorName': debtor,
+            'isDebt': true,
+            'deductStationStock': vehicleProductColumnDeductsStationStock(
+              columnPlace,
+              line.columnIndex,
+            ),
+          });
         }
+        await createVehicleSalesBatch(
+          vehicleId: vehicleId,
+          saleDestination: destination,
+          lines: batchLines,
+        );
       } else {
         for (var i = 0; i < state.columnCount; i++) {
           final int q = state.quantities[i];
@@ -547,13 +546,6 @@ final class StationDebtRegistrationCubit extends Cubit<StationDebtRegistrationSt
           submitting: false,
           submitSucceeded: true,
           quantities: List<int>.filled(state.columnCount, 0),
-        ),
-      );
-    } on ApiException catch (e) {
-      emit(
-        state.copyWith(
-          submitting: false,
-          submitError: mapStationDebtApiException(e),
         ),
       );
     } on Object catch (e) {

@@ -30,7 +30,7 @@ final class VehicleLoadSubmitCubit extends Cubit<SubmitState> {
     }
   }
 
-  /// عدة منتجات في نفس التاريخ والمركبة والسائق (طلب API لكل سطر).
+  /// عدة منتجات في نفس التاريخ والمركبة والسائق — طلب Firestore واحد.
   Future<void> submitLines({
     required String vehicleId,
     required String driverId,
@@ -41,16 +41,21 @@ final class VehicleLoadSubmitCubit extends Cubit<SubmitState> {
     try {
       final String batchId =
           'batch_${DateTime.now().millisecondsSinceEpoch}';
-      for (final line in lines) {
-        await _useCase(
-          vehicleId: vehicleId,
-          driverId: driverId,
-          productId: line.productId,
-          quantityLoaded: line.quantityLoaded,
-          loadDate: loadDate,
-          loadBatchId: batchId,
-        );
-      }
+      await _useCase.callBatch(
+        vehicleId: vehicleId,
+        driverId: driverId,
+        loadDate: loadDate,
+        loadBatchId: batchId,
+        lines: lines
+            .map(
+              (({String productId, int quantityLoaded}) line) =>
+                  <String, dynamic>{
+                'productId': line.productId,
+                'quantityLoaded': line.quantityLoaded,
+              },
+            )
+            .toList(growable: false),
+      );
       emit(const SubmitSuccess());
     } on Object catch (e) {
       emit(SubmitFailure(errorMessageFrom(e)));
