@@ -1,5 +1,6 @@
 import 'package:amethyst/core/data/amethyst_api.dart';
 import 'package:amethyst/core/expenses/expense_category_match.dart';
+import 'package:amethyst/core/firebase/firestore_mappers.dart';
 import 'package:amethyst/core/utils/parse_dynamic_double.dart';
 import 'package:amethyst/l10n/app_localizations.dart';
 
@@ -43,6 +44,10 @@ final class ExpenseSummaryTotals {
 DateTime? expenseRowDate(Object? v) {
   if (v == null) {
     return null;
+  }
+  final DateTime? fromTimestamp = timestampToDate(v);
+  if (fromTimestamp != null) {
+    return fromTimestamp;
   }
   if (v is DateTime) {
     return v;

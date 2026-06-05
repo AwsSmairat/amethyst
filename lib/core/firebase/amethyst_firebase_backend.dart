@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math';
 import 'dart:typed_data';
 
@@ -23,8 +24,16 @@ final class AmethystFirebaseBackend {
   final FirebaseAuthService _auth;
   final FirebaseStorageService _storage;
   final FirebaseFirestore _db;
+  Map<String, dynamic>? _dashboardCache;
+  DateTime? _dashboardCachedAt;
+  static const Duration _dashboardCacheTtl = Duration(seconds: 90);
 
   FirebaseAuthService get authService => _auth;
+
+  void clearDashboardCache() {
+    _dashboardCache = null;
+    _dashboardCachedAt = null;
+  }
 
   Future<Map<String, dynamic>> login({
     required String email,
@@ -60,10 +69,13 @@ final class AmethystFirebaseBackend {
     final QuerySnapshot<Map<String, dynamic>> snap = await _db
         .collection(FirestorePaths.products)
         .where('isActive', isEqualTo: true)
-        .orderBy('name')
         .get();
     final List<Map<String, dynamic>> all =
-        snap.docs.map(mapProductDoc).toList(growable: false);
+        snap.docs.map(mapProductDoc).toList(growable: false)
+          ..sort(
+            (Map<String, dynamic> a, Map<String, dynamic> b) => (a['name'] as String? ?? '')
+                .compareTo(b['name'] as String? ?? ''),
+          );
     return _paginate(all, page: page, limit: limit);
   }
 
@@ -1065,9 +1077,23 @@ final class AmethystFirebaseBackend {
     };
   }
 
-  Future<Map<String, dynamic>> getDashboardSuperAdmin() async {
+  Future<Map<String, dynamic>> getDashboardSuperAdmin({
+    void Function(Map<String, dynamic> partial)? onPartial,
+    bool forceRefresh = false,
+  }) async {
     try {
-      return await _getDashboardSuperAdminImpl();
+      if (!forceRefresh &&
+          _dashboardCache != null &&
+          _dashboardCachedAt != null &&
+          DateTime.now().difference(_dashboardCachedAt!) < _dashboardCacheTtl) {
+        return _dashboardCache!;
+      }
+      final Map<String, dynamic> result = await _getDashboardSuperAdminImpl(
+        onPartial: onPartial,
+      );
+      _dashboardCache = result;
+      _dashboardCachedAt = DateTime.now();
+      return result;
     } on FirebaseException catch (e) {
       throw ApiException(
         e.message ?? 'Firestore error',
@@ -1076,52 +1102,43 @@ final class AmethystFirebaseBackend {
     }
   }
 
-  Future<Map<String, dynamic>> _getDashboardSuperAdminImpl() async {
-    await _requireSuperAdmin();
-    final DateTime now = DateTime.now();
-    final ({DateTime start, DateTime end}) day = businessDayRange(now);
-    final ({DateTime start, DateTime end}) month = businessMonthRange(now);
-    final List<QuerySnapshot<Map<String, dynamic>>> roleSnaps =
-        await Future.wait(<Future<QuerySnapshot<Map<String, dynamic>>>>[
-      _db.collection(FirestorePaths.users).where('role', isEqualTo: 'super_admin').get(),
-      _db.collection(FirestorePaths.users).where('role', isEqualTo: 'admin').get(),
-      _db.collection(FirestorePaths.users).where('role', isEqualTo: 'driver').get(),
-    ]);
-    final QuerySnapshot<Map<String, dynamic>> vehicles =
-        await _db.collection(FirestorePaths.vehicles).where('isActive', isEqualTo: true).get();
-    final QuerySnapshot<Map<String, dynamic>> products =
-        await _db.collection(FirestorePaths.products).where('isActive', isEqualTo: true).get();
-    final int superAdmins = roleSnaps[0].docs.length;
-    final int admins = roleSnaps[1].docs.length;
-    final int drivers = roleSnaps[2].docs.length;
-    final int totalUsers = superAdmins + admins + drivers;
-    int priced = 0;
-    for (final QueryDocumentSnapshot<Map<String, dynamic>> p in products.docs) {
-      if (_num(p.data()['price']) > 0) {
-        priced++;
+  ({int superAdmins, int admins, int drivers}) _countUsersByRole(
+    QuerySnapshot<Map<String, dynamic>> users,
+  ) {
+    int superAdmins = 0;
+    int admins = 0;
+    int drivers = 0;
+    for (final QueryDocumentSnapshot<Map<String, dynamic>> doc in users.docs) {
+      switch (doc.data()['role']?.toString()) {
+        case 'super_admin':
+          superAdmins++;
+        case 'admin':
+          admins++;
+        case 'driver':
+          drivers++;
       }
     }
-    final List<double> salesTotals = await Future.wait(<Future<double>>[
-      _sumSales(FirestorePaths.stationSales, day.start, day.end),
-      _sumSales(FirestorePaths.vehicleSales, day.start, day.end),
-      _sumExpenses(day.start, day.end),
-      _sumSales(FirestorePaths.stationSales, month.start, month.end),
-      _sumSales(FirestorePaths.vehicleSales, month.start, month.end),
-      _sumExpenses(month.start, month.end),
-    ]);
-    final double stationToday = salesTotals[0];
-    final double vehicleToday = salesTotals[1];
-    final double expensesToday = salesTotals[2];
-    final double monthlyStation = salesTotals[3];
-    final double monthlyVehicle = salesTotals[4];
-    final double monthlyExpenses = salesTotals[5];
-    final Map<String, dynamic> stock = await _stockSnapshot();
-    final List<Map<String, dynamic>> lowStock = products.docs
-        .map(mapProductDoc)
-        .where((Map<String, dynamic> p) => ((p['stationStock'] as num?)?.toInt() ?? 0) < 50)
-        .take(10)
-        .toList(growable: false);
-    final List<Map<String, dynamic>> debtPreview = await _debtOpenPreview();
+    return (superAdmins: superAdmins, admins: admins, drivers: drivers);
+  }
+
+  Map<String, dynamic> _buildSuperAdminDashboardPayload({
+    required int superAdmins,
+    required int admins,
+    required int drivers,
+    required int vehicleCount,
+    required int productCount,
+    required int priced,
+    required Map<String, dynamic> stock,
+    required List<Map<String, dynamic>> lowStock,
+    required List<Map<String, dynamic>> debtPreview,
+    double stationToday = 0,
+    double vehicleToday = 0,
+    double expensesToday = 0,
+    double monthlyStation = 0,
+    double monthlyVehicle = 0,
+    double monthlyExpenses = 0,
+  }) {
+    final int totalUsers = superAdmins + admins + drivers;
     return <String, dynamic>{
       'role': 'super_admin',
       'metrics': <String, dynamic>{
@@ -1138,8 +1155,8 @@ final class AmethystFirebaseBackend {
           'users': totalUsers,
           'admins': admins,
           'drivers': drivers,
-          'vehicles': vehicles.docs.length,
-          'products': products.docs.length,
+          'vehicles': vehicleCount,
+          'products': productCount,
           'pricedProducts': priced,
         },
         'lowStockProducts': lowStock,
@@ -1150,8 +1167,8 @@ final class AmethystFirebaseBackend {
       'totalUsers': totalUsers,
       'totalAdmins': admins,
       'totalDrivers': drivers,
-      'totalVehicles': vehicles.docs.length,
-      'totalProducts': products.docs.length,
+      'totalVehicles': vehicleCount,
+      'totalProducts': productCount,
       'productsWithPrice': priced,
       'totalSalesToday': stationToday + vehicleToday,
       'stationSalesToday': stationToday,
@@ -1165,6 +1182,97 @@ final class AmethystFirebaseBackend {
       'lowStockProducts': lowStock,
       'stationDebtOpenPreview': debtPreview,
     };
+  }
+
+  Future<Map<String, dynamic>> _getDashboardSuperAdminImpl({
+    void Function(Map<String, dynamic> partial)? onPartial,
+  }) async {
+    await _requireSuperAdmin();
+    final DateTime now = DateTime.now();
+    final ({DateTime start, DateTime end}) day = businessDayRange(now);
+    final ({DateTime start, DateTime end}) month = businessMonthRange(now);
+    final List<QuerySnapshot<Map<String, dynamic>>> coreSnaps =
+        await Future.wait(<Future<QuerySnapshot<Map<String, dynamic>>>>[
+      _db
+          .collection(FirestorePaths.users)
+          .where('role', whereIn: <String>['super_admin', 'admin', 'driver'])
+          .get(),
+      _db.collection(FirestorePaths.vehicles).where('isActive', isEqualTo: true).get(),
+      _db.collection(FirestorePaths.products).where('isActive', isEqualTo: true).get(),
+      _db.collection(FirestorePaths.vehicleLoads).where('status', isEqualTo: 'open').get(),
+      _db
+          .collection(FirestorePaths.stationDebtEntries)
+          .where('repaidAt', isNull: true)
+          .limit(400)
+          .get(),
+    ]);
+    final QuerySnapshot<Map<String, dynamic>> users = coreSnaps[0];
+    final QuerySnapshot<Map<String, dynamic>> vehicles = coreSnaps[1];
+    final QuerySnapshot<Map<String, dynamic>> products = coreSnaps[2];
+    final QuerySnapshot<Map<String, dynamic>> openLoads = coreSnaps[3];
+    final QuerySnapshot<Map<String, dynamic>> debtSnap = coreSnaps[4];
+    final ({int superAdmins, int admins, int drivers}) roleCounts =
+        _countUsersByRole(users);
+    int priced = 0;
+    final Map<String, Map<String, dynamic>> productById =
+        <String, Map<String, dynamic>>{};
+    for (final QueryDocumentSnapshot<Map<String, dynamic>> p in products.docs) {
+      if (_num(p.data()['price']) > 0) {
+        priced++;
+      }
+      productById[p.id] = mapProductDoc(p);
+    }
+    final Map<String, dynamic> stock = _stockSnapshotFromProductsAndLoads(
+      products: products.docs,
+      openLoads: openLoads.docs,
+    );
+    final List<Map<String, dynamic>> lowStock = products.docs
+        .map(mapProductDoc)
+        .where((Map<String, dynamic> p) => ((p['stationStock'] as num?)?.toInt() ?? 0) < 50)
+        .take(10)
+        .toList(growable: false);
+    final List<Map<String, dynamic>> debtPreview = _debtOpenPreviewFromSnap(
+      snap: debtSnap,
+      productById: productById,
+    );
+    onPartial?.call(
+      _buildSuperAdminDashboardPayload(
+        superAdmins: roleCounts.superAdmins,
+        admins: roleCounts.admins,
+        drivers: roleCounts.drivers,
+        vehicleCount: vehicles.docs.length,
+        productCount: products.docs.length,
+        priced: priced,
+        stock: stock,
+        lowStock: lowStock,
+        debtPreview: debtPreview,
+      ),
+    );
+    final List<double> salesTotals = await Future.wait(<Future<double>>[
+      _sumSales(FirestorePaths.stationSales, day.start, day.end),
+      _sumSales(FirestorePaths.vehicleSales, day.start, day.end),
+      _sumExpenses(day.start, day.end),
+      _sumSales(FirestorePaths.stationSales, month.start, month.end),
+      _sumSales(FirestorePaths.vehicleSales, month.start, month.end),
+      _sumExpenses(month.start, month.end),
+    ]);
+    return _buildSuperAdminDashboardPayload(
+      superAdmins: roleCounts.superAdmins,
+      admins: roleCounts.admins,
+      drivers: roleCounts.drivers,
+      vehicleCount: vehicles.docs.length,
+      productCount: products.docs.length,
+      priced: priced,
+      stock: stock,
+      lowStock: lowStock,
+      debtPreview: debtPreview,
+      stationToday: salesTotals[0],
+      vehicleToday: salesTotals[1],
+      expensesToday: salesTotals[2],
+      monthlyStation: salesTotals[3],
+      monthlyVehicle: salesTotals[4],
+      monthlyExpenses: salesTotals[5],
+    );
   }
 
   Future<Map<String, dynamic>> getSuperAdminCartonSummary({
@@ -1527,43 +1635,41 @@ final class AmethystFirebaseBackend {
   }
 
   Future<double> _sumSales(String collection, DateTime start, DateTime end) async {
-    final QuerySnapshot<Map<String, dynamic>> snap = await _db.collection(collection).get();
+    final QuerySnapshot<Map<String, dynamic>> snap = await _db
+        .collection(collection)
+        .where('createdAt', isGreaterThanOrEqualTo: Timestamp.fromDate(start))
+        .where('createdAt', isLessThanOrEqualTo: Timestamp.fromDate(end))
+        .get();
     double total = 0;
     for (final QueryDocumentSnapshot<Map<String, dynamic>> doc in snap.docs) {
-      final DateTime? created = timestampToDate(doc.data()['createdAt']);
-      if (isInRange(created, start, end)) {
-        total += _num(doc.data()['totalAmount']);
-      }
+      total += _num(doc.data()['totalAmount']);
     }
     return total;
   }
 
   Future<double> _sumExpenses(DateTime start, DateTime end) async {
-    final QuerySnapshot<Map<String, dynamic>> snap =
-        await _db.collection(FirestorePaths.expenses).get();
+    final QuerySnapshot<Map<String, dynamic>> snap = await _db
+        .collection(FirestorePaths.expenses)
+        .where('createdAt', isGreaterThanOrEqualTo: Timestamp.fromDate(start))
+        .where('createdAt', isLessThanOrEqualTo: Timestamp.fromDate(end))
+        .get();
     double total = 0;
     for (final QueryDocumentSnapshot<Map<String, dynamic>> doc in snap.docs) {
-      final DateTime? created = timestampToDate(doc.data()['createdAt']);
-      if (isInRange(created, start, end)) {
-        total += _num(doc.data()['amount']);
-      }
+      total += _num(doc.data()['amount']);
     }
     return total;
   }
 
-  Future<Map<String, dynamic>> _stockSnapshot() async {
+  Map<String, dynamic> _stockSnapshotFromProductsAndLoads({
+    required Iterable<QueryDocumentSnapshot<Map<String, dynamic>>> products,
+    required Iterable<QueryDocumentSnapshot<Map<String, dynamic>>> openLoads,
+  }) {
     int stationStock = 0;
-    final QuerySnapshot<Map<String, dynamic>> products =
-        await _db.collection(FirestorePaths.products).get();
-    for (final QueryDocumentSnapshot<Map<String, dynamic>> p in products.docs) {
+    for (final QueryDocumentSnapshot<Map<String, dynamic>> p in products) {
       stationStock += (p.data()['stationStock'] as num?)?.toInt() ?? 0;
     }
-    final QuerySnapshot<Map<String, dynamic>> loads = await _db
-        .collection(FirestorePaths.vehicleLoads)
-        .where('status', isEqualTo: 'open')
-        .get();
     int onVehicles = 0;
-    for (final QueryDocumentSnapshot<Map<String, dynamic>> l in loads.docs) {
+    for (final QueryDocumentSnapshot<Map<String, dynamic>> l in openLoads) {
       final Map<String, dynamic> d = l.data();
       final int rem = ((d['quantityLoaded'] as num?)?.toInt() ?? 0) -
           ((d['quantitySold'] as num?)?.toInt() ?? 0) -
@@ -1578,12 +1684,22 @@ final class AmethystFirebaseBackend {
     };
   }
 
-  Future<List<Map<String, dynamic>>> _debtOpenPreview() async {
-    final QuerySnapshot<Map<String, dynamic>> snap = await _db
-        .collection(FirestorePaths.stationDebtEntries)
-        .where('repaidAt', isNull: true)
-        .limit(400)
-        .get();
+  Future<Map<String, dynamic>> _stockSnapshot() async {
+    final List<QuerySnapshot<Map<String, dynamic>>> snaps =
+        await Future.wait(<Future<QuerySnapshot<Map<String, dynamic>>>>[
+      _db.collection(FirestorePaths.products).get(),
+      _db.collection(FirestorePaths.vehicleLoads).where('status', isEqualTo: 'open').get(),
+    ]);
+    return _stockSnapshotFromProductsAndLoads(
+      products: snaps[0].docs,
+      openLoads: snaps[1].docs,
+    );
+  }
+
+  List<Map<String, dynamic>> _debtOpenPreviewFromSnap({
+    required QuerySnapshot<Map<String, dynamic>> snap,
+    required Map<String, Map<String, dynamic>> productById,
+  }) {
     final Map<String, Map<String, Map<String, dynamic>>> byDebtor =
         <String, Map<String, Map<String, dynamic>>>{};
     for (final QueryDocumentSnapshot<Map<String, dynamic>> doc in snap.docs) {
@@ -1591,7 +1707,7 @@ final class AmethystFirebaseBackend {
       final String dname = e['debtorName'] as String;
       byDebtor.putIfAbsent(dname, () => <String, Map<String, dynamic>>{});
       final String pid = e['productId'] as String;
-      final Map<String, dynamic>? product = await _productById(pid);
+      final Map<String, dynamic>? product = productById[pid];
       final Map<String, Map<String, dynamic>> prodMap = byDebtor[dname]!;
       final Map<String, dynamic>? prev = prodMap[pid];
       final int qty = (e['quantity'] as num?)?.toInt() ?? 0;
@@ -1694,10 +1810,11 @@ final class AmethystFirebaseBackend {
         final QuerySnapshot<Map<String, dynamic>> snap = await _db
             .collection(FirestorePaths.users)
             .where('role', isEqualTo: 'admin')
-            .where('isActive', isEqualTo: true)
             .get();
         for (final QueryDocumentSnapshot<Map<String, dynamic>> doc in snap.docs) {
-          targetUserIds.add(doc.id);
+          if (doc.data()['isActive'] == true) {
+            targetUserIds.add(doc.id);
+          }
         }
       case 'driver':
         final String? id = driverUserId?.trim();
@@ -1722,6 +1839,7 @@ final class AmethystFirebaseBackend {
         'message': text,
         'toUserId': toUserId,
         'fromUserId': actor['id'],
+        'fromUserName': actor['fullName']?.toString() ?? '',
         'createdAt': serverTimestamp(),
         'readAt': null,
       });
@@ -1737,20 +1855,85 @@ final class AmethystFirebaseBackend {
     return created;
   }
 
+  Future<Map<String, dynamic>?> _selectPendingStaffNote(
+    List<QueryDocumentSnapshot<Map<String, dynamic>>> docs,
+  ) async {
+    Map<String, dynamic>? pick;
+    DateTime? pickAt;
+    for (final QueryDocumentSnapshot<Map<String, dynamic>> doc in docs) {
+      final Map<String, dynamic> data = doc.data();
+      if (data['readAt'] != null) {
+        continue;
+      }
+      final DateTime? created = timestampToDate(data['createdAt']);
+      if (pick == null ||
+          (created != null &&
+              (pickAt == null || created.isBefore(pickAt)))) {
+        pick = <String, dynamic>{'id': doc.id, ...data};
+        pickAt = created;
+      }
+    }
+    if (pick == null) {
+      return null;
+    }
+    return _hydrateStaffNote(pick);
+  }
+
+  Future<Map<String, dynamic>> _hydrateStaffNote(
+    Map<String, dynamic> note,
+  ) async {
+    final String? fromUserId = note['fromUserId']?.toString();
+    if (fromUserId != null && fromUserId.isNotEmpty) {
+      try {
+        final DocumentSnapshot<Map<String, dynamic>> fromDoc = await _db
+            .collection(FirestorePaths.users)
+            .doc(fromUserId)
+            .get();
+        if (fromDoc.exists) {
+          final Map<String, dynamic> fromUser = mapUserDoc(fromDoc);
+          note['fromUser'] = fromUser;
+          final String profileName =
+              fromUser['fullName']?.toString().trim() ?? '';
+          if (profileName.isNotEmpty &&
+              (note['fromUserName']?.toString().trim().isEmpty ?? true)) {
+            note['fromUserName'] = profileName;
+          }
+        }
+      } on FirebaseException {
+        // fallback: fromUserName المخزّن مع الملاحظة
+      }
+    }
+    final String cachedName = note['fromUserName']?.toString().trim() ?? '';
+    if (cachedName.isNotEmpty && note['fromUser'] is! Map<String, dynamic>) {
+      note['fromUser'] = <String, dynamic>{'fullName': cachedName};
+    }
+    final DateTime? created = timestampToDate(note['createdAt']);
+    if (created != null) {
+      note['createdAt'] = created;
+    }
+    return note;
+  }
+
   Future<Map<String, dynamic>?> getPendingStaffNoteForMe() async {
     final UserEntity user = await _auth.loadCurrentUser();
     final QuerySnapshot<Map<String, dynamic>> snap = await _db
         .collection(FirestorePaths.staffNotes)
         .where('toUserId', isEqualTo: user.id)
-        .where('readAt', isEqualTo: null)
-        .orderBy('createdAt')
-        .limit(1)
         .get();
-    if (snap.docs.isEmpty) {
-      return null;
-    }
-    final QueryDocumentSnapshot<Map<String, dynamic>> doc = snap.docs.first;
-    return <String, dynamic>{'id': doc.id, ...doc.data()};
+    return _selectPendingStaffNote(snap.docs);
+  }
+
+  Stream<Map<String, dynamic>?> watchPendingStaffNoteForMe() {
+    return Stream.fromFuture(_auth.loadCurrentUser()).asyncExpand(
+      (UserEntity user) => _db
+          .collection(FirestorePaths.staffNotes)
+          .where('toUserId', isEqualTo: user.id)
+          .snapshots()
+          .asyncMap(
+            (QuerySnapshot<Map<String, dynamic>> snap) =>
+                _selectPendingStaffNote(snap.docs),
+          ),
+    );
   }
 
   Future<void> markStaffNoteRead(String noteId) async {

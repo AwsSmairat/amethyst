@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:amethyst/core/data/amethyst_api.dart';
 import 'package:amethyst/core/l10n/context_l10n.dart';
 import 'package:amethyst/core/theme/app_colors.dart';
@@ -19,17 +21,33 @@ class _StaffNoteInboxOverlayState extends State<StaffNoteInboxOverlay>
     with WidgetsBindingObserver {
   Map<String, dynamic>? _pending;
   bool _markingRead = false;
+  StreamSubscription<Map<String, dynamic>?>? _inboxSubscription;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     StaffNoteInboxRefresh.onRefreshRequested = _refresh;
-    WidgetsBinding.instance.addPostFrameCallback((_) => _refresh());
+    _startInboxWatch();
+  }
+
+  void _startInboxWatch() {
+    _inboxSubscription?.cancel();
+    _inboxSubscription =
+        sl<AmethystApi>().watchPendingStaffNoteForMe().listen(
+      (Map<String, dynamic>? note) {
+        if (!mounted) {
+          return;
+        }
+        setState(() => _pending = note);
+      },
+      onError: (_, __) => _refresh(),
+    );
   }
 
   @override
   void dispose() {
+    _inboxSubscription?.cancel();
     if (StaffNoteInboxRefresh.onRefreshRequested == _refresh) {
       StaffNoteInboxRefresh.onRefreshRequested = null;
     }
@@ -163,6 +181,10 @@ class _StaffNoteInboxOverlayState extends State<StaffNoteInboxOverlay>
   }
 
   String _senderName(Map<String, dynamic> note) {
+    final String cached = note['fromUserName']?.toString().trim() ?? '';
+    if (cached.isNotEmpty) {
+      return cached;
+    }
     final Object? from = note['fromUser'];
     if (from is Map<String, dynamic>) {
       final String? n = from['fullName']?.toString().trim();
@@ -170,6 +192,6 @@ class _StaffNoteInboxOverlayState extends State<StaffNoteInboxOverlay>
         return n;
       }
     }
-    return note['fromUserId']?.toString() ?? '—';
+    return 'الإدارة';
   }
 }

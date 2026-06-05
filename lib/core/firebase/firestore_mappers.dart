@@ -83,6 +83,14 @@ Map<String, dynamic> mapExpenseDoc(DocumentSnapshot<Map<String, dynamic>> doc) {
   final Map<String, dynamic> e = Map<String, dynamic>.from(doc.data() ?? <String, dynamic>{});
   e['id'] = doc.id;
   e['amount'] = _num(e['amount']);
+  final DateTime? created = timestampToDate(e['createdAt']);
+  if (created != null) {
+    e['createdAt'] = created;
+  }
+  final DateTime? updated = timestampToDate(e['updatedAt']);
+  if (updated != null) {
+    e['updatedAt'] = updated;
+  }
   return e;
 }
 

@@ -7,17 +7,37 @@ final class SuperAdminDashboardCubit extends Cubit<DashboardLoadState> {
   SuperAdminDashboardCubit(this._api) : super(const DashboardLoadInitial());
 
   final AmethystApi _api;
+  bool _inFlight = false;
+  Map<String, dynamic>? _cached;
 
-  Future<void> load() async {
-    if (isClosed) {
+  /// [showLoading]: false يحدّث البيانات في الخلفية دون إخفاء اللوحة (مهم للويب).
+  Future<void> load({bool showLoading = true, bool forceRefresh = false}) async {
+    if (isClosed || _inFlight) {
       return;
     }
-    emit(const DashboardLoadLoading());
+    _inFlight = true;
+    final bool hasCache = _cached != null;
+    final bool showSpinner = showLoading && !hasCache;
+    if (showSpinner) {
+      emit(const DashboardLoadLoading());
+    } else if (hasCache) {
+      emit(DashboardLoadLoading(previousData: _cached));
+    }
     try {
       final data = await _api
-          .getDashboardSuperAdmin()
+          .getDashboardSuperAdmin(
+            forceRefresh: forceRefresh,
+            onPartial: (Map<String, dynamic> partial) {
+              if (isClosed || hasCache) {
+                return;
+              }
+              _cached = partial;
+              emit(DashboardLoadSuccess(partial));
+            },
+          )
           .timeout(const Duration(seconds: 45));
       if (!isClosed) {
+        _cached = data;
         emit(DashboardLoadSuccess(data));
       }
     } on ApiException catch (e) {
@@ -28,6 +48,14 @@ final class SuperAdminDashboardCubit extends Cubit<DashboardLoadState> {
       if (!isClosed) {
         emit(DashboardLoadFailure(e.toString()));
       }
+    } finally {
+      _inFlight = false;
     }
+  }
+
+  void reset() {
+    _cached = null;
+    _inFlight = false;
+    emit(const DashboardLoadInitial());
   }
 }

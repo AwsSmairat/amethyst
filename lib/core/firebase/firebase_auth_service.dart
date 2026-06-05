@@ -14,6 +14,7 @@ final class FirebaseAuthService {
 
   final FirebaseAuth _auth;
   final FirebaseFirestore _firestore;
+  UserEntity? _cachedUser;
 
   Stream<User?> authStateChanges() => _auth.authStateChanges();
 
@@ -41,15 +42,26 @@ final class FirebaseAuthService {
     }
   }
 
-  Future<UserEntity> loadCurrentUser() async {
+  Future<UserEntity> loadCurrentUser({bool forceRefresh = false}) async {
     final User? user = _auth.currentUser;
     if (user == null) {
+      _cachedUser = null;
       throw ApiException('Not authenticated', code: 'UNAUTHORIZED');
     }
-    return _loadUserProfile(user.uid);
+    if (!forceRefresh &&
+        _cachedUser != null &&
+        _cachedUser!.id == user.uid) {
+      return _cachedUser!;
+    }
+    final UserEntity loaded = await _loadUserProfile(user.uid);
+    _cachedUser = loaded;
+    return loaded;
   }
 
-  Future<void> logout() => _auth.signOut();
+  Future<void> logout() async {
+    _cachedUser = null;
+    await _auth.signOut();
+  }
 
   Future<UserEntity> _loadUserProfile(String uid) async {
     final DocumentSnapshot<Map<String, dynamic>> doc;

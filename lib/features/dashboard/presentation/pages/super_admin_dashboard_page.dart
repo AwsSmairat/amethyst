@@ -1,24 +1,43 @@
 import 'dart:async';
 
-import 'package:amethyst/core/data/amethyst_api.dart';
 import 'package:amethyst/core/catalog/catalog_product_display_label.dart';
 import 'package:amethyst/core/l10n/context_l10n.dart';
 import 'package:amethyst/core/presentation/dashboard_load_state.dart';
 import 'package:amethyst/core/theme/app_colors.dart';
 import 'package:amethyst/di/injection.dart';
 import 'package:amethyst/features/dashboard/presentation/cubit/super_admin_dashboard_cubit.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:amethyst/features/staff_note/presentation/widgets/send_staff_note_sheet.dart';
 import 'package:go_router/go_router.dart';
 
-class SuperAdminDashboardPage extends StatelessWidget {
+class SuperAdminDashboardPage extends StatefulWidget {
   const SuperAdminDashboardPage({super.key});
 
   @override
+  State<SuperAdminDashboardPage> createState() => _SuperAdminDashboardPageState();
+}
+
+class _SuperAdminDashboardPageState extends State<SuperAdminDashboardPage> {
+  late final SuperAdminDashboardCubit _cubit;
+
+  @override
+  void initState() {
+    super.initState();
+    _cubit = sl<SuperAdminDashboardCubit>();
+    final DashboardLoadState current = _cubit.state;
+    if (current is DashboardLoadInitial) {
+      _cubit.load();
+    } else {
+      _cubit.load(showLoading: false);
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return BlocProvider(
-      create: (_) => SuperAdminDashboardCubit(sl<AmethystApi>())..load(),
+    return BlocProvider<SuperAdminDashboardCubit>.value(
+      value: _cubit,
       child: const _SuperAdminDashboardBody(),
     );
   }
@@ -36,6 +55,7 @@ class _SuperAdminDashboardBodyState extends State<_SuperAdminDashboardBody>
     with WidgetsBindingObserver {
   Timer? _nextMidnightTimer;
   Timer? _nextMonthTimer;
+  bool _ignoreNextWebResume = kIsWeb;
 
   @override
   void initState() {
@@ -62,7 +82,7 @@ class _SuperAdminDashboardBodyState extends State<_SuperAdminDashboardBody>
         DateTime(now.year, now.month, now.day).add(const Duration(days: 1));
     _nextMidnightTimer = Timer(nextMidnight.difference(now), () {
       if (!mounted) return;
-      context.read<SuperAdminDashboardCubit>().load();
+      context.read<SuperAdminDashboardCubit>().load(showLoading: false);
       _scheduleNextMidnightRefresh();
     });
   }
@@ -76,23 +96,34 @@ class _SuperAdminDashboardBodyState extends State<_SuperAdminDashboardBody>
         : DateTime(now.year, now.month + 1, 1);
     _nextMonthTimer = Timer(nextMonthStart.difference(now), () {
       if (!mounted) return;
-      context.read<SuperAdminDashboardCubit>().load();
+      context.read<SuperAdminDashboardCubit>().load(showLoading: false);
       _scheduleNextMonthRefresh();
     });
   }
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.resumed && mounted) {
-      context.read<SuperAdminDashboardCubit>().load();
+    if (state != AppLifecycleState.resumed || !mounted) {
+      return;
     }
+    if (kIsWeb) {
+      if (_ignoreNextWebResume) {
+        _ignoreNextWebResume = false;
+        return;
+      }
+      return;
+    }
+    context.read<SuperAdminDashboardCubit>().load(showLoading: false);
   }
 
   @override
   Widget build(BuildContext context) {
     return BlocBuilder<SuperAdminDashboardCubit, DashboardLoadState>(
       builder: (context, state) {
-        if (state is DashboardLoadLoading || state is DashboardLoadInitial) {
+        if (state is DashboardLoadInitial) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        if (state is DashboardLoadLoading && state.previousData == null) {
           return const Center(child: CircularProgressIndicator());
         }
         if (state is DashboardLoadFailure) {
@@ -111,7 +142,9 @@ class _SuperAdminDashboardBodyState extends State<_SuperAdminDashboardBody>
             ),
           );
         }
-        final d = (state as DashboardLoadSuccess).data;
+        final Map<String, dynamic> d = state is DashboardLoadSuccess
+            ? state.data
+            : (state as DashboardLoadLoading).previousData!;
         final salesToday = _dashboardKpiNum(d['totalSalesToday']);
         final profit = _dashboardKpiNum(d['totalProfitToday']);
         final expenses = _dashboardKpiNum(d['totalExpensesToday']);
@@ -122,7 +155,8 @@ class _SuperAdminDashboardBodyState extends State<_SuperAdminDashboardBody>
             _parseStationDebtOpenPreview(d['stationDebtOpenPreview']);
         final l10n = context.l10n;
         return RefreshIndicator(
-          onRefresh: () => context.read<SuperAdminDashboardCubit>().load(),
+          onRefresh: () =>
+              context.read<SuperAdminDashboardCubit>().load(showLoading: false),
           child: ListView(
             padding: const EdgeInsets.all(20),
             children: <Widget>[

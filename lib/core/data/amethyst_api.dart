@@ -59,8 +59,17 @@ final class AmethystApi {
 
   Future<Map<String, dynamic>> me() => _b.me();
 
-  Future<Map<String, dynamic>> getDashboardSuperAdmin() async {
-    final map = await _b.getDashboardSuperAdmin();
+  Future<Map<String, dynamic>> getDashboardSuperAdmin({
+    void Function(Map<String, dynamic> partial)? onPartial,
+    bool forceRefresh = false,
+  }) async {
+    final map = await _b.getDashboardSuperAdmin(
+      onPartial: onPartial == null
+          ? null
+          : (Map<String, dynamic> partial) =>
+              onPartial(flattenSuperAdminDashboard(partial)),
+      forceRefresh: forceRefresh,
+    );
     return flattenSuperAdminDashboard(map);
   }
 
@@ -344,6 +353,9 @@ final class AmethystApi {
 
   Future<Map<String, dynamic>?> getPendingStaffNoteForMe() =>
       _b.getPendingStaffNoteForMe();
+
+  Stream<Map<String, dynamic>?> watchPendingStaffNoteForMe() =>
+      _b.watchPendingStaffNoteForMe();
 
   Future<void> markStaffNoteRead(String noteId) => _b.markStaffNoteRead(noteId);
 }

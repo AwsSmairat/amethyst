@@ -16,6 +16,7 @@ import 'package:amethyst/features/record_operations/domain/usecases/record_opera
 import 'package:amethyst/features/user_dashboard/data/repositories/user_dashboard_repository_impl.dart';
 import 'package:amethyst/features/user_dashboard/domain/repositories/user_dashboard_repository.dart';
 import 'package:amethyst/features/user_dashboard/domain/usecases/get_driver_dashboard_usecase.dart';
+import 'package:amethyst/features/dashboard/presentation/cubit/super_admin_dashboard_cubit.dart';
 import 'package:amethyst/features/user_dashboard/presentation/cubit/user_dashboard_cubit.dart';
 import 'package:get_it/get_it.dart';
 
@@ -108,5 +109,9 @@ void setupDependencies() {
 
   sl.registerFactory<UserDashboardCubit>(
     () => UserDashboardCubit(getDashboard: sl<GetDriverDashboardUseCase>()),
+  );
+
+  sl.registerLazySingleton<SuperAdminDashboardCubit>(
+    () => SuperAdminDashboardCubit(sl<AmethystApi>()),
   );
 }

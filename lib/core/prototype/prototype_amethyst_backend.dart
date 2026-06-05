@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:typed_data';
 
 import 'package:amethyst/core/network/api_exception.dart';
@@ -499,6 +500,14 @@ final class PrototypeAmethystBackend {
       return null;
     }
     return PrototypeSampleData.firstUnreadStaffNoteForUser(userId);
+  }
+
+  Stream<Map<String, dynamic>?> watchPendingStaffNoteForMe() async* {
+    while (PrototypeSession.isSignedIn) {
+      yield await getPendingStaffNoteForMe();
+      await Future<void>.delayed(const Duration(seconds: 2));
+    }
+    yield null;
   }
 
   Future<void> markStaffNoteRead(String noteId) async {

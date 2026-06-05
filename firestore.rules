@@ -35,10 +35,12 @@ service cloud.firestore {
     }
 
     match /users/{userId} {
-      allow get: if isSignedIn() && (
+      // السماح بقراءة أسماء السوبر أدمن/الأدمن (مثلاً عند عرض ملاحظة واردة).
+      allow get: if isActiveUser() && (
         request.auth.uid == userId
-        || (isActiveUser() && isSuperAdmin())
-        || (isActiveUser() && isAdmin() && resource.data.role in ['admin', 'driver'])
+        || isSuperAdmin()
+        || (isAdmin() && resource.data.role in ['admin', 'driver'])
+        || resource.data.role in ['super_admin', 'admin']
       );
       allow list: if isActiveUser() && (isSuperAdmin() || isAdmin());
       allow create, update, delete: if false;

@@ -12,7 +12,13 @@ final class DashboardLoadInitial extends DashboardLoadState {
 }
 
 final class DashboardLoadLoading extends DashboardLoadState {
-  const DashboardLoadLoading();
+  const DashboardLoadLoading({this.previousData});
+
+  /// آخر بيانات ناجحة — تُعرض أثناء التحديث دون إخفاء اللوحة.
+  final Map<String, dynamic>? previousData;
+
+  @override
+  List<Object?> get props => <Object?>[previousData];
 }
 
 final class DashboardLoadSuccess extends DashboardLoadState {

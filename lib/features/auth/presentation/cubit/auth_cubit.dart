@@ -1,5 +1,8 @@
+import 'package:amethyst/core/firebase/amethyst_firebase_backend.dart';
 import 'package:amethyst/core/firebase/firebase_auth_service.dart';
 import 'package:amethyst/core/network/api_exception.dart';
+import 'package:amethyst/di/injection.dart';
+import 'package:amethyst/features/dashboard/presentation/cubit/super_admin_dashboard_cubit.dart';
 import 'package:amethyst/features/auth/domain/usecases/load_session_usecase.dart';
 import 'package:amethyst/features/auth/domain/usecases/login_usecase.dart';
 import 'package:amethyst/features/auth/domain/usecases/logout_usecase.dart';
@@ -34,6 +37,8 @@ final class AuthCubit extends Cubit<AuthState> {
       emit(AuthAuthenticated(user));
     } on Object {
       await _logoutUseCase();
+      sl<AmethystFirebaseBackend>().clearDashboardCache();
+      sl<SuperAdminDashboardCubit>().reset();
       emit(const AuthUnauthenticated());
     }
   }
@@ -55,6 +60,8 @@ final class AuthCubit extends Cubit<AuthState> {
 
   Future<void> logout() async {
     await _logoutUseCase();
+    sl<AmethystFirebaseBackend>().clearDashboardCache();
+    sl<SuperAdminDashboardCubit>().reset();
     emit(const AuthUnauthenticated());
   }
 
