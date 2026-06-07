@@ -29,6 +29,7 @@ const List<String> kStationExpenseCategoryKeys = <String>[
   'stationSalt',
   'stationShrinkWrap',
   'stationFilters',
+  'stationExtra',
 ];
 
 const Set<String> kExpenseReportCategoryKeys = <String>{
@@ -100,6 +101,8 @@ bool expenseNoteMatchesCategory(
       return prefix(l10n.expenseStationShrinkWrap);
     case 'stationFilters':
       return prefix(l10n.expenseStationFilters);
+    case 'stationExtra':
+      return prefix(l10n.expenseStationExtra);
     default:
       return false;
   }
@@ -144,9 +147,30 @@ String expenseCategoryArabicTitle(String categoryKey, AppLocalizations l10n) {
       return l10n.expenseStationShrinkWrap;
     case 'stationFilters':
       return l10n.expenseStationFilters;
+    case 'stationExtra':
+      return l10n.expenseStationExtra;
     default:
       return l10n.notFound;
   }
+}
+
+/// نص الملاحظة التفصيلي لمصاريف الزيادة (الجزء بعد عنوان التصنيف).
+String stationExtraExpenseDetailNote(String note, AppLocalizations l10n) {
+  final String n = note.trim();
+  if (n.isEmpty) {
+    return '';
+  }
+  final String title = l10n.expenseStationExtra;
+  for (final String sep in <String>[' — ', ': ', ' - ']) {
+    final String prefix = '$title$sep';
+    if (n.startsWith(prefix)) {
+      return n.substring(prefix.length).trim();
+    }
+  }
+  if (n == title) {
+    return '';
+  }
+  return n;
 }
 
 /// ملاحظة مصروف للعرض — يُحوّل البادئات التقنية والتصنيفات إلى عربي.
@@ -157,6 +181,9 @@ String expenseNoteArabicDisplayLabel(String note, AppLocalizations l10n) {
   }
   for (final String key in kExpenseReportCategoryKeys) {
     if (expenseNoteMatchesCategory(n, key, l10n)) {
+      if (key == 'stationExtra') {
+        return n;
+      }
       return expenseCategoryArabicTitle(key, l10n);
     }
   }

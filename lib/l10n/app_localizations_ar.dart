@@ -1045,6 +1045,16 @@ class AppLocalizationsAr extends AppLocalizations {
   String get expenseStationFilters => 'ثمن فلاتر';
 
   @override
+  String get expenseStationExtra => 'مصاريف زيادة';
+
+  @override
+  String get expenseStationExtraNoteHint => 'اكتب وصف المصروف';
+
+  @override
+  String get stationExpenseExtraNeedNote =>
+      'أدخل ملاحظة مع مبلغ مصاريف الزيادة';
+
+  @override
   String get stationExpenseNeedOneAmount => 'أدخل مبلغاً في حقل واحد على الأقل';
 
   @override

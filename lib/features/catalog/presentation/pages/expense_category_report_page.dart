@@ -200,16 +200,39 @@ class _ExpenseCategoryReportPageState extends State<ExpenseCategoryReportPage> {
               final amount = _parseAmount(m['amount']);
               final driver = m['driver'] as Map<String, dynamic>?;
               final driverName = driver?['fullName']?.toString().trim();
-              final subtitle = driverName != null && driverName.isNotEmpty
+              final String source = driverName != null && driverName.isNotEmpty
                   ? driverName
                   : l10n.expenseReportStationSource;
+              final String rawNote = m['note']?.toString() ?? '';
+              final bool isStationExtra = widget.categoryKey == 'stationExtra';
+              final String detailNote = isStationExtra
+                  ? stationExtraExpenseDetailNote(rawNote, l10n)
+                  : '';
+
+              if (isStationExtra && detailNote.isNotEmpty) {
+                return ListTile(
+                  title: Text(
+                    detailNote,
+                    style: const TextStyle(fontWeight: FontWeight.w800),
+                  ),
+                  subtitle: Text('$dateLine · $source'),
+                  trailing: Text(
+                    l10n.amountDinars(_formatMoney(amount)),
+                    style: TextStyle(
+                      fontWeight: FontWeight.w700,
+                      color: Theme.of(context).colorScheme.primary,
+                    ),
+                  ),
+                  isThreeLine: true,
+                );
+              }
 
               return ListTile(
                 title: Text(
                   dateLine,
                   style: const TextStyle(fontWeight: FontWeight.w600),
                 ),
-                subtitle: Text(subtitle),
+                subtitle: Text(source),
                 trailing: Text(
                   l10n.amountDinars(_formatMoney(amount)),
                   style: TextStyle(

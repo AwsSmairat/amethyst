@@ -128,6 +128,8 @@ class _StationExpenseBody extends StatefulWidget {
 class _StationExpenseBodyState extends State<_StationExpenseBody> {
   late final List<_StationFieldSpec> _specs;
   late final List<TextEditingController> _controllers;
+  late final TextEditingController _extraAmountController;
+  late final TextEditingController _extraNoteController;
   bool _busy = false;
 
   @override
@@ -138,6 +140,8 @@ class _StationExpenseBodyState extends State<_StationExpenseBody> {
       _specs.length,
       (_) => TextEditingController(),
     );
+    _extraAmountController = TextEditingController();
+    _extraNoteController = TextEditingController();
   }
 
   @override
@@ -145,6 +149,8 @@ class _StationExpenseBodyState extends State<_StationExpenseBody> {
     for (final TextEditingController c in _controllers) {
       c.dispose();
     }
+    _extraAmountController.dispose();
+    _extraNoteController.dispose();
     super.dispose();
   }
 
@@ -168,6 +174,21 @@ class _StationExpenseBodyState extends State<_StationExpenseBody> {
         }
         entries.add((note: note, amount: amt));
       }
+    }
+
+    final double? extraAmount = parsePositive(_extraAmountController.text);
+    final String extraNote = _extraNoteController.text.trim();
+    if (extraAmount != null) {
+      if (extraNote.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(l10n.stationExpenseExtraNeedNote)),
+        );
+        return;
+      }
+      entries.add((
+        note: '${l10n.expenseStationExtra} — $extraNote',
+        amount: extraAmount,
+      ));
     }
 
     if (entries.isEmpty) {
@@ -240,6 +261,37 @@ class _StationExpenseBodyState extends State<_StationExpenseBody> {
                 ),
               ),
             ],
+            const SizedBox(height: 20),
+            Divider(color: Theme.of(context).colorScheme.outlineVariant),
+            const SizedBox(height: 12),
+            Text(
+              l10n.expenseStationExtra,
+              style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                    fontWeight: FontWeight.w800,
+                    color: Theme.of(context).colorScheme.primary,
+                  ),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: _extraAmountController,
+              keyboardType:
+                  const TextInputType.numberWithOptions(decimal: true),
+              decoration: InputDecoration(
+                labelText: l10n.amount,
+                prefixIcon: const Icon(Icons.add_circle_outline),
+              ),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: _extraNoteController,
+              maxLines: 2,
+              textInputAction: TextInputAction.done,
+              decoration: InputDecoration(
+                labelText: l10n.expenseStationExtraNoteHint,
+                prefixIcon: const Icon(Icons.notes_outlined),
+                alignLabelWithHint: true,
+              ),
+            ),
             const SizedBox(height: 20),
             FilledButton(
               onPressed: _busy ? null : _submit,

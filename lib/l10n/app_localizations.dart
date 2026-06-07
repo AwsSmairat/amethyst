@@ -2020,6 +2020,24 @@ abstract class AppLocalizations {
   /// **'ثمن فلاتر'**
   String get expenseStationFilters;
 
+  /// No description provided for @expenseStationExtra.
+  ///
+  /// In ar, this message translates to:
+  /// **'مصاريف زيادة'**
+  String get expenseStationExtra;
+
+  /// No description provided for @expenseStationExtraNoteHint.
+  ///
+  /// In ar, this message translates to:
+  /// **'اكتب وصف المصروف'**
+  String get expenseStationExtraNoteHint;
+
+  /// No description provided for @stationExpenseExtraNeedNote.
+  ///
+  /// In ar, this message translates to:
+  /// **'أدخل ملاحظة مع مبلغ مصاريف الزيادة'**
+  String get stationExpenseExtraNeedNote;
+
   /// No description provided for @stationExpenseNeedOneAmount.
   ///
   /// In ar, this message translates to:
