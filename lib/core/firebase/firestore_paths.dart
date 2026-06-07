@@ -10,4 +10,6 @@ abstract final class FirestorePaths {
   static const String stockMovements = 'stock_movements';
   static const String auditLogs = 'audit_logs';
   static const String staffNotes = 'staff_notes';
+  static const String stationCashBalance = 'station_cash_balance';
+  static const String stationCashEntries = 'station_cash_entries';
 }

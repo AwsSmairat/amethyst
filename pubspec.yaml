@@ -54,6 +54,8 @@ dependencies:
   share_plus: ^10.1.4
   printing: ^5.14.3
   pdf: ^3.12.0
+  print_bluetooth_thermal: ^1.2.1
+  esc_pos_utils_plus: ^2.0.4
 
 dev_dependencies:
   flutter_test:

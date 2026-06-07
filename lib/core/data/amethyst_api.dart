@@ -395,6 +395,21 @@ final class AmethystApi {
       _b.watchPendingStaffNoteForMe();
 
   Future<void> markStaffNoteRead(String noteId) => _b.markStaffNoteRead(noteId);
+
+  Future<Map<String, dynamic>> getStationCashBalance() =>
+      _b.getStationCashBalance();
+
+  Future<Map<String, dynamic>> listStationCashEntries({
+    int page = 1,
+    int limit = 50,
+  }) =>
+      _b.listStationCashEntries(page: page, limit: limit);
+
+  Future<Map<String, dynamic>> setStationCashBalance({
+    required double amount,
+    String? note,
+  }) =>
+      _b.setStationCashBalance(amount: amount, note: note);
 }
 
 extension AmethystApiErrors on AmethystApi {

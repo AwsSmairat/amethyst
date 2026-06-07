@@ -818,6 +818,57 @@ class AppLocalizationsAr extends AppLocalizations {
   String get stationExpenses => 'مصاريف المحطة';
 
   @override
+  String get stationAvailableBalanceTitle => 'الرصيد المتوفر في المحطة';
+
+  @override
+  String get openStationCashBalance => 'عرض رصيد الأموال';
+
+  @override
+  String get stationCashBalanceTitle => 'رصيد الأموال';
+
+  @override
+  String get stationCashBalancePageHint =>
+      'رصيد نقدي منفصل عن رصيد البنود. سجّل المبلغ المتوفّر في المحطة.';
+
+  @override
+  String get registerStationCashBalance => 'تسجيل الرصيد';
+
+  @override
+  String get addStationCashBalance => 'تسجيل رصيد الأموال';
+
+  @override
+  String get stationCashBalanceDashboardSubtitle =>
+      'الرصيد النقدي المتوفّر في المحطة';
+
+  @override
+  String get stationCashBalanceYesterdayLabel => 'رصيد الأمس';
+
+  @override
+  String get stationCashBalanceNewAmountLabel => 'المبلغ';
+
+  @override
+  String get stationCashBalanceTodayLabel => 'رصيد اليوم';
+
+  @override
+  String get stationCashBalanceRegisterHint =>
+      'المبلغ يُسجَّل كرصيد اليوم. الرصيد الحالي ينتقل إلى يوم أمس.';
+
+  @override
+  String get stationCashBalanceSaved => 'تم حفظ رصيد الأموال';
+
+  @override
+  String get stationCashBalanceInvalidTodayAmount =>
+      'أدخل رصيد اليوم بشكل صحيح';
+
+  @override
+  String get stationCashBalanceHistoryTitle => 'سجل التسجيلات';
+
+  @override
+  String stationCashBalanceEntryLine(String previous, String when) {
+    return 'كان $previous · $when';
+  }
+
+  @override
   String get stationBalanceTitle => 'رصيد المحطة';
 
   @override
@@ -1116,6 +1167,9 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get addSale => 'إضافة بيع';
+
+  @override
+  String get addSaleAndPrintInvoice => 'إضافة بيع وطباعة فاتورة';
 
   @override
   String qtyAmountSubtitle(String qty, String amount) {
@@ -1565,4 +1619,267 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get couponButton => 'كوبون';
+
+  @override
+  String get printerSettingsTitle => 'إعدادات الطابعة';
+
+  @override
+  String get printerStatusTitle => 'حالة الطابعة';
+
+  @override
+  String get printerStatusConnected => 'متصل';
+
+  @override
+  String get printerStatusConnecting => 'جاري الاتصال';
+
+  @override
+  String get printerStatusDisconnected => 'غير متصل';
+
+  @override
+  String get printerStatusError => 'خطأ';
+
+  @override
+  String get printerNoPrinterSelected => 'لم يتم اختيار طابعة';
+
+  @override
+  String get printerDisconnect => 'قطع الاتصال';
+
+  @override
+  String get printerTestPrint => 'طباعة تجريبية';
+
+  @override
+  String get printerRegisterSaleAndPrint => 'تسجيل بيع وطباعة';
+
+  @override
+  String get printerTestMessage => 'اختبار طباعة أماتيست';
+
+  @override
+  String get printerPairedDevicesTitle => 'الطابعات المقترنة';
+
+  @override
+  String get printerNoDevicesFound =>
+      'لا توجد طابعات مقترنة. اقترن بالطابعة من إعدادات البلوتوث ثم حدّث القائمة.';
+
+  @override
+  String get printerConnected => 'تم الاتصال بالطابعة';
+
+  @override
+  String get printerPrintSuccess => 'تمت الطباعة بنجاح';
+
+  @override
+  String get printerPromptTitle => 'طباعة الإيصال';
+
+  @override
+  String get printerPromptSubtitle =>
+      'هل تريد طباعة إيصال على الطابعة الحرارية؟';
+
+  @override
+  String get printerPrintReceipt => 'طباعة الإيصال';
+
+  @override
+  String get printerSkip => 'تخطي';
+
+  @override
+  String get printerOpenSettings => 'إعدادات الطابعة';
+
+  @override
+  String get printerSaleInvoiceTitle => 'فاتورة بيع رسمية';
+
+  @override
+  String get printerDailySummaryTitle => 'ملخص مبيعات اليوم';
+
+  @override
+  String get printerInventoryReportTitle => 'تقرير جرد المركبة';
+
+  @override
+  String get printerPaymentCash => 'نقدي';
+
+  @override
+  String get printerPrintDailySummary => 'طباعة ملخص اليوم';
+
+  @override
+  String get printerPrintInventoryReport => 'طباعة تقرير الجرد';
+
+  @override
+  String get printerReceiptPreviewTitle => 'معاينة نمط الفاتورة';
+
+  @override
+  String get printerReceiptPreviewHint =>
+      'معاينة تقريبية لشكل الإيصال على ورق ٥٨مم (الطباعة الفعلية من الموبايل فقط).';
+
+  @override
+  String get printerPreviewSaleTab => 'فاتورة بيع';
+
+  @override
+  String get printerPreviewSummaryTab => 'ملخص يومي';
+
+  @override
+  String get printerPreviewInventoryTab => 'تقرير جرد';
+
+  @override
+  String get printerPreviewSampleDriver => 'محمد السائق';
+
+  @override
+  String get printerPreviewSampleVehicle => '١٢٣٤';
+
+  @override
+  String get receiptStyleSettingsTitle => 'تخصيص نمط الطباعة';
+
+  @override
+  String get receiptStyleSettingsHint =>
+      'عدّل عناوين الفاتورة والأعمدة والتذييل لهذا النمط.';
+
+  @override
+  String get receiptStyleDriverOnlyHint =>
+      'ثلاثة أنماط طباعة للسائق — اختر نمطاً للتعديل ثم فعّله للطباعة.';
+
+  @override
+  String get receiptStylePattern1 => 'النمط ١';
+
+  @override
+  String get receiptStylePattern2 => 'النمط ٢';
+
+  @override
+  String get receiptStylePattern3 => 'النمط ٣';
+
+  @override
+  String get receiptStyleDisplayName => 'اسم النمط';
+
+  @override
+  String get receiptStyleActivePattern => 'هذا النمط مفعّل للطباعة';
+
+  @override
+  String get receiptStyleInactivePattern => 'هذا النمط غير مفعّل';
+
+  @override
+  String get receiptStyleUseForPrint => 'تفعيل للطباعة';
+
+  @override
+  String get receiptStyleActivated => 'تم تفعيل النمط للطباعة';
+
+  @override
+  String get receiptStyleResetPatternButton => 'إعادة هذا النمط للافتراضي';
+
+  @override
+  String get receiptStyleSectionHeader => 'العناوين';
+
+  @override
+  String get receiptStyleSectionColumns => 'أعمدة الجدول';
+
+  @override
+  String get receiptStyleSectionFooter => 'التذييل والخيارات';
+
+  @override
+  String get receiptStyleCompanyTitle => 'اسم الشركة على الفاتورة';
+
+  @override
+  String get receiptStyleCompanyTitleHint =>
+      'اتركه فارغاً لاستخدام اسم التطبيق';
+
+  @override
+  String get receiptStyleSaleTitle => 'عنوان فاتورة البيع';
+
+  @override
+  String get receiptStyleSummaryTitle => 'عنوان الملخص اليومي';
+
+  @override
+  String get receiptStyleInventoryTitle => 'عنوان تقرير الجرد';
+
+  @override
+  String get receiptStyleColItem => 'عمود الصنف';
+
+  @override
+  String get receiptStyleColQty => 'عمود الكمية';
+
+  @override
+  String get receiptStyleColPrice => 'عمود السعر';
+
+  @override
+  String get receiptStyleColTotal => 'عمود الإجمالي';
+
+  @override
+  String get receiptStyleRemainingTitle => 'عنوان المخزون المتبقي';
+
+  @override
+  String get receiptStyleSignatureLabel => 'سطر توقيع المستلم';
+
+  @override
+  String get receiptStyleStampLabel => 'سطر ختم المحطة';
+
+  @override
+  String get receiptStyleFooterNote => 'ملاحظة إضافية في التذييل';
+
+  @override
+  String get receiptStyleFooterNoteHint =>
+      'اختياري — مثال: شكراً لتعاملكم معنا';
+
+  @override
+  String get receiptStyleShowRemaining => 'إظهار المخزون المتبقي';
+
+  @override
+  String get receiptStyleShowSignature => 'إظهار توقيع المستلم';
+
+  @override
+  String get receiptStyleShowStamp => 'إظهار ختم المحطة';
+
+  @override
+  String get receiptStyleAutoCut => 'قص الورق تلقائياً بعد الطباعة';
+
+  @override
+  String get receiptStyleSave => 'حفظ نمط الطباعة';
+
+  @override
+  String get receiptStyleSaved => 'تم حفظ نمط الطباعة';
+
+  @override
+  String get receiptStyleResetButton => 'إعادة الإعدادات الافتراضية';
+
+  @override
+  String get receiptStyleReset => 'تمت إعادة نمط الطباعة للوضع الافتراضي';
+
+  @override
+  String get adminDailyReportCardTitle => 'تقرير يوم المحطة';
+
+  @override
+  String get adminDailyReportCardSubtitle =>
+      'طباعة رصيد المحطة، المخزون المتبقي، ومبيعات المحطة والمركبات لليوم.';
+
+  @override
+  String get adminDailyReportPrintButton => 'طباعة تقرير اليوم';
+
+  @override
+  String get adminDailyReportTitle => 'تقرير يوم المحطة';
+
+  @override
+  String get adminDailyReportPrintFailed => 'تعذّر تحضير تقرير اليوم للطباعة';
+
+  @override
+  String get adminDailyReportCashSection => 'رصيد الأموال';
+
+  @override
+  String get adminDailyReportBalanceSection => 'رصيد المحطة والمخزون';
+
+  @override
+  String get adminDailyReportBalanceTotalUnits => 'إجمالي وحدات رصيد المحطة';
+
+  @override
+  String get adminDailyReportRemainingStationStock => 'مخزون متبقي في المحطة';
+
+  @override
+  String get adminDailyReportRemainingOnVehicles => 'مخزون متبقي على المركبات';
+
+  @override
+  String get adminDailyReportSalesSummarySection => 'ملخص مبيعات اليوم';
+
+  @override
+  String get adminDailyReportTotalSalesToday => 'إجمالي المبيعات اليوم';
+
+  @override
+  String get adminDailyReportStationSalesSection => 'مبيعات المحطة اليوم';
+
+  @override
+  String get adminDailyReportVehicleSalesSection => 'مبيعات المركبات اليوم';
+
+  @override
+  String get adminVehicleSalesLabel => 'مبيعات المركبات';
 }

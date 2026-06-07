@@ -1,15 +1,35 @@
 import 'package:amethyst/core/l10n/context_l10n.dart';
 import 'package:amethyst/core/theme/app_colors.dart';
 import 'package:amethyst/features/admin/presentation/widgets/add_station_expense_sheet.dart';
+import 'package:amethyst/features/station_cash/presentation/widgets/station_cash_balance_dashboard_card.dart';
 import 'package:amethyst/features/admin/presentation/widgets/station_balance_dashboard_card.dart';
 import 'package:amethyst/features/admin/presentation/station_debt/station_debt_registration_nav.dart';
 import 'package:amethyst/features/admin/presentation/widgets/add_station_sale_sheet.dart';
 import 'package:amethyst/features/admin/presentation/widgets/add_vehicle_load_sheet.dart';
+import 'package:amethyst/features/dashboard/presentation/utils/admin_daily_report_print.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
-class AdminDashboardPage extends StatelessWidget {
+class AdminDashboardPage extends StatefulWidget {
   const AdminDashboardPage({super.key});
+
+  @override
+  State<AdminDashboardPage> createState() => _AdminDashboardPageState();
+}
+
+class _AdminDashboardPageState extends State<AdminDashboardPage> {
+  bool _printingReport = false;
+
+  Future<void> _printDailyReport() async {
+    setState(() => _printingReport = true);
+    try {
+      await printAdminDailyReport(context);
+    } finally {
+      if (mounted) {
+        setState(() => _printingReport = false);
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -24,6 +44,54 @@ class AdminDashboardPage extends StatelessWidget {
             style: theme.textTheme.headlineSmall?.copyWith(
               fontWeight: FontWeight.w800,
               color: AppColors.primaryText,
+            ),
+          ),
+          const SizedBox(height: 12),
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: <Widget>[
+                  Row(
+                    children: <Widget>[
+                      Icon(
+                        Icons.print_outlined,
+                        color: AppColors.brandPrimary,
+                        size: 28,
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          l10n.adminDailyReportCardTitle,
+                          style: theme.textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    l10n.adminDailyReportCardSubtitle,
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: AppColors.onSurfaceVariant,
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  FilledButton.icon(
+                    onPressed: _printingReport ? null : _printDailyReport,
+                    icon: _printingReport
+                        ? const SizedBox(
+                            width: 18,
+                            height: 18,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Icon(Icons.receipt_long_outlined),
+                    label: Text(l10n.adminDailyReportPrintButton),
+                  ),
+                ],
+              ),
             ),
           ),
           const SizedBox(height: 16),
@@ -224,6 +292,8 @@ class AdminDashboardPage extends StatelessWidget {
           ),
           const SizedBox(height: 16),
           const StationBalanceDashboardCard(),
+          const SizedBox(height: 16),
+          const StationCashBalanceDashboardCard(),
         ],
       ),
     );

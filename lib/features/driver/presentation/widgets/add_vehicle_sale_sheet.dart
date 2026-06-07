@@ -10,6 +10,14 @@ import 'package:amethyst/core/vehicle_load/vehicle_load_catalog.dart';
 import 'package:amethyst/core/theme/app_colors.dart';
 import 'package:amethyst/di/injection.dart';
 import 'package:amethyst/features/record_operations/domain/usecases/record_operation_usecases.dart';
+import 'package:amethyst/core/printer/printer_exception.dart';
+import 'package:amethyst/core/printer/printer_service.dart';
+import 'package:amethyst/core/printer/receipt_builder.dart';
+import 'package:amethyst/core/printer/receipt_models.dart';
+import 'package:amethyst/features/auth/presentation/cubit/auth_cubit.dart';
+import 'package:amethyst/features/auth/presentation/cubit/auth_state.dart';
+import 'package:amethyst/features/driver/presentation/widgets/driver_receipt_factory.dart';
+import 'package:amethyst/features/driver/presentation/widgets/print_receipt_prompt_sheet.dart';
 import 'package:amethyst/features/record_operations/presentation/cubit/submit_state.dart';
 import 'package:amethyst/features/record_operations/presentation/cubit/vehicle_sale_submit_cubit.dart';
 import 'package:flutter/material.dart';
@@ -20,8 +28,8 @@ enum VehicleSalePlace {
   store,
 }
 
-Future<void> showAddVehicleSaleSheet(BuildContext context) {
-  return showModalBottomSheet<void>(
+Future<SaleReceiptData?> showAddVehicleSaleSheet(BuildContext context) async {
+  final SaleReceiptData? receipt = await showModalBottomSheet<SaleReceiptData?>(
     context: context,
     isScrollControlled: true,
     showDragHandle: true,
@@ -33,6 +41,41 @@ Future<void> showAddVehicleSaleSheet(BuildContext context) {
       child: const _AddVehicleSaleBody(),
     ),
   );
+  if (receipt != null && context.mounted) {
+    await _completeSaleAndPrintInvoice(context, receipt);
+  }
+  return receipt;
+}
+
+Future<void> _completeSaleAndPrintInvoice(
+  BuildContext context,
+  SaleReceiptData receipt,
+) async {
+  final l10n = context.l10n;
+  ScaffoldMessenger.of(context).showSnackBar(
+    SnackBar(content: Text(l10n.vehicleSalesRecorded)),
+  );
+  try {
+    final List<int> bytes = await ReceiptBuilder.buildSaleReceipt(receipt);
+    await sl<PrinterService>().printBytes(bytes);
+    if (!context.mounted) {
+      return;
+    }
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(l10n.printerPrintSuccess)),
+    );
+  } on PrinterException catch (e) {
+    if (!context.mounted) {
+      return;
+    }
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(e.message)),
+    );
+    await showPrintReceiptPromptSheet(
+      context,
+      buildReceiptBytes: () => ReceiptBuilder.buildSaleReceipt(receipt),
+    );
+  }
 }
 
 class _AddVehicleSaleBody extends StatefulWidget {
@@ -66,6 +109,7 @@ class _AddVehicleSaleBodyState extends State<_AddVehicleSaleBody> {
   List<Map<String, dynamic>> _driverLoadLines = <Map<String, dynamic>>[];
 
   String? _vehicleId;
+  String _vehicleNumber = '';
   bool _loadingCtx = true;
   String? _ctxError;
 
@@ -111,6 +155,7 @@ class _AddVehicleSaleBodyState extends State<_AddVehicleSaleBody> {
       if (!mounted) return;
       setState(() {
         _vehicleId = vehicle?['id'] as String?;
+        _vehicleNumber = vehicle?['vehicleNumber']?.toString() ?? '';
         _productItems = items;
         _driverLoadLines = loads;
         _loadingCtx = false;
@@ -514,10 +559,25 @@ class _AddVehicleSaleBodyState extends State<_AddVehicleSaleBody> {
         listener: (context, state) {
           if (state is SubmitSuccess) {
             StationBalanceListRefresh.request();
-            Navigator.of(context).pop();
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text(l10n.vehicleSalesRecorded)),
+            final AuthState auth = context.read<AuthCubit>().state;
+            final String driverName = auth is AuthAuthenticated
+                ? auth.user.fullName
+                : l10n.driver;
+            final SaleReceiptData receipt =
+                DriverReceiptFactory.buildSaleReceipt(
+              l10n: l10n,
+              driverName: driverName,
+              vehicleName: _vehicleNumber.isEmpty
+                  ? l10n.noVehicleAssignedFull
+                  : _vehicleNumber,
+              place: _selectedPlace,
+              quantities: _quantities,
+              productLabels: _productLabels,
+              unitPrices: _unitPrices,
+              driverLoadLines: _driverLoadLines,
+              columnCount: _columnCount,
             );
+            Navigator.of(context).pop(receipt);
           }
           if (state is SubmitFailure) {
             ScaffoldMessenger.of(context).showSnackBar(
@@ -637,7 +697,7 @@ class _AddVehicleSaleBodyState extends State<_AddVehicleSaleBody> {
                     ),
                   ),
                   const SizedBox(height: 20),
-                  FilledButton(
+                  FilledButton.icon(
                     onPressed: busy
                         ? null
                         : () {
@@ -654,13 +714,14 @@ class _AddVehicleSaleBodyState extends State<_AddVehicleSaleBody> {
                                           : 'home',
                                 );
                           },
-                    child: busy
+                    icon: busy
                         ? const SizedBox(
-                            height: 22,
-                            width: 22,
+                            height: 20,
+                            width: 20,
                             child: CircularProgressIndicator(strokeWidth: 2),
                           )
-                        : Text(l10n.addSale),
+                        : const Icon(Icons.print_outlined),
+                    label: Text(l10n.addSaleAndPrintInvoice),
                   ),
                 ],
               ],

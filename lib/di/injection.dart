@@ -1,4 +1,5 @@
 import 'package:amethyst/core/data/amethyst_api.dart';
+import 'package:amethyst/core/printer/printer_service.dart';
 import 'package:amethyst/core/firebase/amethyst_firebase_backend.dart';
 import 'package:amethyst/core/firebase/firebase_auth_service.dart';
 import 'package:amethyst/core/firebase/firebase_super_admin_users_service.dart';
@@ -18,6 +19,12 @@ import 'package:amethyst/features/user_dashboard/domain/repositories/user_dashbo
 import 'package:amethyst/features/user_dashboard/domain/usecases/get_driver_dashboard_usecase.dart';
 import 'package:amethyst/features/dashboard/presentation/cubit/super_admin_dashboard_cubit.dart';
 import 'package:amethyst/features/user_dashboard/presentation/cubit/user_dashboard_cubit.dart';
+import 'package:amethyst/features/station_cash/data/repositories/station_cash_repository_impl.dart';
+import 'package:amethyst/features/station_cash/domain/repositories/station_cash_repository.dart';
+import 'package:amethyst/features/station_cash/domain/usecases/get_station_cash_balance_usecase.dart';
+import 'package:amethyst/features/station_cash/domain/usecases/get_station_cash_snapshot_usecase.dart';
+import 'package:amethyst/features/station_cash/domain/usecases/list_station_cash_entries_usecase.dart';
+import 'package:amethyst/features/station_cash/domain/usecases/set_station_cash_balance_usecase.dart';
 import 'package:get_it/get_it.dart';
 
 final GetIt sl = GetIt.instance;
@@ -102,6 +109,22 @@ void setupDependencies() {
     () => SaveStationBalanceUseCase(sl<RecordOperationsRepository>()),
   );
 
+  sl.registerLazySingleton<StationCashRepository>(
+    () => StationCashRepositoryImpl(sl<AmethystApi>()),
+  );
+  sl.registerLazySingleton<GetStationCashBalanceUseCase>(
+    () => GetStationCashBalanceUseCase(sl<StationCashRepository>()),
+  );
+  sl.registerLazySingleton<GetStationCashSnapshotUseCase>(
+    () => GetStationCashSnapshotUseCase(sl<StationCashRepository>()),
+  );
+  sl.registerLazySingleton<ListStationCashEntriesUseCase>(
+    () => ListStationCashEntriesUseCase(sl<StationCashRepository>()),
+  );
+  sl.registerLazySingleton<SetStationCashBalanceUseCase>(
+    () => SetStationCashBalanceUseCase(sl<StationCashRepository>()),
+  );
+
   sl.registerLazySingleton<UserDashboardRepository>(
     () => UserDashboardRepositoryImpl(api: sl<AmethystApi>()),
   );
@@ -117,4 +140,6 @@ void setupDependencies() {
   sl.registerLazySingleton<SuperAdminDashboardCubit>(
     () => SuperAdminDashboardCubit(sl<AmethystApi>()),
   );
+
+  sl.registerLazySingleton<PrinterService>(PrinterService.new);
 }

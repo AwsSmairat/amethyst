@@ -1152,6 +1152,34 @@ final class PrototypeSampleData {
     return List<Map<String, dynamic>>.from(_expenses);
   }
 
+  static double _stationCashAmount = 0;
+  static final List<Map<String, dynamic>> _stationCashEntries =
+      <Map<String, dynamic>>[];
+
+  static double get stationCashAmount => _stationCashAmount;
+
+  static List<Map<String, dynamic>> get stationCashEntries =>
+      List<Map<String, dynamic>>.from(_stationCashEntries);
+
+  static void setStationCashAmount({
+    required double amount,
+    String? note,
+  }) {
+    final double previous = _stationCashAmount;
+    _stationCashAmount = amount;
+    _stationCashEntries.insert(
+      0,
+      <String, dynamic>{
+        'id': 'cash_${_stationCashEntries.length + 1}',
+        'amount': amount,
+        'previousAmount': previous,
+        if (note != null && note.trim().isNotEmpty) 'note': note.trim(),
+        'createdAt': DateTime.now(),
+      },
+    );
+    _persist();
+  }
+
   static double _expensesTotalForDriverToday(String? driverId) =>
       _expensesAmountToday(driverId: driverId);
 
@@ -1277,6 +1305,10 @@ final class PrototypeSampleData {
     final List<Map<String, dynamic>> lowStock = _lowStockProducts();
     final int remainingStock = _totalStationStock();
     final int remainingOnVehicles = _totalRemainingOnVehicles();
+    final List<Map<String, dynamic>> cashEntries = stationCashEntries;
+    final double cashYesterday = cashEntries.isEmpty
+        ? 0.0
+        : (cashEntries.first['previousAmount'] as num?)?.toDouble() ?? 0.0;
     return <String, dynamic>{
       'role': 'super_admin',
       'metrics': <String, dynamic>{
@@ -1287,6 +1319,8 @@ final class PrototypeSampleData {
         'totalMonthlyExpenses': expensesMonth,
         'totalProfitToday': profitToday,
         'totalMonthlySales': salesMonth,
+        'stationCashTodayAmount': stationCashAmount,
+        'stationCashYesterdayAmount': cashYesterday,
       },
       'details': <String, dynamic>{
         'counts': <String, dynamic>{
@@ -1316,6 +1350,8 @@ final class PrototypeSampleData {
       'totalProfitToday': profitToday,
       'totalMonthlySales': salesMonth,
       'totalMonthlyCartonSales': monthlyCarton,
+      'stationCashTodayAmount': stationCashAmount,
+      'stationCashYesterdayAmount': cashYesterday,
       'remainingStationStock': remainingStock,
       'remainingOnVehicles': remainingOnVehicles,
       'lowStockProducts': lowStock,

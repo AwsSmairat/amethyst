@@ -6,8 +6,12 @@ import 'package:amethyst/core/widgets/fab_hero_tags.dart';
 import 'package:amethyst/di/injection.dart';
 import 'package:amethyst/core/presentation/list_load_state.dart';
 import 'package:amethyst/features/catalog/presentation/cubit/json_list_cubit.dart';
+import 'package:amethyst/core/printer/receipt_builder.dart';
 import 'package:amethyst/features/driver/presentation/driver_sales_list_refresh.dart';
 import 'package:amethyst/features/driver/presentation/widgets/add_vehicle_sale_sheet.dart';
+import 'package:amethyst/features/driver/presentation/widgets/driver_print_context.dart';
+import 'package:amethyst/features/driver/presentation/widgets/driver_receipt_factory.dart';
+import 'package:amethyst/features/driver/presentation/widgets/print_receipt_prompt_sheet.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
@@ -65,6 +69,33 @@ class _DriverSalesPageState extends State<DriverSalesPage> {
   }
 
   bool _isCashSale(Map<String, dynamic> m) => m['isDebt'] != true;
+
+  Future<void> _printDailySummary(
+    DateTime day,
+    List<Map<String, dynamic>> dayItems,
+  ) async {
+    final DriverPrintContext? ctx = await loadDriverPrintContext(context);
+    if (!mounted) {
+      return;
+    }
+    if (ctx == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(context.l10n.noVehicleAssignedFull)),
+      );
+      return;
+    }
+    final receipt = DriverReceiptFactory.buildDailySummary(
+      l10n: context.l10n,
+      driverName: ctx.driverName,
+      vehicleName: ctx.vehicleName,
+      day: day,
+      sales: dayItems,
+    );
+    await showPrintReceiptPromptSheet(
+      context,
+      buildReceiptBytes: () => ReceiptBuilder.buildDailySummaryReceipt(receipt),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -170,9 +201,23 @@ class _DriverSalesPageState extends State<DriverSalesPage> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: <Widget>[
-                      Text(
-                        dayLabel,
-                        style: const TextStyle(fontWeight: FontWeight.w900),
+                      Row(
+                        children: <Widget>[
+                          Expanded(
+                            child: Text(
+                              dayLabel,
+                              style:
+                                  const TextStyle(fontWeight: FontWeight.w900),
+                            ),
+                          ),
+                          if (day != null)
+                            IconButton(
+                              tooltip: context.l10n.printerPrintDailySummary,
+                              onPressed: () =>
+                                  _printDailySummary(day, dayItems),
+                              icon: const Icon(Icons.print_outlined),
+                            ),
+                        ],
                       ),
                       const SizedBox(height: 10),
                       ...dayItems.map((Map<String, dynamic> m) {

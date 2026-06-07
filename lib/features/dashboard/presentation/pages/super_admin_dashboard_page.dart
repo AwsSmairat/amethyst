@@ -4,6 +4,7 @@ import 'package:amethyst/core/catalog/catalog_product_display_label.dart';
 import 'package:amethyst/core/l10n/context_l10n.dart';
 import 'package:amethyst/core/presentation/dashboard_load_state.dart';
 import 'package:amethyst/core/theme/app_colors.dart';
+import 'package:amethyst/core/utils/format_money.dart';
 import 'package:amethyst/di/injection.dart';
 import 'package:amethyst/features/dashboard/presentation/cubit/super_admin_dashboard_cubit.dart';
 import 'package:flutter/foundation.dart';
@@ -151,6 +152,8 @@ class _SuperAdminDashboardBodyState extends State<_SuperAdminDashboardBody>
         final monthlyExpenses = _dashboardKpiNum(d['totalMonthlyExpenses']);
         final monthly = _dashboardKpiNum(d['totalMonthlySales']);
         final monthlyCartons = _dashboardKpiNum(d['totalMonthlyCartonSales']);
+        final cashToday = _dashboardKpiNum(d['stationCashTodayAmount']);
+        final cashYesterday = _dashboardKpiNum(d['stationCashYesterdayAmount']);
         final List<_DebtGroup> debtPreview =
             _parseStationDebtOpenPreview(d['stationDebtOpenPreview']);
         final l10n = context.l10n;
@@ -239,6 +242,20 @@ class _SuperAdminDashboardBodyState extends State<_SuperAdminDashboardBody>
                     icon: Icons.inventory_2_outlined,
                     onTap: () =>
                         context.push('/super-admin/carton-sales'),
+                  ),
+                  _KpiCard(
+                    label: l10n.stationCashBalanceYesterdayLabel,
+                    value: formatMoneyAmount(cashYesterday),
+                    icon: Icons.history_outlined,
+                    onTap: () =>
+                        context.push('/super-admin/station-cash-balance'),
+                  ),
+                  _KpiCard(
+                    label: l10n.stationCashBalanceTodayLabel,
+                    value: formatMoneyAmount(cashToday),
+                    icon: Icons.account_balance_wallet_outlined,
+                    onTap: () =>
+                        context.push('/super-admin/station-cash-balance'),
                   ),
                   _KpiCard(
                     label: l10n.staffNoteKpi,

@@ -14,6 +14,7 @@ const COLLECTIONS_TO_DELETE = [
   'stock_movements',
   'audit_logs',
   'staff_notes',
+  'station_cash_entries',
 ];
 
 const BATCH_SIZE = 400;
@@ -77,6 +78,20 @@ async function zeroProductStock(db) {
 /**
  * @param {FirebaseFirestore.Firestore} db
  */
+async function zeroStationCashBalance(db) {
+  await db.collection('station_cash_balance').doc('main').set(
+    {
+      amount: 0,
+      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+    },
+    { merge: true },
+  );
+  return { amount: 0 };
+}
+
+/**
+ * @param {FirebaseFirestore.Firestore} db
+ */
 async function resetOperationalData(db) {
   const deleted = {};
 
@@ -85,10 +100,12 @@ async function resetOperationalData(db) {
   }
 
   const products = await zeroProductStock(db);
+  const stationCash = await zeroStationCashBalance(db);
 
   return {
     deleted,
     products,
+    stationCash,
     kept: ['users', 'vehicles', 'products (catalog only, stock = 0)'],
   };
 }

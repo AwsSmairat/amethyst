@@ -606,6 +606,43 @@ final class PrototypeAmethystBackend {
     PrototypeSampleData.markStaffNoteRead(noteId: noteId, userId: userId);
   }
 
+  Future<Map<String, dynamic>> getStationCashBalance() async {
+    await PrototypeSampleData.ensureLoaded();
+    final List<Map<String, dynamic>> entries =
+        PrototypeSampleData.stationCashEntries;
+    final double yesterday = entries.isEmpty
+        ? 0.0
+        : (entries.first['previousAmount'] as num?)?.toDouble() ?? 0.0;
+    return <String, dynamic>{
+      'amount': PrototypeSampleData.stationCashAmount,
+      'yesterdayAmount': yesterday,
+    };
+  }
+
+  Future<Map<String, dynamic>> listStationCashEntries({
+    int page = 1,
+    int limit = 50,
+  }) async {
+    await PrototypeSampleData.ensureLoaded();
+    return _paginate(
+      PrototypeSampleData.stationCashEntries,
+      page: page,
+      limit: limit,
+    );
+  }
+
+  Future<Map<String, dynamic>> setStationCashBalance({
+    required double amount,
+    String? note,
+  }) async {
+    await PrototypeSampleData.ensureLoaded();
+    if (amount < 0) {
+      throw ApiException('Amount cannot be negative', code: 'INVALID_AMOUNT');
+    }
+    PrototypeSampleData.setStationCashAmount(amount: amount, note: note);
+    return <String, dynamic>{'amount': amount};
+  }
+
   Map<String, dynamic> _paginate(
     List<Map<String, dynamic>> all, {
     required int page,

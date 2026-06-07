@@ -321,7 +321,7 @@ final class AmethystFirebaseBackend {
     required String id,
     double? price,
   }) async {
-    await _requireSuperAdmin();
+    await _requireStaff();
     if (price != null) {
       await _db.collection(FirestorePaths.products).doc(id).update(<String, dynamic>{
         'price': price,
@@ -1559,6 +1559,109 @@ final class AmethystFirebaseBackend {
     return mapExpenseDoc(doc);
   }
 
+  static const String _stationCashBalanceDocId = 'main';
+
+  Future<({double today, double yesterday})> _stationCashBalanceSnapshot() async {
+    final DocumentSnapshot<Map<String, dynamic>> snap = await _db
+        .collection(FirestorePaths.stationCashBalance)
+        .doc(_stationCashBalanceDocId)
+        .get();
+    final double today = snap.exists
+        ? (snap.data()?['amount'] as num?)?.toDouble() ?? 0.0
+        : 0.0;
+    final QuerySnapshot<Map<String, dynamic>> entries = await _db
+        .collection(FirestorePaths.stationCashEntries)
+        .orderBy('createdAt', descending: true)
+        .limit(1)
+        .get();
+    final double yesterday = entries.docs.isEmpty
+        ? 0.0
+        : (entries.docs.first.data()['previousAmount'] as num?)?.toDouble() ??
+            0.0;
+    return (today: today, yesterday: yesterday);
+  }
+
+  Future<Map<String, dynamic>> getStationCashBalance() async {
+    await _requireStaff();
+    final ({double today, double yesterday}) snapshot =
+        await _stationCashBalanceSnapshot();
+    final DocumentSnapshot<Map<String, dynamic>> snap = await _db
+        .collection(FirestorePaths.stationCashBalance)
+        .doc(_stationCashBalanceDocId)
+        .get();
+    if (!snap.exists) {
+      return <String, dynamic>{
+        'amount': snapshot.today,
+        'yesterdayAmount': snapshot.yesterday,
+      };
+    }
+    final Map<String, dynamic> data = snap.data() ?? <String, dynamic>{};
+    return <String, dynamic>{
+      'amount': snapshot.today,
+      'yesterdayAmount': snapshot.yesterday,
+      'updatedAt': timestampToDate(data['updatedAt']),
+      'updatedById': data['updatedById'],
+    };
+  }
+
+  Future<Map<String, dynamic>> listStationCashEntries({
+    int page = 1,
+    int limit = 50,
+  }) async {
+    await _requireStaff();
+    final QuerySnapshot<Map<String, dynamic>> snap = await _db
+        .collection(FirestorePaths.stationCashEntries)
+        .orderBy('createdAt', descending: true)
+        .get();
+    final List<Map<String, dynamic>> items = snap.docs
+        .map(mapStationCashEntryDoc)
+        .toList(growable: false);
+    return _paginate(items, page: page, limit: limit.clamp(1, 100));
+  }
+
+  Future<Map<String, dynamic>> setStationCashBalance({
+    required double amount,
+    String? note,
+  }) async {
+    if (amount < 0) {
+      throw ApiException('Amount cannot be negative', code: 'INVALID_AMOUNT');
+    }
+    await _requireStaff();
+    final Map<String, dynamic> actor = await _auth.currentActor();
+    final DocumentReference<Map<String, dynamic>> balanceRef = _db
+        .collection(FirestorePaths.stationCashBalance)
+        .doc(_stationCashBalanceDocId);
+    final DocumentSnapshot<Map<String, dynamic>> current = await balanceRef.get();
+    final double previous = current.exists
+        ? (current.data()?['amount'] as num?)?.toDouble() ?? 0.0
+        : 0.0;
+    final WriteBatch batch = _db.batch();
+    batch.set(
+      balanceRef,
+      <String, dynamic>{
+        'amount': amount,
+        'updatedById': actor['id'],
+        'updatedAt': serverTimestamp(),
+      },
+      SetOptions(merge: true),
+    );
+    final DocumentReference<Map<String, dynamic>> entryRef =
+        _db.collection(FirestorePaths.stationCashEntries).doc();
+    batch.set(entryRef, <String, dynamic>{
+      'amount': amount,
+      'previousAmount': previous,
+      if (note != null && note.trim().isNotEmpty) 'note': note.trim(),
+      'createdById': actor['id'],
+      'createdAt': serverTimestamp(),
+    });
+    await batch.commit();
+    return <String, dynamic>{
+      'amount': amount,
+      'previousAmount': previous,
+      'entryId': entryRef.id,
+    };
+  }
+
   Future<Map<String, dynamic>> listReturns({int page = 1, int limit = 100}) async {
     await _requireStaff();
     final QuerySnapshot<Map<String, dynamic>> snap =
@@ -1870,6 +1973,8 @@ final class AmethystFirebaseBackend {
     double monthlyVehicle = 0,
     double monthlyExpenses = 0,
     double monthlyCartonSales = 0,
+    double stationCashTodayAmount = 0,
+    double stationCashYesterdayAmount = 0,
   }) {
     final int totalUsers = superAdmins + admins + drivers;
     return <String, dynamic>{
@@ -1883,6 +1988,8 @@ final class AmethystFirebaseBackend {
         'totalProfitToday': stationToday + vehicleToday - expensesToday,
         'totalMonthlySales': monthlyStation + monthlyVehicle,
         'totalMonthlyCartonSales': monthlyCartonSales,
+        'stationCashTodayAmount': stationCashTodayAmount,
+        'stationCashYesterdayAmount': stationCashYesterdayAmount,
       },
       'details': <String, dynamic>{
         'counts': <String, dynamic>{
@@ -1912,6 +2019,8 @@ final class AmethystFirebaseBackend {
       'totalProfitToday': stationToday + vehicleToday - expensesToday,
       'totalMonthlySales': monthlyStation + monthlyVehicle,
       'totalMonthlyCartonSales': monthlyCartonSales,
+      'stationCashTodayAmount': stationCashTodayAmount,
+      'stationCashYesterdayAmount': stationCashYesterdayAmount,
       'remainingStationStock': stock['remainingStationStock'],
       'remainingOnVehicles': stock['remainingOnVehicles'],
       'lowStockProducts': lowStock,
@@ -1991,9 +2100,12 @@ final class AmethystFirebaseBackend {
       _sumSales(FirestorePaths.vehicleSales, month.start, month.end),
       _sumExpenses(month.start, month.end),
       _superAdminCartonMetricsForRange(start: month.start, end: month.end),
+      _stationCashBalanceSnapshot(),
     ]);
     final Map<String, dynamic> cartonMetrics =
         salesTotals[6] as Map<String, dynamic>;
+    final ({double today, double yesterday}) cashSnapshot =
+        salesTotals[7] as ({double today, double yesterday});
     return _buildSuperAdminDashboardPayload(
       superAdmins: roleCounts.superAdmins,
       admins: roleCounts.admins,
@@ -2012,6 +2124,8 @@ final class AmethystFirebaseBackend {
       monthlyExpenses: salesTotals[5] as double,
       monthlyCartonSales:
           _num(cartonMetrics['monthlyCartonSalesTotalAmount']),
+      stationCashTodayAmount: cashSnapshot.today,
+      stationCashYesterdayAmount: cashSnapshot.yesterday,
     );
   }
 

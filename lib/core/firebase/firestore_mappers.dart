@@ -103,6 +103,21 @@ Map<String, dynamic> mapVehicleSaleDoc(
   return s;
 }
 
+Map<String, dynamic> mapStationCashEntryDoc(
+  DocumentSnapshot<Map<String, dynamic>> doc,
+) {
+  final Map<String, dynamic> e =
+      Map<String, dynamic>.from(doc.data() ?? <String, dynamic>{});
+  e['id'] = doc.id;
+  e['amount'] = _num(e['amount']);
+  e['previousAmount'] = _num(e['previousAmount']);
+  final DateTime? created = timestampToDate(e['createdAt']);
+  if (created != null) {
+    e['createdAt'] = created;
+  }
+  return e;
+}
+
 Map<String, dynamic> mapExpenseDoc(DocumentSnapshot<Map<String, dynamic>> doc) {
   final Map<String, dynamic> e = Map<String, dynamic>.from(doc.data() ?? <String, dynamic>{});
   e['id'] = doc.id;

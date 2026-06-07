@@ -28,6 +28,7 @@ import 'package:amethyst/features/admin/presentation/station_debt/station_debt_r
 import 'package:amethyst/features/record_operations/domain/usecases/record_operation_usecases.dart';
 import 'package:amethyst/features/dashboard/presentation/pages/admin_dashboard_page.dart';
 import 'package:amethyst/features/dashboard/presentation/pages/admin_station_balance_page.dart';
+import 'package:amethyst/features/station_cash/presentation/pages/station_cash_balance_page.dart';
 import 'package:amethyst/features/dashboard/presentation/pages/sales_working_days_page.dart';
 import 'package:amethyst/features/dashboard/presentation/pages/super_admin_carton_sales_page.dart';
 import 'package:amethyst/features/dashboard/presentation/pages/super_admin_dashboard_page.dart';
@@ -38,6 +39,8 @@ import 'package:amethyst/features/dashboard/presentation/pages/super_admin_produ
 import 'package:amethyst/features/dashboard/presentation/pages/super_admin_vehicles_page.dart';
 import 'package:amethyst/features/driver/presentation/pages/driver_expenses_page.dart';
 import 'package:amethyst/features/driver/presentation/pages/driver_loads_page.dart';
+import 'package:amethyst/features/driver/presentation/pages/printer_settings_screen.dart';
+import 'package:amethyst/features/driver/presentation/pages/receipt_style_settings_screen.dart';
 import 'package:amethyst/features/driver/presentation/pages/driver_sales_page.dart';
 import 'package:amethyst/features/shared/presentation/shells/admin_shell.dart';
 import 'package:amethyst/features/shared/presentation/shells/driver_shell_page.dart';
@@ -173,6 +176,10 @@ GoRouter createAppRouter(AuthCubit authCubit) {
                 builder: (_, __) => const AdminStationBalancePage(
                   shellBase: '/super-admin',
                 ),
+              ),
+              GoRoute(
+                path: 'station-cash-balance',
+                builder: (_, __) => const StationCashBalancePage(),
               ),
               GoRoute(
                 path: 'station-debt-registration',
@@ -499,6 +506,10 @@ GoRouter createAppRouter(AuthCubit authCubit) {
                 ),
               ),
               GoRoute(
+                path: 'station-cash-balance',
+                builder: (_, __) => const StationCashBalancePage(),
+              ),
+              GoRoute(
                 path: 'products',
                 builder: (BuildContext context, _) => BlocProvider(
                   create: (_) =>
@@ -547,6 +558,14 @@ GoRouter createAppRouter(AuthCubit authCubit) {
           return null;
         },
         routes: <RouteBase>[
+          GoRoute(
+            path: 'printer-settings',
+            builder: (_, __) => const PrinterSettingsScreen(),
+          ),
+          GoRoute(
+            path: 'receipt-style',
+            builder: (_, __) => const ReceiptStyleSettingsScreen(),
+          ),
           StatefulShellRoute.indexedStack(
             builder: (BuildContext context, GoRouterState state,
                 StatefulNavigationShell navigationShell) {

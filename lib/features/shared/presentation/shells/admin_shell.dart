@@ -107,6 +107,13 @@ class AdminShell extends StatelessWidget {
               _tile(
                 context,
                 path,
+                '/admin/station-cash-balance',
+                Icons.account_balance_wallet_outlined,
+                context.l10n.stationCashBalanceTitle,
+              ),
+              _tile(
+                context,
+                path,
                 '/admin/product-prices',
                 Icons.price_change_outlined,
                 context.l10n.titleProductPrices,

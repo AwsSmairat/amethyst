@@ -1,4 +1,5 @@
 import 'package:amethyst/core/l10n/context_l10n.dart';
+import 'package:amethyst/core/station_balance/station_balance_list_refresh.dart';
 import 'package:amethyst/core/theme/app_colors.dart';
 import 'package:amethyst/features/admin/presentation/widgets/add_station_balance_sheet.dart';
 import 'package:flutter/material.dart';
@@ -44,7 +45,10 @@ class StationBalanceDashboardCard extends StatelessWidget {
             ),
             const SizedBox(height: 20),
             FilledButton.icon(
-              onPressed: () => showAddStationBalanceSheet(context),
+              onPressed: () => showAddStationBalanceSheet(
+                context,
+                onSuccess: StationBalanceListRefresh.request,
+              ),
               icon: const Icon(Icons.add),
               label: Text(l10n.addStationBalance),
             ),

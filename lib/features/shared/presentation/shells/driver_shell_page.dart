@@ -30,6 +30,11 @@ class DriverShellPage extends StatelessWidget {
           ),
           actions: <Widget>[
             IconButton(
+              tooltip: context.l10n.printerSettingsTitle,
+              onPressed: () => context.push('/driver/printer-settings'),
+              icon: const Icon(Icons.print_outlined),
+            ),
+            IconButton(
               tooltip: context.l10n.signOutTooltip,
               onPressed: () => context.read<AuthCubit>().logout(),
               icon: const Icon(Icons.logout),

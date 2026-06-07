@@ -4,7 +4,11 @@ import 'package:amethyst/core/l10n/context_l10n.dart';
 import 'package:amethyst/core/theme/app_colors.dart';
 import 'package:amethyst/core/widgets/fab_hero_tags.dart';
 import 'package:amethyst/di/injection.dart';
+import 'package:amethyst/core/printer/receipt_builder.dart';
 import 'package:amethyst/features/driver/presentation/widgets/add_return_sheet.dart';
+import 'package:amethyst/features/driver/presentation/widgets/driver_print_context.dart';
+import 'package:amethyst/features/driver/presentation/widgets/driver_receipt_factory.dart';
+import 'package:amethyst/features/driver/presentation/widgets/print_receipt_prompt_sheet.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
@@ -25,6 +29,34 @@ class _DriverLoadsPageState extends State<DriverLoadsPage> {
   void initState() {
     super.initState();
     _load();
+  }
+
+  Future<void> _printInventoryReport() async {
+    final DriverPrintContext? ctx = await loadDriverPrintContext(context);
+    if (!mounted) {
+      return;
+    }
+    if (ctx == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(context.l10n.noVehicleAssignedFull)),
+      );
+      return;
+    }
+    final List<Map<String, dynamic>> loads =
+        (_data?['loads'] as List<dynamic>? ?? <dynamic>[])
+            .whereType<Map<String, dynamic>>()
+            .toList(growable: false);
+    final receipt = DriverReceiptFactory.buildInventoryReport(
+      l10n: context.l10n,
+      driverName: ctx.driverName,
+      vehicleName: ctx.vehicleName,
+      loads: loads,
+    );
+    await showPrintReceiptPromptSheet(
+      context,
+      buildReceiptBytes: () =>
+          ReceiptBuilder.buildInventoryReportReceipt(receipt),
+    );
   }
 
   Future<void> _load() async {
@@ -54,6 +86,11 @@ class _DriverLoadsPageState extends State<DriverLoadsPage> {
       appBar: AppBar(
         title: Text(context.l10n.currentLoads),
         actions: <Widget>[
+          IconButton(
+            tooltip: context.l10n.printerPrintInventoryReport,
+            onPressed: _printInventoryReport,
+            icon: const Icon(Icons.print_outlined),
+          ),
           IconButton(onPressed: _load, icon: const Icon(Icons.refresh)),
         ],
       ),

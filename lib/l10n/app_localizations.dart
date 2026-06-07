@@ -1594,6 +1594,96 @@ abstract class AppLocalizations {
   /// **'مصاريف المحطة'**
   String get stationExpenses;
 
+  /// No description provided for @stationAvailableBalanceTitle.
+  ///
+  /// In ar, this message translates to:
+  /// **'الرصيد المتوفر في المحطة'**
+  String get stationAvailableBalanceTitle;
+
+  /// No description provided for @openStationCashBalance.
+  ///
+  /// In ar, this message translates to:
+  /// **'عرض رصيد الأموال'**
+  String get openStationCashBalance;
+
+  /// No description provided for @stationCashBalanceTitle.
+  ///
+  /// In ar, this message translates to:
+  /// **'رصيد الأموال'**
+  String get stationCashBalanceTitle;
+
+  /// No description provided for @stationCashBalancePageHint.
+  ///
+  /// In ar, this message translates to:
+  /// **'رصيد نقدي منفصل عن رصيد البنود. سجّل المبلغ المتوفّر في المحطة.'**
+  String get stationCashBalancePageHint;
+
+  /// No description provided for @registerStationCashBalance.
+  ///
+  /// In ar, this message translates to:
+  /// **'تسجيل الرصيد'**
+  String get registerStationCashBalance;
+
+  /// No description provided for @addStationCashBalance.
+  ///
+  /// In ar, this message translates to:
+  /// **'تسجيل رصيد الأموال'**
+  String get addStationCashBalance;
+
+  /// No description provided for @stationCashBalanceDashboardSubtitle.
+  ///
+  /// In ar, this message translates to:
+  /// **'الرصيد النقدي المتوفّر في المحطة'**
+  String get stationCashBalanceDashboardSubtitle;
+
+  /// No description provided for @stationCashBalanceYesterdayLabel.
+  ///
+  /// In ar, this message translates to:
+  /// **'رصيد الأمس'**
+  String get stationCashBalanceYesterdayLabel;
+
+  /// No description provided for @stationCashBalanceNewAmountLabel.
+  ///
+  /// In ar, this message translates to:
+  /// **'المبلغ'**
+  String get stationCashBalanceNewAmountLabel;
+
+  /// No description provided for @stationCashBalanceTodayLabel.
+  ///
+  /// In ar, this message translates to:
+  /// **'رصيد اليوم'**
+  String get stationCashBalanceTodayLabel;
+
+  /// No description provided for @stationCashBalanceRegisterHint.
+  ///
+  /// In ar, this message translates to:
+  /// **'المبلغ يُسجَّل كرصيد اليوم. الرصيد الحالي ينتقل إلى يوم أمس.'**
+  String get stationCashBalanceRegisterHint;
+
+  /// No description provided for @stationCashBalanceSaved.
+  ///
+  /// In ar, this message translates to:
+  /// **'تم حفظ رصيد الأموال'**
+  String get stationCashBalanceSaved;
+
+  /// No description provided for @stationCashBalanceInvalidTodayAmount.
+  ///
+  /// In ar, this message translates to:
+  /// **'أدخل رصيد اليوم بشكل صحيح'**
+  String get stationCashBalanceInvalidTodayAmount;
+
+  /// No description provided for @stationCashBalanceHistoryTitle.
+  ///
+  /// In ar, this message translates to:
+  /// **'سجل التسجيلات'**
+  String get stationCashBalanceHistoryTitle;
+
+  /// No description provided for @stationCashBalanceEntryLine.
+  ///
+  /// In ar, this message translates to:
+  /// **'كان {previous} · {when}'**
+  String stationCashBalanceEntryLine(String previous, String when);
+
   /// No description provided for @stationBalanceTitle.
   ///
   /// In ar, this message translates to:
@@ -2169,6 +2259,12 @@ abstract class AppLocalizations {
   /// In ar, this message translates to:
   /// **'إضافة بيع'**
   String get addSale;
+
+  /// No description provided for @addSaleAndPrintInvoice.
+  ///
+  /// In ar, this message translates to:
+  /// **'إضافة بيع وطباعة فاتورة'**
+  String get addSaleAndPrintInvoice;
 
   /// No description provided for @qtyAmountSubtitle.
   ///
@@ -2966,6 +3062,516 @@ abstract class AppLocalizations {
   /// In ar, this message translates to:
   /// **'كوبون'**
   String get couponButton;
+
+  /// No description provided for @printerSettingsTitle.
+  ///
+  /// In ar, this message translates to:
+  /// **'إعدادات الطابعة'**
+  String get printerSettingsTitle;
+
+  /// No description provided for @printerStatusTitle.
+  ///
+  /// In ar, this message translates to:
+  /// **'حالة الطابعة'**
+  String get printerStatusTitle;
+
+  /// No description provided for @printerStatusConnected.
+  ///
+  /// In ar, this message translates to:
+  /// **'متصل'**
+  String get printerStatusConnected;
+
+  /// No description provided for @printerStatusConnecting.
+  ///
+  /// In ar, this message translates to:
+  /// **'جاري الاتصال'**
+  String get printerStatusConnecting;
+
+  /// No description provided for @printerStatusDisconnected.
+  ///
+  /// In ar, this message translates to:
+  /// **'غير متصل'**
+  String get printerStatusDisconnected;
+
+  /// No description provided for @printerStatusError.
+  ///
+  /// In ar, this message translates to:
+  /// **'خطأ'**
+  String get printerStatusError;
+
+  /// No description provided for @printerNoPrinterSelected.
+  ///
+  /// In ar, this message translates to:
+  /// **'لم يتم اختيار طابعة'**
+  String get printerNoPrinterSelected;
+
+  /// No description provided for @printerDisconnect.
+  ///
+  /// In ar, this message translates to:
+  /// **'قطع الاتصال'**
+  String get printerDisconnect;
+
+  /// No description provided for @printerTestPrint.
+  ///
+  /// In ar, this message translates to:
+  /// **'طباعة تجريبية'**
+  String get printerTestPrint;
+
+  /// No description provided for @printerRegisterSaleAndPrint.
+  ///
+  /// In ar, this message translates to:
+  /// **'تسجيل بيع وطباعة'**
+  String get printerRegisterSaleAndPrint;
+
+  /// No description provided for @printerTestMessage.
+  ///
+  /// In ar, this message translates to:
+  /// **'اختبار طباعة أماتيست'**
+  String get printerTestMessage;
+
+  /// No description provided for @printerPairedDevicesTitle.
+  ///
+  /// In ar, this message translates to:
+  /// **'الطابعات المقترنة'**
+  String get printerPairedDevicesTitle;
+
+  /// No description provided for @printerNoDevicesFound.
+  ///
+  /// In ar, this message translates to:
+  /// **'لا توجد طابعات مقترنة. اقترن بالطابعة من إعدادات البلوتوث ثم حدّث القائمة.'**
+  String get printerNoDevicesFound;
+
+  /// No description provided for @printerConnected.
+  ///
+  /// In ar, this message translates to:
+  /// **'تم الاتصال بالطابعة'**
+  String get printerConnected;
+
+  /// No description provided for @printerPrintSuccess.
+  ///
+  /// In ar, this message translates to:
+  /// **'تمت الطباعة بنجاح'**
+  String get printerPrintSuccess;
+
+  /// No description provided for @printerPromptTitle.
+  ///
+  /// In ar, this message translates to:
+  /// **'طباعة الإيصال'**
+  String get printerPromptTitle;
+
+  /// No description provided for @printerPromptSubtitle.
+  ///
+  /// In ar, this message translates to:
+  /// **'هل تريد طباعة إيصال على الطابعة الحرارية؟'**
+  String get printerPromptSubtitle;
+
+  /// No description provided for @printerPrintReceipt.
+  ///
+  /// In ar, this message translates to:
+  /// **'طباعة الإيصال'**
+  String get printerPrintReceipt;
+
+  /// No description provided for @printerSkip.
+  ///
+  /// In ar, this message translates to:
+  /// **'تخطي'**
+  String get printerSkip;
+
+  /// No description provided for @printerOpenSettings.
+  ///
+  /// In ar, this message translates to:
+  /// **'إعدادات الطابعة'**
+  String get printerOpenSettings;
+
+  /// No description provided for @printerSaleInvoiceTitle.
+  ///
+  /// In ar, this message translates to:
+  /// **'فاتورة بيع رسمية'**
+  String get printerSaleInvoiceTitle;
+
+  /// No description provided for @printerDailySummaryTitle.
+  ///
+  /// In ar, this message translates to:
+  /// **'ملخص مبيعات اليوم'**
+  String get printerDailySummaryTitle;
+
+  /// No description provided for @printerInventoryReportTitle.
+  ///
+  /// In ar, this message translates to:
+  /// **'تقرير جرد المركبة'**
+  String get printerInventoryReportTitle;
+
+  /// No description provided for @printerPaymentCash.
+  ///
+  /// In ar, this message translates to:
+  /// **'نقدي'**
+  String get printerPaymentCash;
+
+  /// No description provided for @printerPrintDailySummary.
+  ///
+  /// In ar, this message translates to:
+  /// **'طباعة ملخص اليوم'**
+  String get printerPrintDailySummary;
+
+  /// No description provided for @printerPrintInventoryReport.
+  ///
+  /// In ar, this message translates to:
+  /// **'طباعة تقرير الجرد'**
+  String get printerPrintInventoryReport;
+
+  /// No description provided for @printerReceiptPreviewTitle.
+  ///
+  /// In ar, this message translates to:
+  /// **'معاينة نمط الفاتورة'**
+  String get printerReceiptPreviewTitle;
+
+  /// No description provided for @printerReceiptPreviewHint.
+  ///
+  /// In ar, this message translates to:
+  /// **'معاينة تقريبية لشكل الإيصال على ورق ٥٨مم (الطباعة الفعلية من الموبايل فقط).'**
+  String get printerReceiptPreviewHint;
+
+  /// No description provided for @printerPreviewSaleTab.
+  ///
+  /// In ar, this message translates to:
+  /// **'فاتورة بيع'**
+  String get printerPreviewSaleTab;
+
+  /// No description provided for @printerPreviewSummaryTab.
+  ///
+  /// In ar, this message translates to:
+  /// **'ملخص يومي'**
+  String get printerPreviewSummaryTab;
+
+  /// No description provided for @printerPreviewInventoryTab.
+  ///
+  /// In ar, this message translates to:
+  /// **'تقرير جرد'**
+  String get printerPreviewInventoryTab;
+
+  /// No description provided for @printerPreviewSampleDriver.
+  ///
+  /// In ar, this message translates to:
+  /// **'محمد السائق'**
+  String get printerPreviewSampleDriver;
+
+  /// No description provided for @printerPreviewSampleVehicle.
+  ///
+  /// In ar, this message translates to:
+  /// **'١٢٣٤'**
+  String get printerPreviewSampleVehicle;
+
+  /// No description provided for @receiptStyleSettingsTitle.
+  ///
+  /// In ar, this message translates to:
+  /// **'تخصيص نمط الطباعة'**
+  String get receiptStyleSettingsTitle;
+
+  /// No description provided for @receiptStyleSettingsHint.
+  ///
+  /// In ar, this message translates to:
+  /// **'عدّل عناوين الفاتورة والأعمدة والتذييل لهذا النمط.'**
+  String get receiptStyleSettingsHint;
+
+  /// No description provided for @receiptStyleDriverOnlyHint.
+  ///
+  /// In ar, this message translates to:
+  /// **'ثلاثة أنماط طباعة للسائق — اختر نمطاً للتعديل ثم فعّله للطباعة.'**
+  String get receiptStyleDriverOnlyHint;
+
+  /// No description provided for @receiptStylePattern1.
+  ///
+  /// In ar, this message translates to:
+  /// **'النمط ١'**
+  String get receiptStylePattern1;
+
+  /// No description provided for @receiptStylePattern2.
+  ///
+  /// In ar, this message translates to:
+  /// **'النمط ٢'**
+  String get receiptStylePattern2;
+
+  /// No description provided for @receiptStylePattern3.
+  ///
+  /// In ar, this message translates to:
+  /// **'النمط ٣'**
+  String get receiptStylePattern3;
+
+  /// No description provided for @receiptStyleDisplayName.
+  ///
+  /// In ar, this message translates to:
+  /// **'اسم النمط'**
+  String get receiptStyleDisplayName;
+
+  /// No description provided for @receiptStyleActivePattern.
+  ///
+  /// In ar, this message translates to:
+  /// **'هذا النمط مفعّل للطباعة'**
+  String get receiptStyleActivePattern;
+
+  /// No description provided for @receiptStyleInactivePattern.
+  ///
+  /// In ar, this message translates to:
+  /// **'هذا النمط غير مفعّل'**
+  String get receiptStyleInactivePattern;
+
+  /// No description provided for @receiptStyleUseForPrint.
+  ///
+  /// In ar, this message translates to:
+  /// **'تفعيل للطباعة'**
+  String get receiptStyleUseForPrint;
+
+  /// No description provided for @receiptStyleActivated.
+  ///
+  /// In ar, this message translates to:
+  /// **'تم تفعيل النمط للطباعة'**
+  String get receiptStyleActivated;
+
+  /// No description provided for @receiptStyleResetPatternButton.
+  ///
+  /// In ar, this message translates to:
+  /// **'إعادة هذا النمط للافتراضي'**
+  String get receiptStyleResetPatternButton;
+
+  /// No description provided for @receiptStyleSectionHeader.
+  ///
+  /// In ar, this message translates to:
+  /// **'العناوين'**
+  String get receiptStyleSectionHeader;
+
+  /// No description provided for @receiptStyleSectionColumns.
+  ///
+  /// In ar, this message translates to:
+  /// **'أعمدة الجدول'**
+  String get receiptStyleSectionColumns;
+
+  /// No description provided for @receiptStyleSectionFooter.
+  ///
+  /// In ar, this message translates to:
+  /// **'التذييل والخيارات'**
+  String get receiptStyleSectionFooter;
+
+  /// No description provided for @receiptStyleCompanyTitle.
+  ///
+  /// In ar, this message translates to:
+  /// **'اسم الشركة على الفاتورة'**
+  String get receiptStyleCompanyTitle;
+
+  /// No description provided for @receiptStyleCompanyTitleHint.
+  ///
+  /// In ar, this message translates to:
+  /// **'اتركه فارغاً لاستخدام اسم التطبيق'**
+  String get receiptStyleCompanyTitleHint;
+
+  /// No description provided for @receiptStyleSaleTitle.
+  ///
+  /// In ar, this message translates to:
+  /// **'عنوان فاتورة البيع'**
+  String get receiptStyleSaleTitle;
+
+  /// No description provided for @receiptStyleSummaryTitle.
+  ///
+  /// In ar, this message translates to:
+  /// **'عنوان الملخص اليومي'**
+  String get receiptStyleSummaryTitle;
+
+  /// No description provided for @receiptStyleInventoryTitle.
+  ///
+  /// In ar, this message translates to:
+  /// **'عنوان تقرير الجرد'**
+  String get receiptStyleInventoryTitle;
+
+  /// No description provided for @receiptStyleColItem.
+  ///
+  /// In ar, this message translates to:
+  /// **'عمود الصنف'**
+  String get receiptStyleColItem;
+
+  /// No description provided for @receiptStyleColQty.
+  ///
+  /// In ar, this message translates to:
+  /// **'عمود الكمية'**
+  String get receiptStyleColQty;
+
+  /// No description provided for @receiptStyleColPrice.
+  ///
+  /// In ar, this message translates to:
+  /// **'عمود السعر'**
+  String get receiptStyleColPrice;
+
+  /// No description provided for @receiptStyleColTotal.
+  ///
+  /// In ar, this message translates to:
+  /// **'عمود الإجمالي'**
+  String get receiptStyleColTotal;
+
+  /// No description provided for @receiptStyleRemainingTitle.
+  ///
+  /// In ar, this message translates to:
+  /// **'عنوان المخزون المتبقي'**
+  String get receiptStyleRemainingTitle;
+
+  /// No description provided for @receiptStyleSignatureLabel.
+  ///
+  /// In ar, this message translates to:
+  /// **'سطر توقيع المستلم'**
+  String get receiptStyleSignatureLabel;
+
+  /// No description provided for @receiptStyleStampLabel.
+  ///
+  /// In ar, this message translates to:
+  /// **'سطر ختم المحطة'**
+  String get receiptStyleStampLabel;
+
+  /// No description provided for @receiptStyleFooterNote.
+  ///
+  /// In ar, this message translates to:
+  /// **'ملاحظة إضافية في التذييل'**
+  String get receiptStyleFooterNote;
+
+  /// No description provided for @receiptStyleFooterNoteHint.
+  ///
+  /// In ar, this message translates to:
+  /// **'اختياري — مثال: شكراً لتعاملكم معنا'**
+  String get receiptStyleFooterNoteHint;
+
+  /// No description provided for @receiptStyleShowRemaining.
+  ///
+  /// In ar, this message translates to:
+  /// **'إظهار المخزون المتبقي'**
+  String get receiptStyleShowRemaining;
+
+  /// No description provided for @receiptStyleShowSignature.
+  ///
+  /// In ar, this message translates to:
+  /// **'إظهار توقيع المستلم'**
+  String get receiptStyleShowSignature;
+
+  /// No description provided for @receiptStyleShowStamp.
+  ///
+  /// In ar, this message translates to:
+  /// **'إظهار ختم المحطة'**
+  String get receiptStyleShowStamp;
+
+  /// No description provided for @receiptStyleAutoCut.
+  ///
+  /// In ar, this message translates to:
+  /// **'قص الورق تلقائياً بعد الطباعة'**
+  String get receiptStyleAutoCut;
+
+  /// No description provided for @receiptStyleSave.
+  ///
+  /// In ar, this message translates to:
+  /// **'حفظ نمط الطباعة'**
+  String get receiptStyleSave;
+
+  /// No description provided for @receiptStyleSaved.
+  ///
+  /// In ar, this message translates to:
+  /// **'تم حفظ نمط الطباعة'**
+  String get receiptStyleSaved;
+
+  /// No description provided for @receiptStyleResetButton.
+  ///
+  /// In ar, this message translates to:
+  /// **'إعادة الإعدادات الافتراضية'**
+  String get receiptStyleResetButton;
+
+  /// No description provided for @receiptStyleReset.
+  ///
+  /// In ar, this message translates to:
+  /// **'تمت إعادة نمط الطباعة للوضع الافتراضي'**
+  String get receiptStyleReset;
+
+  /// No description provided for @adminDailyReportCardTitle.
+  ///
+  /// In ar, this message translates to:
+  /// **'تقرير يوم المحطة'**
+  String get adminDailyReportCardTitle;
+
+  /// No description provided for @adminDailyReportCardSubtitle.
+  ///
+  /// In ar, this message translates to:
+  /// **'طباعة رصيد المحطة، المخزون المتبقي، ومبيعات المحطة والمركبات لليوم.'**
+  String get adminDailyReportCardSubtitle;
+
+  /// No description provided for @adminDailyReportPrintButton.
+  ///
+  /// In ar, this message translates to:
+  /// **'طباعة تقرير اليوم'**
+  String get adminDailyReportPrintButton;
+
+  /// No description provided for @adminDailyReportTitle.
+  ///
+  /// In ar, this message translates to:
+  /// **'تقرير يوم المحطة'**
+  String get adminDailyReportTitle;
+
+  /// No description provided for @adminDailyReportPrintFailed.
+  ///
+  /// In ar, this message translates to:
+  /// **'تعذّر تحضير تقرير اليوم للطباعة'**
+  String get adminDailyReportPrintFailed;
+
+  /// No description provided for @adminDailyReportCashSection.
+  ///
+  /// In ar, this message translates to:
+  /// **'رصيد الأموال'**
+  String get adminDailyReportCashSection;
+
+  /// No description provided for @adminDailyReportBalanceSection.
+  ///
+  /// In ar, this message translates to:
+  /// **'رصيد المحطة والمخزون'**
+  String get adminDailyReportBalanceSection;
+
+  /// No description provided for @adminDailyReportBalanceTotalUnits.
+  ///
+  /// In ar, this message translates to:
+  /// **'إجمالي وحدات رصيد المحطة'**
+  String get adminDailyReportBalanceTotalUnits;
+
+  /// No description provided for @adminDailyReportRemainingStationStock.
+  ///
+  /// In ar, this message translates to:
+  /// **'مخزون متبقي في المحطة'**
+  String get adminDailyReportRemainingStationStock;
+
+  /// No description provided for @adminDailyReportRemainingOnVehicles.
+  ///
+  /// In ar, this message translates to:
+  /// **'مخزون متبقي على المركبات'**
+  String get adminDailyReportRemainingOnVehicles;
+
+  /// No description provided for @adminDailyReportSalesSummarySection.
+  ///
+  /// In ar, this message translates to:
+  /// **'ملخص مبيعات اليوم'**
+  String get adminDailyReportSalesSummarySection;
+
+  /// No description provided for @adminDailyReportTotalSalesToday.
+  ///
+  /// In ar, this message translates to:
+  /// **'إجمالي المبيعات اليوم'**
+  String get adminDailyReportTotalSalesToday;
+
+  /// No description provided for @adminDailyReportStationSalesSection.
+  ///
+  /// In ar, this message translates to:
+  /// **'مبيعات المحطة اليوم'**
+  String get adminDailyReportStationSalesSection;
+
+  /// No description provided for @adminDailyReportVehicleSalesSection.
+  ///
+  /// In ar, this message translates to:
+  /// **'مبيعات المركبات اليوم'**
+  String get adminDailyReportVehicleSalesSection;
+
+  /// No description provided for @adminVehicleSalesLabel.
+  ///
+  /// In ar, this message translates to:
+  /// **'مبيعات المركبات'**
+  String get adminVehicleSalesLabel;
 }
 
 class _AppLocalizationsDelegate
