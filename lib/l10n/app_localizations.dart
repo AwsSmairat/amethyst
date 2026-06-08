@@ -799,8 +799,14 @@ abstract class AppLocalizations {
   /// No description provided for @cartonPriceLabel.
   ///
   /// In ar, this message translates to:
-  /// **'مجموع بيع الكراتين'**
+  /// **'مجموع مبلغ البيع (دينار)'**
   String get cartonPriceLabel;
+
+  /// No description provided for @cartonSalesTotalQtyLabel.
+  ///
+  /// In ar, this message translates to:
+  /// **'مجموع الكراتين المباعة (عدد)'**
+  String get cartonSalesTotalQtyLabel;
 
   /// No description provided for @cartonSalesHomeLabel.
   ///
@@ -2283,6 +2289,30 @@ abstract class AppLocalizations {
   /// In ar, this message translates to:
   /// **'إضافة بيع وطباعة فاتورة'**
   String get addSaleAndPrintInvoice;
+
+  /// No description provided for @vehicleSalePaymentCash.
+  ///
+  /// In ar, this message translates to:
+  /// **'كاش'**
+  String get vehicleSalePaymentCash;
+
+  /// No description provided for @vehicleSalePaymentCliq.
+  ///
+  /// In ar, this message translates to:
+  /// **'كليك'**
+  String get vehicleSalePaymentCliq;
+
+  /// No description provided for @vehicleSaleChoosePaymentMethod.
+  ///
+  /// In ar, this message translates to:
+  /// **'طريقة الدفع'**
+  String get vehicleSaleChoosePaymentMethod;
+
+  /// No description provided for @vehicleSalePaymentMethodRequired.
+  ///
+  /// In ar, this message translates to:
+  /// **'اختر طريقة الدفع: كاش أو كليك'**
+  String get vehicleSalePaymentMethodRequired;
 
   /// No description provided for @qtyAmountSubtitle.
   ///

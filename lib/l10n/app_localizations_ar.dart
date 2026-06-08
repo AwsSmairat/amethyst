@@ -375,7 +375,10 @@ class AppLocalizationsAr extends AppLocalizations {
   String get cartonMonthlyExpensesLabel => 'مصاريف الكراتين الشهرية';
 
   @override
-  String get cartonPriceLabel => 'مجموع بيع الكراتين';
+  String get cartonPriceLabel => 'مجموع مبلغ البيع (دينار)';
+
+  @override
+  String get cartonSalesTotalQtyLabel => 'مجموع الكراتين المباعة (عدد)';
 
   @override
   String get cartonSalesHomeLabel => 'بيع الكراتين منزل (المحطة + السيارة)';
@@ -1180,6 +1183,19 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get addSaleAndPrintInvoice => 'إضافة بيع وطباعة فاتورة';
+
+  @override
+  String get vehicleSalePaymentCash => 'كاش';
+
+  @override
+  String get vehicleSalePaymentCliq => 'كليك';
+
+  @override
+  String get vehicleSaleChoosePaymentMethod => 'طريقة الدفع';
+
+  @override
+  String get vehicleSalePaymentMethodRequired =>
+      'اختر طريقة الدفع: كاش أو كليك';
 
   @override
   String qtyAmountSubtitle(String qty, String amount) {

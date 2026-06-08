@@ -3,8 +3,10 @@ import 'package:amethyst/core/utils/parse_dynamic_double.dart';
 import 'package:amethyst/core/data/amethyst_api.dart';
 import 'package:amethyst/core/data/api_list_fetch.dart';
 import 'package:amethyst/core/l10n/context_l10n.dart';
+import 'package:amethyst/l10n/app_localizations.dart';
 import 'package:amethyst/core/station_balance/station_balance_catalog.dart';
 import 'package:amethyst/core/vehicle_sale/vehicle_product_columns.dart';
+import 'package:amethyst/core/vehicle_sale/vehicle_sale_payment_method.dart';
 import 'package:amethyst/core/vehicle_load/vehicle_load_aggregates.dart';
 import 'package:amethyst/core/vehicle_load/vehicle_load_catalog.dart';
 import 'package:amethyst/core/theme/app_colors.dart';
@@ -114,6 +116,7 @@ class _AddVehicleSaleBodyState extends State<_AddVehicleSaleBody> {
   String? _ctxError;
 
   VehicleSalePlace? _selectedPlace;
+  VehicleSalePaymentMethod? _paymentMethod;
 
   /// أزرار كوبون منفصلة لمنتج 1 و2 عند البيع من المنزل (لا تربط بعمود دفتر الكوبون).
   bool _homeCouponLine1On = false;
@@ -544,6 +547,16 @@ class _AddVehicleSaleBodyState extends State<_AddVehicleSaleBody> {
     return lines;
   }
 
+  String _paymentMethodLabel(
+    AppLocalizations l10n,
+    VehicleSalePaymentMethod method,
+  ) {
+    return switch (method) {
+      VehicleSalePaymentMethod.cash => l10n.vehicleSalePaymentCash,
+      VehicleSalePaymentMethod.cliq => l10n.vehicleSalePaymentCliq,
+    };
+  }
+
   @override
   Widget build(BuildContext context) {
     final bottom = MediaQuery.viewInsetsOf(context).bottom;
@@ -576,6 +589,7 @@ class _AddVehicleSaleBodyState extends State<_AddVehicleSaleBody> {
               unitPrices: _unitPrices,
               driverLoadLines: _driverLoadLines,
               columnCount: _columnCount,
+              paymentMethodLabel: _paymentMethodLabel(l10n, _paymentMethod!),
             );
             Navigator.of(context).pop(receipt);
           }
@@ -641,6 +655,7 @@ class _AddVehicleSaleBodyState extends State<_AddVehicleSaleBody> {
                           if (v == null) return;
                           setState(() {
                             _selectedPlace = v;
+                            _paymentMethod = null;
                             if (v != VehicleSalePlace.home) {
                               _homeCouponLine1On = false;
                               _homeCouponLine2On = false;
@@ -696,11 +711,57 @@ class _AddVehicleSaleBodyState extends State<_AddVehicleSaleBody> {
                               : null,
                     ),
                   ),
+                  const SizedBox(height: 16),
+                  Text(
+                    l10n.vehicleSaleChoosePaymentMethod,
+                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                          fontWeight: FontWeight.w800,
+                          color: Theme.of(context).colorScheme.primary,
+                        ),
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: <Widget>[
+                      _PaymentMethodTile(
+                        label: l10n.vehicleSalePaymentCash,
+                        selected:
+                            _paymentMethod == VehicleSalePaymentMethod.cash,
+                        onTap: busy
+                            ? null
+                            : () => setState(
+                                  () => _paymentMethod =
+                                      VehicleSalePaymentMethod.cash,
+                                ),
+                      ),
+                      const SizedBox(width: 10),
+                      _PaymentMethodTile(
+                        label: l10n.vehicleSalePaymentCliq,
+                        selected:
+                            _paymentMethod == VehicleSalePaymentMethod.cliq,
+                        onTap: busy
+                            ? null
+                            : () => setState(
+                                  () => _paymentMethod =
+                                      VehicleSalePaymentMethod.cliq,
+                                ),
+                      ),
+                    ],
+                  ),
                   const SizedBox(height: 20),
                   FilledButton.icon(
                     onPressed: busy
                         ? null
                         : () {
+                            if (_paymentMethod == null) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text(
+                                    l10n.vehicleSalePaymentMethodRequired,
+                                  ),
+                                ),
+                              );
+                              return;
+                            }
                             final lines = _collectLines();
                             if (lines == null) return;
                             context
@@ -712,6 +773,8 @@ class _AddVehicleSaleBodyState extends State<_AddVehicleSaleBody> {
                                       _selectedPlace == VehicleSalePlace.store
                                           ? 'store'
                                           : 'home',
+                                  paymentMethod:
+                                      _paymentMethod!.firestoreValue,
                                 );
                           },
                     icon: busy
@@ -979,6 +1042,50 @@ class _VehicleSaleColumn extends StatelessWidget {
               ),
             ],
           ],
+        ),
+      ),
+    );
+  }
+}
+
+class _PaymentMethodTile extends StatelessWidget {
+  const _PaymentMethodTile({
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final String label;
+  final bool selected;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final ColorScheme scheme = Theme.of(context).colorScheme;
+    return Material(
+      color: selected
+          ? scheme.primary.withValues(alpha: 0.1)
+          : scheme.surfaceContainerHighest,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(10),
+        side: BorderSide(
+          color: selected ? scheme.primary : AppColors.outlineVariant,
+          width: selected ? 1.5 : 1,
+        ),
+      ),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(10),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+          child: Text(
+            label,
+            textAlign: TextAlign.center,
+            style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                  fontWeight: FontWeight.w700,
+                  color: selected ? scheme.primary : AppColors.primaryText,
+                ),
+          ),
         ),
       ),
     );

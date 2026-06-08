@@ -1,3 +1,5 @@
+import 'package:amethyst/core/station_balance/station_balance_catalog.dart';
+
 bool productNameSuggestsFillingSkipStock(String name) {
   final String t = name.trim();
   if (t == 'Water Gallon' || t == 'Water Bottle') {
@@ -16,16 +18,21 @@ bool productNameSuggestsFillingSkipStock(String name) {
   return false;
 }
 
-bool shouldSkipStationStockForDebtProduct(Map<String, dynamic> product) {
-  final String? unitType = product['unitType'] as String?;
-  if (unitType == 'gallon' || unitType == 'bottle') {
+bool shouldSkipStationStockForDebtLine({
+  required Map<String, dynamic> product,
+  int? fillingLineSlot,
+  bool fillingDebt = false,
+}) {
+  if (fillingDebt &&
+      fillingLineSlot != null &&
+      kStationFillingSkipStockColumnIndices.contains(fillingLineSlot)) {
     return true;
   }
-  final String name = product['name'] as String? ?? '';
-  if (name.trim().isNotEmpty && productNameSuggestsFillingSkipStock(name)) {
-    return true;
-  }
-  return false;
+  return shouldSkipStationStockForSale(
+    product: product,
+    fillingSale: fillingDebt,
+    fillingLineSlot: fillingLineSlot,
+  );
 }
 
 bool shouldSkipStationStockForSale({

@@ -5,6 +5,7 @@ import 'package:amethyst/core/theme/app_colors.dart';
 import 'package:amethyst/core/widgets/fab_hero_tags.dart';
 import 'package:amethyst/di/injection.dart';
 import 'package:amethyst/core/printer/receipt_builder.dart';
+import 'package:amethyst/features/driver/presentation/driver_loads_list_refresh.dart';
 import 'package:amethyst/features/driver/presentation/widgets/add_return_sheet.dart';
 import 'package:amethyst/features/driver/presentation/widgets/driver_print_context.dart';
 import 'package:amethyst/features/driver/presentation/widgets/driver_receipt_factory.dart';
@@ -28,7 +29,16 @@ class _DriverLoadsPageState extends State<DriverLoadsPage> {
   @override
   void initState() {
     super.initState();
+    DriverLoadsListRefresh.onRefreshRequested = _load;
     _load();
+  }
+
+  @override
+  void dispose() {
+    if (DriverLoadsListRefresh.onRefreshRequested == _load) {
+      DriverLoadsListRefresh.onRefreshRequested = null;
+    }
+    super.dispose();
   }
 
   Future<void> _printInventoryReport() async {

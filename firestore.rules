@@ -47,6 +47,16 @@ service cloud.firestore {
       );
     }
 
+    function canDriverMarkVehicleSaleRepaid() {
+      return isDriver()
+        && request.resource.data.diff(resource.data).affectedKeys()
+            .hasOnly(['repaidAt', 'updatedAt'])
+        && (
+          resource.data.driverId == request.auth.uid
+          || isAssignedDriverForVehicle(resource.data.vehicleId)
+        );
+    }
+
     match /users/{userId} {
       // السماح بقراءة أسماء السوبر أدمن/الأدمن (مثلاً عند عرض ملاحظة واردة).
       allow get: if isActiveUser() && (
@@ -97,11 +107,7 @@ service cloud.firestore {
     match /vehicle_sales/{saleId} {
       allow read: if isActiveUser();
       allow create: if isDriver() || isStaff();
-      allow update: if isStaff()
-        || (isDriver()
-            && resource.data.driverId == request.auth.uid
-            && request.resource.data.diff(resource.data).affectedKeys()
-                .hasOnly(['repaidAt', 'updatedAt']));
+      allow update: if isStaff() || canDriverMarkVehicleSaleRepaid();
     }
 
     match /staff_notes/{noteId} {

@@ -70,8 +70,13 @@ final class RecordOperationsRepositoryImpl implements RecordOperationsRepository
   Future<void> createStationSalesBatch({
     required List<Map<String, dynamic>> lines,
     bool fillingSale = false,
+    String? paymentMethod,
   }) =>
-      _api.createStationSalesBatch(lines: lines, fillingSale: fillingSale);
+      _api.createStationSalesBatch(
+        lines: lines,
+        fillingSale: fillingSale,
+        paymentMethod: paymentMethod,
+      );
 
   @override
   Future<void> createStationDebtEntries({
@@ -124,11 +129,13 @@ final class RecordOperationsRepositoryImpl implements RecordOperationsRepository
     required String vehicleId,
     required List<Map<String, dynamic>> lines,
     String saleDestination = 'home',
+    String? paymentMethod,
   }) =>
       _api.createVehicleSalesBatch(
         vehicleId: vehicleId,
         lines: lines,
         saleDestination: saleDestination,
+        paymentMethod: paymentMethod,
       );
 
   @override

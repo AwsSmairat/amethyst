@@ -91,28 +91,36 @@ class _StationDebtorDetailPageState extends State<StationDebtorDetailPage> {
     try {
       var vehicleRepaid = 0;
       var stationRepaid = 0;
-      try {
-        final Map<String, dynamic> result =
-            await sl<RepayStationDebtFromVehicleUseCase>().call(
-          debtorName: widget.debtorName,
-        );
-        vehicleRepaid =
-            (result['salesCreated'] as num?)?.toInt() ?? 0;
-      } on ApiException catch (e) {
-        if (e.code != 'NOT_FOUND') {
-          rethrow;
+      final AuthState authState = context.read<AuthCubit>().state;
+      final bool isStaff = authState is AuthAuthenticated &&
+          (authState.user.role == 'admin' ||
+              authState.user.role == 'super_admin');
+      if (hasVehicle) {
+        try {
+          final Map<String, dynamic> result =
+              await sl<RepayStationDebtFromVehicleUseCase>().call(
+            debtorName: widget.debtorName,
+          );
+          vehicleRepaid =
+              (result['salesCreated'] as num?)?.toInt() ?? 0;
+        } on ApiException catch (e) {
+          if (e.code != 'NOT_FOUND') {
+            rethrow;
+          }
         }
       }
-      try {
-        final Map<String, dynamic> result =
-            await sl<RepayStationDebtUseCase>().call(
-          debtorName: widget.debtorName,
-        );
-        stationRepaid =
-            (result['salesCreated'] as num?)?.toInt() ?? 0;
-      } on ApiException catch (e) {
-        if (e.code != 'NOT_FOUND') {
-          rethrow;
+      if (hasStation && isStaff) {
+        try {
+          final Map<String, dynamic> result =
+              await sl<RepayStationDebtUseCase>().call(
+            debtorName: widget.debtorName,
+          );
+          stationRepaid =
+              (result['salesCreated'] as num?)?.toInt() ?? 0;
+        } on ApiException catch (e) {
+          if (e.code != 'NOT_FOUND') {
+            rethrow;
+          }
         }
       }
       if (vehicleRepaid + stationRepaid == 0) {

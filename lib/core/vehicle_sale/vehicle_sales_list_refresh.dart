@@ -5,6 +5,10 @@ class VehicleSalesListRefresh {
   VehicleSalesListRefresh._();
 
   static VoidCallback? onRefreshRequested;
+  static VoidCallback? onDebtListRefresh;
 
-  static void request() => onRefreshRequested?.call();
+  static void request() {
+    onRefreshRequested?.call();
+    onDebtListRefresh?.call();
+  }
 }

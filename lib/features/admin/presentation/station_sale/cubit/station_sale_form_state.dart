@@ -1,4 +1,5 @@
 import 'package:amethyst/core/station_balance/station_balance_catalog.dart';
+import 'package:amethyst/core/vehicle_sale/vehicle_sale_payment_method.dart';
 import 'package:amethyst/features/admin/presentation/station_sale/station_sale_entry_kind.dart';
 import 'package:equatable/equatable.dart';
 
@@ -21,6 +22,7 @@ final class StationSaleFormState extends Equatable {
     required this.couponLine2On,
     required this.columnSkipsStationStock,
     required this.columnStationStock,
+    this.paymentMethod,
   });
 
   factory StationSaleFormState.initial(StationSaleEntryKind entryKind) {
@@ -43,6 +45,7 @@ final class StationSaleFormState extends Equatable {
       couponLine2On: false,
       columnSkipsStationStock: List<bool>.filled(n, false),
       columnStationStock: List<int>.filled(n, 0),
+      paymentMethod: null,
     );
   }
 
@@ -65,6 +68,7 @@ final class StationSaleFormState extends Equatable {
   final List<bool> columnSkipsStationStock;
   /// لقطة مخزون المحطة عند التحميل (للأعمدة التي يُخصم منها).
   final List<int> columnStationStock;
+  final VehicleSalePaymentMethod? paymentMethod;
 
   int get colCount => entryKind == StationSaleEntryKind.filling
       ? kStationFillingColumnCount
@@ -120,6 +124,8 @@ final class StationSaleFormState extends Equatable {
     bool? couponLine2On,
     List<bool>? columnSkipsStationStock,
     List<int>? columnStationStock,
+    VehicleSalePaymentMethod? paymentMethod,
+    bool clearPaymentMethod = false,
   }) {
     return StationSaleFormState(
       entryKind: entryKind,
@@ -142,6 +148,8 @@ final class StationSaleFormState extends Equatable {
       columnSkipsStationStock:
           columnSkipsStationStock ?? this.columnSkipsStationStock,
       columnStationStock: columnStationStock ?? this.columnStationStock,
+      paymentMethod:
+          clearPaymentMethod ? null : (paymentMethod ?? this.paymentMethod),
     );
   }
 
@@ -164,5 +172,6 @@ final class StationSaleFormState extends Equatable {
         couponLine2On,
         columnSkipsStationStock,
         columnStationStock,
+        paymentMethod,
       ];
 }

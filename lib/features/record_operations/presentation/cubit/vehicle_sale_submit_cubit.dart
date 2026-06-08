@@ -79,12 +79,14 @@ final class VehicleSaleSubmitCubit extends Cubit<SubmitState> {
     required String vehicleId,
     required List<VehicleSaleLineInput> lines,
     String saleDestination = 'home',
+    String? paymentMethod,
   }) async {
     emit(const SubmitLoading());
     try {
       await _batchUseCase(
         vehicleId: vehicleId,
         saleDestination: saleDestination,
+        paymentMethod: paymentMethod,
         lines: lines
             .map(
               (VehicleSaleLineInput line) => <String, dynamic>{

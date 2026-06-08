@@ -236,8 +236,13 @@ final class AmethystApi {
   Future<void> createStationSalesBatch({
     required List<Map<String, dynamic>> lines,
     bool fillingSale = false,
+    String? paymentMethod,
   }) =>
-      _b.createStationSalesBatch(lines: lines, fillingSale: fillingSale);
+      _b.createStationSalesBatch(
+        lines: lines,
+        fillingSale: fillingSale,
+        paymentMethod: paymentMethod,
+      );
 
   Future<void> createStationDebtEntries({
     required String debtorName,
@@ -303,11 +308,13 @@ final class AmethystApi {
     required String vehicleId,
     required List<Map<String, dynamic>> lines,
     String saleDestination = 'home',
+    String? paymentMethod,
   }) =>
       _b.createVehicleSalesBatch(
         vehicleId: vehicleId,
         lines: lines,
         saleDestination: saleDestination,
+        paymentMethod: paymentMethod,
       );
 
   Future<Map<String, dynamic>> listExpenses({

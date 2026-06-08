@@ -230,21 +230,21 @@ int vehicleDebtMaxSellableQuantity({
   required int vehicleRemaining,
   required int stationStock,
 }) {
-  if (vehicleDebtColumnUsesVehicleLoad(place, columnIndex)) {
-    return vehicleRemaining < 0 ? 0 : vehicleRemaining;
-  }
   final bool homeMahdiOrCoupon =
       place == VehicleProductColumnPlace.home &&
           columnIndex >= kVehicleHomeMahdiColumnIndex &&
           columnIndex < kVehicleLoadFixedRowCount;
   final bool storeMahdi =
       place == VehicleProductColumnPlace.store && columnIndex == 2;
-  if (!homeMahdiOrCoupon && !storeMahdi) {
-    return 999999;
+  if (homeMahdiOrCoupon || storeMahdi) {
+    final int onVehicle = vehicleRemaining < 0 ? 0 : vehicleRemaining;
+    final int atStation = stationStock < 0 ? 0 : stationStock;
+    return onVehicle < atStation ? onVehicle : atStation;
   }
-  final int onVehicle = vehicleRemaining < 0 ? 0 : vehicleRemaining;
-  final int atStation = stationStock < 0 ? 0 : stationStock;
-  return onVehicle < atStation ? onVehicle : atStation;
+  if (vehicleSaleLineDeductsFromVehicleLoad(place, columnIndex)) {
+    return vehicleRemaining < 0 ? 0 : vehicleRemaining;
+  }
+  return 999999;
 }
 
 /// رقم «المخزون» المعروض في شاشة دين المركبة (الكمية القابلة للبيع فعلياً).
@@ -255,15 +255,8 @@ int? vehicleDebtDisplayedStock({
   required int stationStock,
   required bool skipsStationStock,
 }) {
-  if (vehicleDebtColumnUsesVehicleLoad(place, columnIndex)) {
-    return vehicleDebtMaxSellableQuantity(
-      place: place,
-      columnIndex: columnIndex,
-      vehicleRemaining: vehicleRemaining,
-      stationStock: stationStock,
-    );
-  }
-  if (skipsStationStock) {
+  if (!vehicleSaleLineDeductsFromVehicleLoad(place, columnIndex) &&
+      skipsStationStock) {
     return null;
   }
   return vehicleDebtMaxSellableQuantity(
@@ -498,15 +491,39 @@ bool vehicleProductColumnSkipsStationStock(
 ) =>
     !vehicleProductColumnDeductsStationStock(place, columnIndex);
 
-/// أعمدة تُخصم من حمولة السيارة (جالون/قارورة ٢٠ لتر) — منزل ١–٢ ومتجر ١–٢.
-bool vehicleDebtColumnUsesVehicleLoad(
+/// يُخصم من حمولة السيارة عند البيع/الدين (مطابق [add_vehicle_sale_sheet.dart]).
+bool vehicleSaleLineDeductsFromVehicleLoad(
   VehicleProductColumnPlace place,
   int columnIndex,
 ) {
   return switch (place) {
-    VehicleProductColumnPlace.home => columnIndex < kVehicleHomeMahdiColumnIndex,
-    VehicleProductColumnPlace.store => columnIndex < 2,
+    VehicleProductColumnPlace.home => columnIndex < kVehicleLoadFixedRowCount,
+    VehicleProductColumnPlace.store => columnIndex <= 2,
   };
+}
+
+/// أعمدة تُخصم من حمولة السيارة في واجهة دين المركبة (نفس [vehicleSaleLineDeductsFromVehicleLoad]).
+bool vehicleDebtColumnUsesVehicleLoad(
+  VehicleProductColumnPlace place,
+  int columnIndex,
+) =>
+    vehicleSaleLineDeductsFromVehicleLoad(place, columnIndex);
+
+bool vehicleLoadProductIdsMatch({
+  required String targetProductId,
+  required String targetProductName,
+  required String loadProductId,
+  required String loadProductName,
+}) {
+  if (targetProductId.isNotEmpty &&
+      loadProductId.isNotEmpty &&
+      targetProductId == loadProductId) {
+    return true;
+  }
+  if (targetProductName.isEmpty || loadProductName.isEmpty) {
+    return false;
+  }
+  return stationBalanceProductNamesMatch(loadProductName, targetProductName);
 }
 
 /// تسمية مصدر الحمولة المعروضة تحت «المتبقي» (دين المركبة).

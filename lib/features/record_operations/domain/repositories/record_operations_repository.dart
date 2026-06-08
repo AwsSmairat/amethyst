@@ -39,6 +39,7 @@ abstract class RecordOperationsRepository {
   Future<void> createStationSalesBatch({
     required List<Map<String, dynamic>> lines,
     bool fillingSale = false,
+    String? paymentMethod,
   });
 
   /// دين محطة — منفصل عن مبيعات المحطة.
@@ -77,6 +78,7 @@ abstract class RecordOperationsRepository {
     required String vehicleId,
     required List<Map<String, dynamic>> lines,
     String saleDestination = 'home',
+    String? paymentMethod,
   });
 
   Future<void> createExpense({

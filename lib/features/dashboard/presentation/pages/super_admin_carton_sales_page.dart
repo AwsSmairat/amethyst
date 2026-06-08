@@ -198,9 +198,9 @@ class _SuperAdminCartonSalesBody extends StatelessWidget {
                       icon: Icons.pending_actions_outlined,
                     ),
                     _InfoRow(
-                      label: '${l10n.cartonPriceLabel} ($monthLabel)',
-                      value: _formatPrice(d['monthlyCartonSalesTotalAmount']),
-                      icon: Icons.payments_outlined,
+                      label: '${l10n.cartonSalesTotalQtyLabel} ($monthLabel)',
+                      value: _formatInt(d['monthlyCartonSalesTotalQty']),
+                      icon: Icons.inventory_2_outlined,
                     ),
                     _InfoRow(
                       label: l10n.cartonSalesHomeLabel,
@@ -211,6 +211,11 @@ class _SuperAdminCartonSalesBody extends StatelessWidget {
                       label: l10n.cartonSalesStoreLabel,
                       value: _formatInt(d['monthlyCartonSalesStoreQty']),
                       icon: Icons.storefront_outlined,
+                    ),
+                    _InfoRow(
+                      label: '${l10n.cartonPriceLabel} ($monthLabel)',
+                      value: _formatPrice(d['monthlyCartonSalesTotalAmount']),
+                      icon: Icons.payments_outlined,
                     ),
                   ],
                 ),

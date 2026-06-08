@@ -1,5 +1,6 @@
 import 'package:amethyst/core/catalog/catalog_product_display_label.dart';
 import 'package:amethyst/core/data/amethyst_api.dart';
+import 'package:amethyst/core/vehicle_sale/vehicle_sale_payment_method.dart';
 import 'package:amethyst/core/vehicle_sale/vehicle_sales_aggregates.dart';
 import 'package:amethyst/core/vehicle_sale/vehicle_sales_list_refresh.dart';
 import 'package:amethyst/core/utils/parse_api_datetime.dart';
@@ -338,6 +339,36 @@ String _vehicleSaleDestinationLabel(AppLocalizations l10n, String? raw) {
   return '—';
 }
 
+class _VehicleSaleBadge extends StatelessWidget {
+  const _VehicleSaleBadge({
+    required this.label,
+    required this.color,
+  });
+
+  final String label;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    final ThemeData theme = Theme.of(context);
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(
+        color: AppColors.tertiaryFixed.withValues(alpha: 0.55),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: color.withValues(alpha: 0.25)),
+      ),
+      child: Text(
+        label,
+        style: theme.textTheme.labelMedium?.copyWith(
+          fontWeight: FontWeight.w800,
+          color: color,
+        ),
+      ),
+    );
+  }
+}
+
 class _VehicleSaleLineTile extends StatelessWidget {
   const _VehicleSaleLineTile({required this.item});
 
@@ -392,6 +423,12 @@ class _VehicleSaleLineTile extends StatelessWidget {
         unit != null ? money.format(unit) : (item['unitPrice']?.toString() ?? '—');
 
     final bool debtRepayment = isVehicleDebtRepaymentSale(item);
+    final String? paymentLabel = debtRepayment
+        ? null
+        : vehicleSalePaymentMethodLabel(
+            l10n,
+            item['paymentMethod']?.toString(),
+          );
     final bool coupon = shouldShowVehicleSaleCouponBadge(
       item,
       displayProductName: productName,
@@ -445,48 +482,26 @@ class _VehicleSaleLineTile extends StatelessWidget {
                   ),
                   if (debtRepayment) ...<Widget>[
                     const SizedBox(width: 8),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 10,
-                        vertical: 4,
-                      ),
-                      decoration: BoxDecoration(
-                        color: AppColors.tertiaryFixed.withValues(alpha: 0.55),
-                        borderRadius: BorderRadius.circular(20),
-                        border: Border.all(
-                          color: theme.colorScheme.primary.withValues(alpha: 0.25),
-                        ),
-                      ),
-                      child: Text(
-                        l10n.vehicleSaleDebtRepaymentBadge,
-                        style: theme.textTheme.labelMedium?.copyWith(
-                          fontWeight: FontWeight.w800,
-                          color: theme.colorScheme.primary,
-                        ),
-                      ),
+                    _VehicleSaleBadge(
+                      label: l10n.vehicleSaleDebtRepaymentBadge,
+                      color: theme.colorScheme.primary,
+                    ),
+                  ],
+                  if (paymentLabel != null) ...<Widget>[
+                    const SizedBox(width: 8),
+                    _VehicleSaleBadge(
+                      label: paymentLabel,
+                      color: item['paymentMethod']?.toString().trim().toLowerCase() ==
+                              'cliq'
+                          ? AppColors.brandPrimary
+                          : AppColors.success,
                     ),
                   ],
                   if (coupon) ...<Widget>[
-                    const SizedBox(width: 10),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 10,
-                        vertical: 4,
-                      ),
-                      decoration: BoxDecoration(
-                        color: AppColors.tertiaryFixed.withValues(alpha: 0.55),
-                        borderRadius: BorderRadius.circular(20),
-                        border: Border.all(
-                          color: theme.colorScheme.primary.withValues(alpha: 0.25),
-                        ),
-                      ),
-                      child: Text(
-                        l10n.couponButton,
-                        style: theme.textTheme.labelMedium?.copyWith(
-                          fontWeight: FontWeight.w800,
-                          color: theme.colorScheme.primary,
-                        ),
-                      ),
+                    const SizedBox(width: 8),
+                    _VehicleSaleBadge(
+                      label: l10n.couponButton,
+                      color: theme.colorScheme.primary,
                     ),
                   ],
                 ],

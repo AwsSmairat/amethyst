@@ -1,5 +1,7 @@
 import 'package:amethyst/core/l10n/context_l10n.dart';
 import 'package:amethyst/core/station_balance/station_balance_list_refresh.dart';
+import 'package:amethyst/core/vehicle_sale/vehicle_sale_payment_method.dart';
+import 'package:amethyst/core/widgets/sale_payment_method_picker.dart';
 import 'package:amethyst/features/admin/presentation/station_sale/cubit/station_sale_form_cubit.dart';
 import 'package:amethyst/features/admin/presentation/station_sale/cubit/station_sale_form_state.dart';
 import 'package:amethyst/features/admin/presentation/station_sale/station_sale_entry_kind.dart';
@@ -41,10 +43,13 @@ class StationSaleFormView extends StatelessWidget {
               SnackBar(content: Text(l10n.stationSalesRecorded)),
             );
           } else if (state.submitError != null) {
-            final String msg = state.submitError ==
-                    kStationSaleInsufficientStockSubmitMarker
-                ? l10n.stationSaleSubmitInsufficientStock
-                : state.submitError!;
+            final String msg = switch (state.submitError) {
+              kStationSaleInsufficientStockSubmitMarker =>
+                l10n.stationSaleSubmitInsufficientStock,
+              kStationSalePaymentMethodRequiredMarker =>
+                l10n.vehicleSalePaymentMethodRequired,
+              _ => state.submitError!,
+            };
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(content: Text(msg)),
             );
@@ -196,12 +201,36 @@ class StationSaleFormView extends StatelessWidget {
                   ),
                 ],
                 const SizedBox(height: 20),
+                SalePaymentMethodPicker(
+                  title: l10n.vehicleSaleChoosePaymentMethod,
+                  cashLabel: l10n.vehicleSalePaymentCash,
+                  cliqLabel: l10n.vehicleSalePaymentCliq,
+                  selected: state.paymentMethod,
+                  enabled: !busy,
+                  onCashTap: () => context
+                      .read<StationSaleFormCubit>()
+                      .setPaymentMethod(VehicleSalePaymentMethod.cash),
+                  onCliqTap: () => context
+                      .read<StationSaleFormCubit>()
+                      .setPaymentMethod(VehicleSalePaymentMethod.cliq),
+                ),
+                const SizedBox(height: 20),
                 FilledButton(
                   onPressed: busy
                       ? null
                       : () {
                           final StationSaleFormCubit cubit =
                               context.read<StationSaleFormCubit>();
+                          if (state.paymentMethod == null) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(
+                                  l10n.vehicleSalePaymentMethodRequired,
+                                ),
+                              ),
+                            );
+                            return;
+                          }
                           final err = cubit.validate();
                           if (err != null) {
                             ScaffoldMessenger.of(context).showSnackBar(

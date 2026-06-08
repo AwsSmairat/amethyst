@@ -233,6 +233,7 @@ final class StationDebtRegistrationCubit extends Cubit<StationDebtRegistrationSt
       final List<int> stocks = List<int>.filled(n, 0, growable: false);
       final List<String> namesOut =
           List<String>.filled(n, '', growable: false);
+      _stockProductIds = List<String?>.filled(n, null, growable: false);
       for (var i = 0; i < n; i++) {
         Map<String, dynamic>? row;
         String? id = ids[i];
@@ -245,6 +246,11 @@ final class StationDebtRegistrationCubit extends Cubit<StationDebtRegistrationSt
           }
         }
         if (!emptySale && i == 4) {
+          final String? mahdiStockId =
+              resolveMahdiCartonStockProductId(products: items);
+          if (mahdiStockId != null && mahdiStockId.isNotEmpty) {
+            _stockProductIds[i] = mahdiStockId;
+          }
           stocks[i] = aggregateStationStockForBalanceRow(
             products: items,
             rowIndex: 0,
@@ -412,10 +418,21 @@ final class StationDebtRegistrationCubit extends Cubit<StationDebtRegistrationSt
           products: catalog,
         );
         final double price = state.unitPrices[i]!;
+        final String? lineStockId = i < _stockProductIds.length
+            ? _stockProductIds[i]
+            : null;
+        final String stockProductId = (lineStockId != null &&
+                lineStockId.isNotEmpty)
+            ? lineStockId
+            : pid;
         lines.add(<String, dynamic>{
           'productId': pid,
           'quantity': q,
           'unitPrice': price,
+          if (vehiclePlace == null &&
+              stationEntryKind == StationSaleEntryKind.filling)
+            'fillingLineSlot': i,
+          if (stockProductId != pid) 'stockProductId': stockProductId,
         });
         final String? stockId = i < _stockProductIds.length
             ? _stockProductIds[i]
@@ -495,18 +512,25 @@ final class StationDebtRegistrationCubit extends Cubit<StationDebtRegistrationSt
               int quantity,
               double unitPrice,
             }) line in vehicleLines) {
+          final bool deductFromVehicleLoad = vehicleSaleLineDeductsFromVehicleLoad(
+            columnPlace,
+            line.columnIndex,
+          );
+          final bool deductStationStock = vehicleProductColumnDeductsStationStock(
+            columnPlace,
+            line.columnIndex,
+          );
           batchLines.add(<String, dynamic>{
             'productId': line.productId,
             'quantity': line.quantity,
             'unitPrice': line.unitPrice,
-            if (line.stockProductId != null)
+            if (line.stockProductId != null &&
+                line.stockProductId!.isNotEmpty)
               'stockProductId': line.stockProductId,
             'debtorName': debtor,
             'isDebt': true,
-            'deductStationStock': vehicleProductColumnDeductsStationStock(
-              columnPlace,
-              line.columnIndex,
-            ),
+            'deductStationStock': deductStationStock,
+            'skipLoadDeduction': !deductFromVehicleLoad,
           });
         }
         await createVehicleSalesBatch(

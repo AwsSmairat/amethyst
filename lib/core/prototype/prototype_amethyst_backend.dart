@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:typed_data';
 
 import 'package:amethyst/core/network/api_exception.dart';
+import 'package:amethyst/core/station_debt/station_debt_entry_utils.dart';
 import 'package:amethyst/core/station_balance/station_balance_catalog.dart';
 import 'package:amethyst/core/prototype/prototype_sample_data.dart';
 import 'package:amethyst/core/utils/parse_api_datetime.dart';
@@ -249,6 +250,7 @@ final class PrototypeAmethystBackend {
   Future<void> createStationSalesBatch({
     required List<Map<String, dynamic>> lines,
     bool fillingSale = false,
+    String? paymentMethod,
   }) async {
     for (final Map<String, dynamic> line in lines) {
       await createStationSale(
@@ -258,6 +260,7 @@ final class PrototypeAmethystBackend {
         fillingSale: fillingSale,
         fillingLineSlot: (line['fillingLineSlot'] as num?)?.toInt(),
         note: line['note'] as String?,
+        paymentMethod: paymentMethod,
       );
     }
   }
@@ -269,6 +272,7 @@ final class PrototypeAmethystBackend {
     bool fillingSale = false,
     int? fillingLineSlot,
     String? note,
+    String? paymentMethod,
   }) async {
     final bool skipStock = fillingSale &&
         fillingLineSlot != null &&
@@ -279,6 +283,7 @@ final class PrototypeAmethystBackend {
         quantity: quantity,
         unitPrice: unitPrice,
         note: note,
+        paymentMethod: paymentMethod,
         skipStockDeduction: skipStock,
       );
       return <String, dynamic>{'item': row};
@@ -316,8 +321,7 @@ final class PrototypeAmethystBackend {
         items
             .where(
               (Map<String, dynamic> e) =>
-                  e['recordingSource']?.toString() == 'vehicle' &&
-                  e['recordedById']?.toString() == driverId,
+                  isDriverVehicleDebtEntry(e, driverId: driverId),
             )
             .toList(growable: false),
         page: page,
@@ -406,6 +410,7 @@ final class PrototypeAmethystBackend {
     required String vehicleId,
     required List<Map<String, dynamic>> lines,
     String saleDestination = 'home',
+    String? paymentMethod,
   }) async {
     for (final Map<String, dynamic> line in lines) {
       PrototypeSampleData.addVehicleSale(
@@ -416,6 +421,9 @@ final class PrototypeAmethystBackend {
         saleDestination: saleDestination,
         stockProductId: line['stockProductId'] as String?,
         skipLoadDeduction: line['skipLoadDeduction'] == true,
+        debtorName: line['debtorName'] as String?,
+        isDebt: line['isDebt'] == true,
+        paymentMethod: paymentMethod,
       );
       if (line['deductStationStock'] == true) {
         PrototypeSampleData.deductStationStockForSale(

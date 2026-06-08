@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:amethyst/core/prototype/prototype_credentials.dart';
 import 'package:amethyst/core/prototype/prototype_local_store.dart';
 import 'package:amethyst/core/prototype/prototype_session.dart';
+import 'package:amethyst/core/firebase/station_stock_skip.dart';
 import 'package:amethyst/core/station_balance/station_balance_catalog.dart';
 import 'package:amethyst/core/utils/parse_dynamic_double.dart';
 import 'package:amethyst/core/vehicle_load/vehicle_load_aggregates.dart';
@@ -629,6 +630,7 @@ final class PrototypeSampleData {
     required int quantity,
     required double unitPrice,
     String? note,
+    String? paymentMethod,
     String? settledFromDebtId,
     bool skipStockDeduction = false,
   }) {
@@ -651,6 +653,8 @@ final class PrototypeSampleData {
       'soldById': soldById,
       'soldBy': userBrief(soldById),
       'note': note,
+      if (paymentMethod != null && paymentMethod.trim().isNotEmpty)
+        'paymentMethod': paymentMethod.trim(),
       if (settledFromDebtId != null && settledFromDebtId.isNotEmpty)
         'settledFromDebtId': settledFromDebtId,
       'createdAt': _now,
@@ -765,13 +769,32 @@ final class PrototypeSampleData {
       if (productId.isEmpty || quantity <= 0) {
         continue;
       }
+      final String stockProductId =
+          line['stockProductId']?.toString().trim().isNotEmpty == true
+              ? line['stockProductId']!.toString().trim()
+              : productId;
+      final int? fillingLineSlot =
+          (line['fillingLineSlot'] as num?)?.toInt();
       final Map<String, dynamic> product = productById(productId);
+      final bool fillingDebt = fillingLineSlot != null;
+      if (!shouldSkipStationStockForDebtLine(
+        product: product,
+        fillingLineSlot: fillingLineSlot,
+        fillingDebt: fillingDebt,
+      )) {
+        applyStationStockDeductionForSale(
+          products: _products,
+          productId: stockProductId,
+          quantity: quantity,
+        );
+      }
+      final Map<String, dynamic> productAfter = productById(productId);
       _stationDebtEntries.add(
         <String, dynamic>{
           'id': 'debt_${_stationDebtEntries.length + 1}_${created.millisecondsSinceEpoch}',
           'debtorName': debtorName.trim(),
-          'productId': product['id'],
-          'product': product,
+          'productId': productAfter['id'],
+          'product': productAfter,
           'quantity': quantity,
           'unitPrice': unitPrice,
           'totalAmount': unitPrice * quantity,
@@ -1102,6 +1125,7 @@ final class PrototypeSampleData {
     bool isDebt = false,
     bool skipLoadDeduction = false,
     String? settledFromDebtSaleId,
+    String? paymentMethod,
   }) {
     _ensureInitialVehicleSales();
     final Map<String, dynamic> vehicle = vehicleById(vehicleId);
@@ -1129,6 +1153,10 @@ final class PrototypeSampleData {
       'totalAmount': unitPrice * quantity,
       'saleDestination': saleDestination,
       'isDebt': isDebt,
+      if (!isDebt &&
+          paymentMethod != null &&
+          paymentMethod.trim().isNotEmpty)
+        'paymentMethod': paymentMethod.trim(),
       if (debtorName != null && debtorName.trim().isNotEmpty)
         'debtorName': debtorName.trim(),
       if (settledFromDebtSaleId != null && settledFromDebtSaleId.isNotEmpty)
@@ -1704,6 +1732,7 @@ final class PrototypeSampleData {
       'cartonStock': _intField(carton, 'stationStock'),
       'monthlyCartonExpensesTotalAmount': cartonExpenses,
       'monthlyCartonSalesTotalAmount': monthlyCartonSales,
+      'monthlyCartonSalesTotalQty': cartonSalesQtyHome + cartonSalesQtyStore,
       'monthlyCartonSalesHomeQty': cartonSalesQtyHome,
       'monthlyCartonSalesStoreQty': cartonSalesQtyStore,
       'cartonDebtUnpaidQuantity': debtQty,

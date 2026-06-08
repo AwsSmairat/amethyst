@@ -851,52 +851,96 @@ int _deductStationStockFromProductInList({
   return 0;
 }
 
-/// خصم [quantity] من مخزون المحطة بعد البيع/الدين (يُحدّث قوائم المنتجات في الذاكرة).
-void applyStationStockDeductionForSale({
+int _stationStockAvailableInList({
+  required List<Map<String, dynamic>> products,
+  required String productId,
+}) {
+  for (final Map<String, dynamic> p in products) {
+    if (p['id']?.toString() == productId) {
+      return stationStockFromProductJson(p);
+    }
+  }
+  return 0;
+}
+
+List<String> _stationStockDeductionOrder({
+  required List<Map<String, dynamic>> products,
+  required String productId,
+}) {
+  final String pid = productId.trim();
+  final int? row = balanceRowIndexForProductId(
+    products: products,
+    productId: pid,
+  );
+  if (row == null) {
+    return <String>[pid];
+  }
+  final List<String> rowIds = productIdsForBalanceRow(
+    products: products,
+    rowIndex: row,
+  );
+  return <String>[
+    pid,
+    for (final String id in rowIds)
+      if (id != pid) id,
+  ];
+}
+
+/// يحدد كم يُخصم من كل منتج ضمن صف الرصيد (بدون تعديل القائمة).
+Map<String, int> planStationStockDeduction({
   required List<Map<String, dynamic>> products,
   required String productId,
   required int quantity,
 }) {
   if (quantity <= 0) {
-    return;
+    return const <String, int>{};
   }
   final String pid = productId.trim();
   if (pid.isEmpty) {
     throw StateError('INSUFFICIENT_STOCK');
   }
   var remaining = quantity;
-  final int? row = balanceRowIndexForProductId(
+  final Map<String, int> plan = <String, int>{};
+  for (final String id in _stationStockDeductionOrder(
     products: products,
     productId: pid,
-  );
-  if (row != null) {
-    final List<String> rowIds = productIdsForBalanceRow(
-      products: products,
-      rowIndex: row,
-    );
-    final List<String> order = <String>[
-      pid,
-      for (final String id in rowIds)
-        if (id != pid) id,
-    ];
-    for (final String id in order) {
-      if (remaining <= 0) {
-        break;
-      }
-      remaining -= _deductStationStockFromProductInList(
-        products: products,
-        productId: id,
-        quantity: remaining,
-      );
+  )) {
+    if (remaining <= 0) {
+      break;
     }
-  } else {
-    remaining -= _deductStationStockFromProductInList(
+    final int available = _stationStockAvailableInList(
       products: products,
-      productId: pid,
-      quantity: remaining,
+      productId: id,
     );
+    if (available <= 0) {
+      continue;
+    }
+    final int take = remaining < available ? remaining : available;
+    plan[id] = (plan[id] ?? 0) + take;
+    remaining -= take;
   }
   if (remaining > 0) {
     throw StateError('INSUFFICIENT_STOCK');
+  }
+  return plan;
+}
+
+/// خصم [quantity] من مخزون المحطة بعد البيع/الدين (يُحدّث قوائم المنتجات في الذاكرة).
+void applyStationStockDeductionForSale({
+  required List<Map<String, dynamic>> products,
+  required String productId,
+  required int quantity,
+}) {
+  final Map<String, int> plan = planStationStockDeduction(
+    products: products,
+    productId: productId,
+    quantity: quantity,
+  );
+  for (final MapEntry<String, int> entry in plan.entries) {
+    _deductStationStockFromProductInList(
+      products: products,
+      productId: entry.key,
+      quantity: entry.value,
+    );
   }
 }

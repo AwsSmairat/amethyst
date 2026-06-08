@@ -1,4 +1,5 @@
 import 'package:amethyst/core/network/api_exception.dart';
+import 'package:amethyst/core/vehicle_sale/vehicle_sale_payment_method.dart';
 import 'package:amethyst/core/station_balance/station_balance_catalog.dart';
 import 'package:amethyst/features/admin/presentation/station_sale/station_sale_api_product_names.dart';
 import 'package:amethyst/features/admin/presentation/station_sale/station_sale_entry_kind.dart';
@@ -30,6 +31,9 @@ const String kFillingCouponSaleNote = 'كوبون';
 /// تُستبدَل في الواجهة برسالة `stationSaleSubmitInsufficientStock`.
 const String kStationSaleInsufficientStockSubmitMarker =
     'STATION_SALE_INSUFFICIENT_STOCK';
+
+const String kStationSalePaymentMethodRequiredMarker =
+    'STATION_SALE_PAYMENT_METHOD_REQUIRED';
 
 final class StationSaleFormCubit extends Cubit<StationSaleFormState> {
   StationSaleFormCubit({
@@ -264,6 +268,10 @@ final class StationSaleFormCubit extends Cubit<StationSaleFormState> {
     emit(state.copyWith(withFillingRow2On: !state.withFillingRow2On));
   }
 
+  void setPaymentMethod(VehicleSalePaymentMethod method) {
+    emit(state.copyWith(paymentMethod: method));
+  }
+
   void toggleCouponLine(int productIndex) {
     if (productIndex == 0) {
       emit(state.copyWith(couponLine1On: !state.couponLine1On));
@@ -343,6 +351,14 @@ final class StationSaleFormCubit extends Cubit<StationSaleFormState> {
   }
 
   Future<void> submit() async {
+    if (state.paymentMethod == null) {
+      emit(
+        state.copyWith(
+          submitError: kStationSalePaymentMethodRequiredMarker,
+        ),
+      );
+      return;
+    }
     final _LineBuild built = _buildLines();
     if (built.err != null) {
       return;
@@ -406,6 +422,7 @@ final class StationSaleFormCubit extends Cubit<StationSaleFormState> {
       await _createStationSale.callBatch(
         lines: batchLines,
         fillingSale: fillingSale,
+        paymentMethod: state.paymentMethod!.firestoreValue,
       );
       emit(
         state.copyWith(

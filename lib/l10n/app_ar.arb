@@ -142,7 +142,8 @@
   "superAdminDebtListKpiCaption": "غير مسدد — الاسم والمنتجات",
   "cartonStockLabel": "مخزون كراتين",
   "cartonMonthlyExpensesLabel": "مصاريف الكراتين الشهرية",
-  "cartonPriceLabel": "مجموع بيع الكراتين",
+  "cartonPriceLabel": "مجموع مبلغ البيع (دينار)",
+  "cartonSalesTotalQtyLabel": "مجموع الكراتين المباعة (عدد)",
   "cartonSalesHomeLabel": "بيع الكراتين منزل (المحطة + السيارة)",
   "cartonSalesStoreLabel": "بيع الكراتين متجر (من السيارة للمتاجر)",
   "cartonDebtUnpaidLabel": "كراتين دين (غير مسدد — الإجمالي الحالي)",
@@ -516,6 +517,10 @@
   "product": "منتج",
   "addSale": "إضافة بيع",
   "addSaleAndPrintInvoice": "إضافة بيع وطباعة فاتورة",
+  "vehicleSalePaymentCash": "كاش",
+  "vehicleSalePaymentCliq": "كليك",
+  "vehicleSaleChoosePaymentMethod": "طريقة الدفع",
+  "vehicleSalePaymentMethodRequired": "اختر طريقة الدفع: كاش أو كليك",
   "qtyAmountSubtitle": "الكمية {qty} · {amount}",
   "@qtyAmountSubtitle": {
     "placeholders": {

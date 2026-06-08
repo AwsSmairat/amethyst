@@ -1,5 +1,6 @@
 import 'package:amethyst/core/catalog/catalog_product_display_label.dart';
 import 'package:amethyst/core/l10n/context_l10n.dart';
+import 'package:amethyst/core/vehicle_sale/vehicle_sale_payment_method.dart';
 import 'package:amethyst/core/presentation/list_load_state.dart';
 import 'package:amethyst/core/theme/app_colors.dart';
 import 'package:amethyst/core/utils/parse_api_datetime.dart';
@@ -249,6 +250,36 @@ List<Widget> _interleavedSaleLines(
   return w;
 }
 
+class _StationSalePaymentBadge extends StatelessWidget {
+  const _StationSalePaymentBadge({
+    required this.label,
+    required this.color,
+  });
+
+  final String label;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    final ThemeData theme = Theme.of(context);
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(
+        color: AppColors.tertiaryFixed.withValues(alpha: 0.55),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: color.withValues(alpha: 0.25)),
+      ),
+      child: Text(
+        label,
+        style: theme.textTheme.labelMedium?.copyWith(
+          fontWeight: FontWeight.w800,
+          color: color,
+        ),
+      ),
+    );
+  }
+}
+
 class _StationSaleLine extends StatelessWidget {
   const _StationSaleLine({required this.item});
 
@@ -286,6 +317,8 @@ class _StationSaleLine extends StatelessWidget {
     final dynamic qty = item['quantity'];
     final String unitStr = _formatMoney(item['unitPrice']);
     final String totalStr = _formatMoney(item['totalAmount']);
+    final bool debtRepayment =
+        (item['settledFromDebtId']?.toString().trim().isNotEmpty ?? false);
     String note = item['note']?.toString().trim() ?? '';
     if (note.isEmpty) {
       final double? up = _parseMoneyAmount(item['unitPrice']);
@@ -293,6 +326,13 @@ class _StationSaleLine extends StatelessWidget {
         note = l10n.couponButton;
       }
     }
+    final String? paymentLabel = debtRepayment
+        ? null
+        : vehicleSalePaymentMethodLabel(
+            l10n,
+            item['paymentMethod']?.toString(),
+          );
+    final String? paymentRaw = item['paymentMethod']?.toString().trim().toLowerCase();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -310,6 +350,15 @@ class _StationSaleLine extends StatelessWidget {
                 ),
               ),
             ),
+            if (paymentLabel != null) ...<Widget>[
+              const SizedBox(width: 8),
+              _StationSalePaymentBadge(
+                label: paymentLabel,
+                color: paymentRaw == 'cliq'
+                    ? AppColors.brandPrimary
+                    : AppColors.success,
+              ),
+            ],
             if (note.isNotEmpty) ...<Widget>[
               const SizedBox(width: 8),
               Text(

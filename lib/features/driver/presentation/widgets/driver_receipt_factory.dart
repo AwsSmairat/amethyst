@@ -16,6 +16,7 @@ abstract final class DriverReceiptFactory {
     required List<double?> unitPrices,
     required List<Map<String, dynamic>> driverLoadLines,
     required int columnCount,
+    String? paymentMethodLabel,
   }) {
     final DateTime now = DateTime.now();
     final List<ReceiptLineItem> items = <ReceiptLineItem>[];
@@ -62,7 +63,7 @@ abstract final class DriverReceiptFactory {
       vehicleName: vehicleName,
       items: items,
       grandTotal: grandTotal,
-      paymentMethod: _paymentMethodLabel(l10n, place),
+      paymentMethod: paymentMethodLabel ?? _paymentMethodLabel(l10n, place),
       remainingInventory: remaining,
     );
   }

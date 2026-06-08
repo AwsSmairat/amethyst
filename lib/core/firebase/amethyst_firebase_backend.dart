@@ -12,6 +12,7 @@ import 'package:amethyst/core/firebase/station_stock_skip.dart';
 import 'package:amethyst/core/network/api_exception.dart';
 import 'package:amethyst/core/station_balance/station_balance_catalog.dart';
 import 'package:amethyst/core/vehicle_load/vehicle_load_aggregates.dart';
+import 'package:amethyst/core/vehicle_sale/vehicle_product_columns.dart';
 import 'package:amethyst/core/station_debt/station_debt_entry_utils.dart';
 import 'package:amethyst/features/auth/domain/entities/user_entity.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -699,6 +700,7 @@ final class AmethystFirebaseBackend {
   Future<void> createStationSalesBatch({
     required List<Map<String, dynamic>> lines,
     bool fillingSale = false,
+    String? paymentMethod,
   }) async {
     if (lines.isEmpty) {
       throw ApiException('No sale lines', code: 'EMPTY_LINES');
@@ -734,6 +736,9 @@ final class AmethystFirebaseBackend {
       if (parsed.isEmpty) {
         throw ApiException('No sale lines', code: 'EMPTY_LINES');
       }
+
+      final String? paymentMethodToSave =
+          paymentMethod?.trim().isNotEmpty == true ? paymentMethod!.trim() : null;
 
       final Set<String> productIds =
           parsed.map((_StationSaleBatchLine l) => l.productId).toSet();
@@ -828,6 +833,7 @@ final class AmethystFirebaseBackend {
           'totalAmount': line.quantity * line.unitPrice,
           'soldById': actorId,
           if (noteToSave != null && noteToSave.isNotEmpty) 'note': noteToSave,
+          if (paymentMethodToSave != null) 'paymentMethod': paymentMethodToSave,
           'createdAt': serverTimestamp(),
           'updatedAt': serverTimestamp(),
         });
@@ -865,8 +871,20 @@ final class AmethystFirebaseBackend {
         }
       }
 
-      final List<({String productId, int qty, double unitPrice})> parsed =
-          <({String productId, int qty, double unitPrice})>[];
+      final List<
+          ({
+            String productId,
+            String stockProductId,
+            int qty,
+            double unitPrice,
+            int? fillingLineSlot,
+          })> parsed = <({
+        String productId,
+        String stockProductId,
+        int qty,
+        double unitPrice,
+        int? fillingLineSlot,
+      })>[];
       for (final Map<String, dynamic> line in lines) {
         final Object? rawProductId = line['productId'];
         if (rawProductId is! String || rawProductId.isEmpty) {
@@ -881,11 +899,17 @@ final class AmethystFirebaseBackend {
         if (qty <= 0) {
           continue;
         }
+        final String? rawStockId = line['stockProductId'] as String?;
+        final int? fillingLineSlot = (line['fillingLineSlot'] as num?)?.toInt();
         parsed.add(
           (
             productId: rawProductId,
+            stockProductId: (rawStockId != null && rawStockId.isNotEmpty)
+                ? rawStockId
+                : rawProductId,
             qty: qty,
             unitPrice: rawUnitPrice.toDouble(),
+            fillingLineSlot: fillingLineSlot,
           ),
         );
       }
@@ -893,8 +917,16 @@ final class AmethystFirebaseBackend {
         throw ApiException('No debt lines', code: 'EMPTY_LINES');
       }
 
-      final Set<String> uniqueProductIds =
-          parsed.map((({String productId, int qty, double unitPrice}) l) => l.productId).toSet();
+      final Set<String> uniqueProductIds = <String>{
+        for (final ({
+              String productId,
+              String stockProductId,
+              int qty,
+              double unitPrice,
+              int? fillingLineSlot,
+            }) line in parsed)
+          line.productId,
+      };
       final Map<String, DocumentSnapshot<Map<String, dynamic>>> productSnaps =
           <String, DocumentSnapshot<Map<String, dynamic>>>{};
       await Future.wait(
@@ -906,8 +938,16 @@ final class AmethystFirebaseBackend {
         }),
       );
 
+      final List<Map<String, dynamic>> catalogProducts =
+          await _loadActiveProductsList();
       final Map<String, int> stockToDeduct = <String, int>{};
-      for (final ({String productId, int qty, double unitPrice}) line in parsed) {
+      for (final ({
+            String productId,
+            String stockProductId,
+            int qty,
+            double unitPrice,
+            int? fillingLineSlot,
+          }) line in parsed) {
         final DocumentSnapshot<Map<String, dynamic>> productSnap =
             productSnaps[line.productId]!;
         if (!productSnap.exists) {
@@ -923,15 +963,45 @@ final class AmethystFirebaseBackend {
             code: 'NOT_FOUND',
           );
         }
-        if (!shouldSkipStationStockForDebtProduct(product)) {
-          stockToDeduct[line.productId] =
-              (stockToDeduct[line.productId] ?? 0) + line.qty;
+        final bool fillingDebt = line.fillingLineSlot != null;
+        if (shouldSkipStationStockForDebtLine(
+          product: product,
+          fillingLineSlot: line.fillingLineSlot,
+          fillingDebt: fillingDebt,
+        )) {
+          continue;
+        }
+        final Map<String, int> plan = planStationStockDeduction(
+          products: catalogProducts,
+          productId: line.stockProductId,
+          quantity: line.qty,
+        );
+        for (final MapEntry<String, int> entry in plan.entries) {
+          stockToDeduct[entry.key] =
+              (stockToDeduct[entry.key] ?? 0) + entry.value;
         }
       }
 
+      final Set<String> stockProductIds = stockToDeduct.keys.toSet();
+      await Future.wait(
+        stockProductIds.map((String productId) async {
+          if (productSnaps.containsKey(productId)) {
+            return;
+          }
+          productSnaps[productId] = await _db
+              .collection(FirestorePaths.products)
+              .doc(productId)
+              .get();
+        }),
+      );
+
       for (final MapEntry<String, int> entry in stockToDeduct.entries) {
-        final Map<String, dynamic> product =
-            mapProductDoc(productSnaps[entry.key]!);
+        final DocumentSnapshot<Map<String, dynamic>>? productSnap =
+            productSnaps[entry.key];
+        if (productSnap == null || !productSnap.exists) {
+          throw ApiException('Product not found', code: 'NOT_FOUND');
+        }
+        final Map<String, dynamic> product = mapProductDoc(productSnap);
         final int stock = (product['stationStock'] as num?)?.toInt() ?? 0;
         if (stock < entry.value) {
           throw ApiException('Insufficient station stock', code: 'INSUFFICIENT_STOCK');
@@ -949,8 +1019,25 @@ final class AmethystFirebaseBackend {
           'stationStock': stock - entry.value,
           'updatedAt': serverTimestamp(),
         });
+        final DocumentReference<Map<String, dynamic>> movRef =
+            _db.collection(FirestorePaths.stockMovements).doc();
+        batch.set(movRef, <String, dynamic>{
+          'productId': entry.key,
+          'type': 'out',
+          'quantity': entry.value,
+          'reason': 'station_debt',
+          'referenceId': null,
+          'createdById': actor['id'],
+          'createdAt': serverTimestamp(),
+        });
       }
-      for (final ({String productId, int qty, double unitPrice}) line in parsed) {
+      for (final ({
+            String productId,
+            String stockProductId,
+            int qty,
+            double unitPrice,
+            int? fillingLineSlot,
+          }) line in parsed) {
         final DocumentReference<Map<String, dynamic>> debtRef =
             _db.collection(FirestorePaths.stationDebtEntries).doc();
         batch.set(debtRef, <String, dynamic>{
@@ -967,10 +1054,16 @@ final class AmethystFirebaseBackend {
         });
       }
       await batch.commit();
+      clearCatalogCache();
     } on ApiException {
       rethrow;
     } on FirebaseException catch (e) {
       throw _apiExceptionFromFirebase(e);
+    } on StateError catch (e) {
+      if (e.message == 'INSUFFICIENT_STOCK') {
+        throw ApiException('Insufficient station stock', code: 'INSUFFICIENT_STOCK');
+      }
+      rethrow;
     }
   }
 
@@ -1011,16 +1104,46 @@ final class AmethystFirebaseBackend {
     final QuerySnapshot<Map<String, dynamic>> vehicleSnap =
         results[1] as QuerySnapshot<Map<String, dynamic>>;
 
+    final Map<String, Map<String, dynamic>> rawStationDebtById =
+        <String, Map<String, dynamic>>{
+      for (final QueryDocumentSnapshot<Map<String, dynamic>> doc
+          in stationSnap.docs)
+        doc.id: doc.data(),
+    };
     final List<Map<String, dynamic>> stationItems =
-        await _mapStationDebtsBatch(stationSnap.docs);
-    final List<Map<String, dynamic>> openStation = stationItems
-        .where(isUnpaidDebtEntry)
-        .toList(growable: false);
+        (await _mapStationDebtsBatch(stationSnap.docs))
+            .map((Map<String, dynamic> item) {
+              final String? id = item['id']?.toString();
+              if (id == null) {
+                return item;
+              }
+              final Map<String, dynamic>? raw = rawStationDebtById[id];
+              if (raw == null || raw.containsKey('recordingSource')) {
+                return item;
+              }
+              return <String, dynamic>{
+                ...item,
+                'recordingSource': 'vehicle',
+              };
+            })
+            .toList(growable: false);
+    final bool isDriver = actor['role']?.toString() == 'driver';
+    final String? driverId = isDriver ? actor['id']?.toString() : null;
+    final List<Map<String, dynamic>> openStation = isDriver && driverId != null
+        ? stationItems
+            .where(
+              (Map<String, dynamic> e) =>
+                  isDriverVehicleDebtEntry(e, driverId: driverId),
+            )
+            .toList(growable: false)
+        : stationItems
+            .where(isUnpaidDebtEntry)
+            .toList(growable: false);
     final List<QueryDocumentSnapshot<Map<String, dynamic>>> openVehicleDebtDocs =
         vehicleSnap.docs
             .where(
               (QueryDocumentSnapshot<Map<String, dynamic>> doc) =>
-                  doc.data()['isDebt'] == true && doc.data()['repaidAt'] == null,
+                  isOpenVehicleDebtSale(doc.data()),
             )
             .toList(growable: false);
     final List<Map<String, dynamic>> vehicleSales =
@@ -1082,6 +1205,7 @@ final class AmethystFirebaseBackend {
     required String debtorName,
   }) async {
     try {
+      await _requireStaffOrDriver();
       final Map<String, dynamic> actor = await _auth.currentActor();
       final String name = normalizeDebtorName(debtorName);
       if (name.isEmpty) {
@@ -1148,6 +1272,7 @@ final class AmethystFirebaseBackend {
       return repayStationDebtFromVehicle(debtorName: debtorName);
     }
     try {
+    await _requireStaff();
     final Map<String, dynamic> actor = await _auth.currentActor();
     final String name = normalizeDebtorName(debtorName);
     if (name.isEmpty) {
@@ -1242,6 +1367,7 @@ final class AmethystFirebaseBackend {
     required String vehicleId,
     required List<Map<String, dynamic>> lines,
     String saleDestination = 'home',
+    String? paymentMethod,
   }) async {
     if (lines.isEmpty) {
       throw ApiException('No sale lines', code: 'EMPTY_LINES');
@@ -1306,6 +1432,16 @@ final class AmethystFirebaseBackend {
 
       final String driverId = vehicleDriverId ?? actorId;
       final String dest = saleDestination == 'store' ? 'store' : 'home';
+      final String? paymentMethodToSave =
+          paymentMethod?.trim().isNotEmpty == true ? paymentMethod!.trim() : null;
+
+      final List<Map<String, dynamic>> catalogProducts =
+          await _loadActiveProductsList();
+      final Map<String, Map<String, dynamic>> catalogById =
+          <String, Map<String, dynamic>>{
+        for (final Map<String, dynamic> p in catalogProducts)
+          if ((p['id']?.toString() ?? '').isNotEmpty) p['id']!.toString(): p,
+      };
 
       var needsLoadDeduction = false;
       for (final _VehicleSaleBatchLine line in parsed) {
@@ -1314,8 +1450,8 @@ final class AmethystFirebaseBackend {
           break;
         }
       }
-      final Map<String, List<_MutableVehicleLoadRow>> loadsByProduct =
-          <String, List<_MutableVehicleLoadRow>>{};
+      final List<_VehicleLoadAllocationRow> allocationRows =
+          <_VehicleLoadAllocationRow>[];
       if (needsLoadDeduction) {
         final QuerySnapshot<Map<String, dynamic>> loadsSnap = await _db
             .collection(FirestorePaths.vehicleLoads)
@@ -1330,32 +1466,45 @@ final class AmethystFirebaseBackend {
           if (productId.isEmpty) {
             continue;
           }
-          loadsByProduct.putIfAbsent(productId, () => <_MutableVehicleLoadRow>[]).add(
-                _MutableVehicleLoadRow(
-                  ref: doc.reference,
-                  loaded: (data['quantityLoaded'] as num?)?.toInt() ?? 0,
-                  returned: (data['quantityReturned'] as num?)?.toInt() ?? 0,
-                  quantitySold: (data['quantitySold'] as num?)?.toInt() ?? 0,
-                ),
-              );
+          final Map<String, dynamic>? product = catalogById[productId];
+          allocationRows.add(
+            _VehicleLoadAllocationRow(
+              row: _MutableVehicleLoadRow(
+                ref: doc.reference,
+                loaded: (data['quantityLoaded'] as num?)?.toInt() ?? 0,
+                returned: (data['quantityReturned'] as num?)?.toInt() ?? 0,
+                quantitySold: (data['quantitySold'] as num?)?.toInt() ?? 0,
+              ),
+              productId: productId,
+              productName: product?['name']?.toString() ?? '',
+            ),
+          );
         }
       }
 
       void allocateFromVehicleLoads(String productId, int quantity) {
         int remaining = quantity;
-        final List<_MutableVehicleLoadRow> rows =
-            loadsByProduct[productId] ?? <_MutableVehicleLoadRow>[];
-        for (final _MutableVehicleLoadRow row in rows) {
-          final int avail = row.available;
+        final Map<String, dynamic>? target = catalogById[productId];
+        final String targetName = target?['name']?.toString() ?? '';
+        for (final _VehicleLoadAllocationRow entry in allocationRows) {
+          if (remaining <= 0) {
+            break;
+          }
+          if (!vehicleLoadProductIdsMatch(
+            targetProductId: productId,
+            targetProductName: targetName,
+            loadProductId: entry.productId,
+            loadProductName: entry.productName,
+          )) {
+            continue;
+          }
+          final int avail = entry.row.available;
           if (avail <= 0) {
             continue;
           }
           final int take = min(avail, remaining);
-          row.sold += take;
+          entry.row.sold += take;
           remaining -= take;
-          if (remaining == 0) {
-            return;
-          }
         }
         if (remaining > 0) {
           throw ApiException(
@@ -1364,7 +1513,6 @@ final class AmethystFirebaseBackend {
           );
         }
       }
-
       final Map<String, int> stationStockToDeduct = <String, int>{};
       for (final _VehicleSaleBatchLine line in parsed) {
         if (!line.skipLoadDeduction) {
@@ -1373,8 +1521,15 @@ final class AmethystFirebaseBackend {
         }
         if (line.deductStationStock) {
           final String stockId = line.stockProductId ?? line.productId;
-          stationStockToDeduct[stockId] =
-              (stationStockToDeduct[stockId] ?? 0) + line.quantity;
+          final Map<String, int> plan = planStationStockDeduction(
+            products: catalogProducts,
+            productId: stockId,
+            quantity: line.quantity,
+          );
+          for (final MapEntry<String, int> entry in plan.entries) {
+            stationStockToDeduct[entry.key] =
+                (stationStockToDeduct[entry.key] ?? 0) + entry.value;
+          }
         }
       }
 
@@ -1407,14 +1562,13 @@ final class AmethystFirebaseBackend {
       }
 
       final WriteBatch batch = _db.batch();
-      for (final List<_MutableVehicleLoadRow> rows in loadsByProduct.values) {
-        for (final _MutableVehicleLoadRow row in rows) {
-          if (row.sold != row.initialSold) {
-            batch.update(row.ref, <String, dynamic>{
-              'quantitySold': row.sold,
-              'updatedAt': serverTimestamp(),
-            });
-          }
+      for (final _VehicleLoadAllocationRow entry in allocationRows) {
+        final _MutableVehicleLoadRow row = entry.row;
+        if (row.sold != row.initialSold) {
+          batch.update(row.ref, <String, dynamic>{
+            'quantitySold': row.sold,
+            'updatedAt': serverTimestamp(),
+          });
         }
       }
       for (final _VehicleSaleBatchLine line in parsed) {
@@ -1429,6 +1583,10 @@ final class AmethystFirebaseBackend {
           'totalAmount': line.quantity * line.unitPrice,
           'saleDestination': dest,
           'isDebt': line.isDebt,
+          if (!line.isDebt &&
+              paymentMethodToSave != null &&
+              paymentMethodToSave.isNotEmpty)
+            'paymentMethod': paymentMethodToSave,
           if (line.debtorName != null && line.debtorName!.trim().isNotEmpty)
             'debtorName': line.debtorName!.trim(),
           'repaidAt': null,
@@ -1469,6 +1627,14 @@ final class AmethystFirebaseBackend {
         );
       }
       throw _apiExceptionFromFirebase(e);
+    } on StateError catch (e) {
+      if (e.message == 'INSUFFICIENT_STOCK') {
+        throw ApiException(
+          'Insufficient station stock',
+          code: 'INSUFFICIENT_STOCK',
+        );
+      }
+      rethrow;
     }
   }
 
@@ -2199,9 +2365,10 @@ final class AmethystFirebaseBackend {
       }
       monthlyAmount += _num(sale['totalAmount']);
       final int qty = (sale['quantity'] as num?)?.toInt() ?? 0;
-      homeQty += qty;
-      if (sale['saleDestination'] == 'store') {
+      if (sale['saleDestination']?.toString() == 'store') {
         storeQty += qty;
+      } else {
+        homeQty += qty;
       }
     }
 
@@ -2242,6 +2409,7 @@ final class AmethystFirebaseBackend {
       'cartonStock': cartonStock,
       'monthlyCartonExpensesTotalAmount': cartonExpenses,
       'monthlyCartonSalesTotalAmount': monthlyAmount,
+      'monthlyCartonSalesTotalQty': homeQty + storeQty,
       'monthlyCartonSalesHomeQty': homeQty,
       'monthlyCartonSalesStoreQty': storeQty,
       'cartonDebtUnpaidQuantity': debtQty,
@@ -3094,4 +3262,16 @@ final class _MutableVehicleLoadRow {
   int sold;
 
   int get available => loaded - sold - returned;
+}
+
+final class _VehicleLoadAllocationRow {
+  const _VehicleLoadAllocationRow({
+    required this.row,
+    required this.productId,
+    required this.productName,
+  });
+
+  final _MutableVehicleLoadRow row;
+  final String productId;
+  final String productName;
 }

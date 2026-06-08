@@ -34,10 +34,12 @@ final class CreateStationSaleUseCase {
   Future<void> callBatch({
     required List<Map<String, dynamic>> lines,
     bool fillingSale = false,
+    String? paymentMethod,
   }) =>
       _repository.createStationSalesBatch(
         lines: lines,
         fillingSale: fillingSale,
+        paymentMethod: paymentMethod,
       );
 }
 
@@ -112,11 +114,13 @@ final class CreateVehicleSalesBatchUseCase {
     required String vehicleId,
     required List<Map<String, dynamic>> lines,
     String saleDestination = 'home',
+    String? paymentMethod,
   }) =>
       _repository.createVehicleSalesBatch(
         vehicleId: vehicleId,
         lines: lines,
         saleDestination: saleDestination,
+        paymentMethod: paymentMethod,
       );
 }
 
