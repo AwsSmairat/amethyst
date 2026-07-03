@@ -195,6 +195,18 @@ Future<Map<String, dynamic>> _fetchExpensesGroupedByRecentDays(
   return <String, dynamic>{'expenseDays': days};
 }
 
+Future<Map<String, dynamic>> _fetchProfitGroupedByRecentDays(
+  AmethystApi api,
+) async {
+  final DateTime now = DateTime.now();
+  final DateTime todayStart = DateTime(now.year, now.month, now.day);
+  final DateTime rangeStart = todayStart.subtract(const Duration(days: 59));
+  return api.reportsProfitLoss(
+    dateFrom: _drilldownYmd(rangeStart),
+    dateTo: _drilldownYmd(now),
+  );
+}
+
 List<Map<String, dynamic>> _filterExpenseMonthsForDisplay(
   List<Map<String, dynamic>> raw,
   DateTime now,
@@ -283,6 +295,7 @@ Future<Map<String, dynamic>> _fetchLast12MonthsSales(AmethystApi api) async {
 /// Drill-down from super admin dashboard KPI tiles.
 enum SuperAdminKpiDrilldown {
   profitToday,
+  profitMonth,
   expensesToday,
   expensesMonth,
   salesMonth;
@@ -291,6 +304,8 @@ enum SuperAdminKpiDrilldown {
     switch (pathSegment) {
       case 'profit-today':
         return SuperAdminKpiDrilldown.profitToday;
+      case 'profit-month':
+        return SuperAdminKpiDrilldown.profitMonth;
       case 'expenses-today':
         return SuperAdminKpiDrilldown.expensesToday;
       case 'expenses-month':
@@ -308,6 +323,8 @@ extension SuperAdminKpiDrilldownL10n on SuperAdminKpiDrilldown {
     switch (this) {
       case SuperAdminKpiDrilldown.profitToday:
         return context.l10n.profitTodayDetail;
+      case SuperAdminKpiDrilldown.profitMonth:
+        return context.l10n.profitMonthDetail;
       case SuperAdminKpiDrilldown.expensesToday:
         return context.l10n.expensesTodayDetail;
       case SuperAdminKpiDrilldown.expensesMonth:
@@ -333,11 +350,11 @@ class _SuperAdminKpiDrilldownPageState extends State<SuperAdminKpiDrilldownPage>
 
   Future<Map<String, dynamic>> _fetch() {
     final AmethystApi api = sl<AmethystApi>();
-    final DateTime now = DateTime.now();
-    final String todayYmd = _ymd(now);
     switch (widget.kind) {
       case SuperAdminKpiDrilldown.profitToday:
-        return api.reportsProfitLoss(dateFrom: todayYmd, dateTo: todayYmd);
+        return _fetchProfitGroupedByRecentDays(api);
+      case SuperAdminKpiDrilldown.profitMonth:
+        return api.reportsProfitLossMonthly();
       case SuperAdminKpiDrilldown.expensesToday:
         return _fetchExpensesGroupedByRecentDays(api);
       case SuperAdminKpiDrilldown.expensesMonth:
@@ -346,8 +363,6 @@ class _SuperAdminKpiDrilldownPageState extends State<SuperAdminKpiDrilldownPage>
         return _fetchLast12MonthsSales(api);
     }
   }
-
-  static String _ymd(DateTime d) => _drilldownYmd(d);
 
   @override
   void initState() {
@@ -388,7 +403,18 @@ class _SuperAdminKpiDrilldownPageState extends State<SuperAdminKpiDrilldownPage>
                   });
                   await f;
                 },
-                child: _ProfitBody(data: data),
+                child: _ProfitDaysBody(data: data),
+              );
+            case SuperAdminKpiDrilldown.profitMonth:
+              return RefreshIndicator(
+                onRefresh: () async {
+                  final Future<Map<String, dynamic>> f = _fetch();
+                  setState(() {
+                    _load = f;
+                  });
+                  await f;
+                },
+                child: _ProfitMonthsBody(data: data),
               );
             case SuperAdminKpiDrilldown.expensesToday:
               return RefreshIndicator(
@@ -454,36 +480,323 @@ class _ErrorBody extends StatelessWidget {
   }
 }
 
-class _ProfitBody extends StatelessWidget {
-  const _ProfitBody({required this.data});
+class _ProfitDaysBody extends StatelessWidget {
+  const _ProfitDaysBody({required this.data});
 
   final Map<String, dynamic> data;
 
   @override
   Widget build(BuildContext context) {
-    final double revenue = _toDouble(data['revenue']);
-    final double expenses = _toDouble(data['expenses']);
-    final double net = _toDouble(data['net']);
-    final l = context.l10n;
-    return ListView(
+    final List<dynamic>? days = data['profitDays'] as List<dynamic>?;
+    if (days == null || days.isEmpty) {
+      return ListView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: const EdgeInsets.all(20),
+        children: <Widget>[
+          _ProfitDayCard(
+            dayPayload: data,
+            isToday: true,
+            isYesterday: false,
+          ),
+        ],
+      );
+    }
+
+    final DateTime n = DateTime.now();
+    final String todayYmd = _drilldownYmd(DateTime(n.year, n.month, n.day));
+    final String yesterdayYmd = _drilldownYmd(
+      DateTime(n.year, n.month, n.day).subtract(const Duration(days: 1)),
+    );
+
+    return ListView.separated(
       physics: const AlwaysScrollableScrollPhysics(),
       padding: const EdgeInsets.all(20),
+      itemCount: days.length,
+      separatorBuilder: (_, __) => const SizedBox(height: 16),
+      itemBuilder: (BuildContext context, int i) {
+        final Map<String, dynamic> row = days[i] is Map<String, dynamic>
+            ? days[i] as Map<String, dynamic>
+            : Map<String, dynamic>.from(days[i] as Map<dynamic, dynamic>);
+        final String dateStr = row['date']?.toString() ?? '';
+        return _ProfitDayCard(
+          dayPayload: row,
+          isToday: dateStr == todayYmd,
+          isYesterday: dateStr == yesterdayYmd,
+        );
+      },
+    );
+  }
+}
+
+class _ProfitDayCard extends StatelessWidget {
+  const _ProfitDayCard({
+    required this.dayPayload,
+    required this.isToday,
+    required this.isYesterday,
+  });
+
+  final Map<String, dynamic> dayPayload;
+  final bool isToday;
+  final bool isYesterday;
+
+  @override
+  Widget build(BuildContext context) {
+    final l = context.l10n;
+    final String dateStr = dayPayload['date']?.toString() ?? '';
+    final DateTime? parsed = _parseYmdLocal(dateStr);
+    final String locale = Localizations.localeOf(context).toString();
+    final String periodTitle = parsed != null
+        ? DateFormat.yMMMEd(locale).format(parsed)
+        : dateStr;
+    final ThemeData theme = Theme.of(context);
+
+    return Card(
+      elevation: 0,
+      color: AppColors.surfaceLowest,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: <Widget>[
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                Expanded(
+                  child: Text(
+                    periodTitle,
+                    textAlign: TextAlign.end,
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ),
+                if (isToday) ...<Widget>[
+                  const SizedBox(width: 8),
+                  Chip(
+                    visualDensity: VisualDensity.compact,
+                    materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    backgroundColor: AppColors.success.withValues(alpha: 0.15),
+                    label: Text(
+                      l.sectionToday,
+                      style: theme.textTheme.labelMedium?.copyWith(
+                        color: AppColors.success,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                ] else if (isYesterday) ...<Widget>[
+                  const SizedBox(width: 8),
+                  Chip(
+                    visualDensity: VisualDensity.compact,
+                    materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    label: Text(l.yesterdayChip),
+                  ),
+                ],
+              ],
+            ),
+            const SizedBox(height: 16),
+            _ProfitBreakdownMetrics(payload: dayPayload),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ProfitMonthsBody extends StatelessWidget {
+  const _ProfitMonthsBody({required this.data});
+
+  final Map<String, dynamic> data;
+
+  @override
+  Widget build(BuildContext context) {
+    final List<dynamic>? months = data['profitMonths'] as List<dynamic>?;
+    if (months == null || months.isEmpty) {
+      return ListView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: const EdgeInsets.all(20),
+        children: <Widget>[
+          _ProfitMonthCard(
+            monthPayload: data,
+            isCurrentCalendarMonth: true,
+            isImmediatePreviousMonth: false,
+          ),
+        ],
+      );
+    }
+
+    final DateTime n = DateTime.now();
+    final ({int y, int m}) prev = _calendarPreviousMonth(n.year, n.month);
+
+    return ListView.separated(
+      physics: const AlwaysScrollableScrollPhysics(),
+      padding: const EdgeInsets.all(20),
+      itemCount: months.length,
+      separatorBuilder: (_, __) => const SizedBox(height: 16),
+      itemBuilder: (BuildContext context, int i) {
+        final Map<String, dynamic> row = months[i] is Map<String, dynamic>
+            ? months[i] as Map<String, dynamic>
+            : Map<String, dynamic>.from(months[i] as Map<dynamic, dynamic>);
+        final int y = (row['year'] as num?)?.toInt() ?? n.year;
+        final int m = (row['month'] as num?)?.toInt() ?? n.month;
+        final bool isCurrent = y == n.year && m == n.month;
+        final bool isImmediatePrevious =
+            !isCurrent && y == prev.y && m == prev.m;
+        return _ProfitMonthCard(
+          monthPayload: row,
+          isCurrentCalendarMonth: isCurrent,
+          isImmediatePreviousMonth: isImmediatePrevious,
+        );
+      },
+    );
+  }
+}
+
+class _ProfitMonthCard extends StatelessWidget {
+  const _ProfitMonthCard({
+    required this.monthPayload,
+    required this.isCurrentCalendarMonth,
+    required this.isImmediatePreviousMonth,
+  });
+
+  final Map<String, dynamic> monthPayload;
+  final bool isCurrentCalendarMonth;
+  final bool isImmediatePreviousMonth;
+
+  @override
+  Widget build(BuildContext context) {
+    final l = context.l10n;
+    final int y =
+        (monthPayload['year'] as num?)?.toInt() ?? DateTime.now().year;
+    final int m =
+        (monthPayload['month'] as num?)?.toInt() ?? DateTime.now().month;
+    final String locale = Localizations.localeOf(context).toString();
+    final String periodTitle =
+        DateFormat.yMMM(locale).format(DateTime(y, m, 1));
+    final ThemeData theme = Theme.of(context);
+
+    return Card(
+      elevation: 0,
+      color: AppColors.surfaceLowest,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: <Widget>[
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                Expanded(
+                  child: Text(
+                    periodTitle,
+                    textAlign: TextAlign.end,
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ),
+                if (isCurrentCalendarMonth) ...<Widget>[
+                  const SizedBox(width: 8),
+                  Chip(
+                    visualDensity: VisualDensity.compact,
+                    materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    backgroundColor: AppColors.success.withValues(alpha: 0.15),
+                    label: Text(
+                      l.currentCalendarMonthChip,
+                      style: theme.textTheme.labelMedium?.copyWith(
+                        color: AppColors.success,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                ] else if (isImmediatePreviousMonth) ...<Widget>[
+                  const SizedBox(width: 8),
+                  Chip(
+                    visualDensity: VisualDensity.compact,
+                    materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    label: Text(l.previousCalendarMonthChip),
+                  ),
+                ],
+              ],
+            ),
+            const SizedBox(height: 16),
+            _ProfitBreakdownMetrics(payload: monthPayload),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ProfitBreakdownMetrics extends StatelessWidget {
+  const _ProfitBreakdownMetrics({required this.payload});
+
+  final Map<String, dynamic> payload;
+
+  @override
+  Widget build(BuildContext context) {
+    final double stationSales = _toDouble(payload['stationSales']);
+    final double stationExpenses = _toDouble(
+      payload['stationExpenses'] ?? payload['expenses'],
+    );
+    final double stationCashBalance = _toDouble(payload['stationCashBalance']);
+    final double stationNetTotal = payload['stationNetTotal'] != null
+        ? _toDouble(payload['stationNetTotal'])
+        : stationSales - stationExpenses + stationCashBalance;
+    final double busSales = _toDouble(payload['busSales']);
+    final double bingoSales = _toDouble(payload['bingoSales']);
+    final double total = _toDouble(payload['total']);
+    final l = context.l10n;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: <Widget>[
-        _ProfitMetricCard(
-          label: l.revenue,
-          value: revenue,
-          icon: Icons.trending_up_outlined,
+        _ProfitDetailRow(
+          label: l.stationSales,
+          value: stationSales,
+          icon: Icons.storefront_outlined,
         ),
         const SizedBox(height: 12),
-        _ProfitMetricCard(
-          label: l.expenses,
-          value: expenses,
+        _ProfitDetailRow(
+          label: l.profitTodayStationExpenses,
+          value: stationExpenses,
           icon: Icons.payments_outlined,
         ),
         const SizedBox(height: 12),
-        _ProfitMetricCard(
-          label: l.netProfit,
-          value: net,
+        _ProfitDetailRow(
+          label: l.profitTodayStationCashBalance,
+          value: stationCashBalance,
+          icon: Icons.account_balance_wallet_outlined,
+        ),
+        const SizedBox(height: 12),
+        _ProfitDetailRow(
+          label: l.profitTodayStationNetFormula,
+          value: stationNetTotal,
+          icon: Icons.store_mall_directory_outlined,
+          emphasize: true,
+        ),
+        const SizedBox(height: 16),
+        const Divider(height: 1),
+        const SizedBox(height: 16),
+        _ProfitDetailRow(
+          label: l.profitTodayBusSalesTotal,
+          value: busSales,
+          icon: Icons.directions_bus_outlined,
+        ),
+        const SizedBox(height: 12),
+        _ProfitDetailRow(
+          label: l.profitTodayBingoSalesTotal,
+          value: bingoSales,
+          icon: Icons.local_shipping_outlined,
+        ),
+        const SizedBox(height: 16),
+        const Divider(height: 1),
+        const SizedBox(height: 16),
+        _ProfitDetailRow(
+          label: l.profitTodayGrandTotalFormula,
+          value: total,
           icon: Icons.savings_outlined,
           emphasize: true,
         ),
@@ -492,9 +805,8 @@ class _ProfitBody extends StatelessWidget {
   }
 }
 
-/// بطاقة واحدة لكل مؤشر — الإيرادات والمصاريف وصافي الربح منفصلين بصرياً.
-class _ProfitMetricCard extends StatelessWidget {
-  const _ProfitMetricCard({
+class _ProfitDetailRow extends StatelessWidget {
+  const _ProfitDetailRow({
     required this.label,
     required this.value,
     required this.icon,
@@ -508,47 +820,39 @@ class _ProfitMetricCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Card(
-      elevation: 0,
-      color: AppColors.surfaceLowest,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: <Widget>[
-            Icon(
-              icon,
-              color: AppColors.brandPrimary,
-              size: emphasize ? 32 : 28,
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: <Widget>[
-                  Text(
-                    label.toUpperCase(),
-                    style: theme.textTheme.labelSmall?.copyWith(
-                      letterSpacing: 0.8,
-                      color: AppColors.onSurfaceVariant,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    value.toStringAsFixed(2),
-                    style: (emphasize
-                            ? theme.textTheme.headlineSmall
-                            : theme.textTheme.titleLarge)
-                        ?.copyWith(fontWeight: FontWeight.w800),
-                  ),
-                ],
-              ),
-            ),
-          ],
+    final ThemeData theme = Theme.of(context);
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: <Widget>[
+        Icon(
+          icon,
+          color: AppColors.brandPrimary,
+          size: emphasize ? 30 : 26,
         ),
-      ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              Text(
+                label,
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: AppColors.onSurfaceVariant,
+                  fontWeight: emphasize ? FontWeight.w600 : FontWeight.w500,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                value.toStringAsFixed(2),
+                style: (emphasize
+                        ? theme.textTheme.titleLarge
+                        : theme.textTheme.titleMedium)
+                    ?.copyWith(fontWeight: FontWeight.w800),
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 }

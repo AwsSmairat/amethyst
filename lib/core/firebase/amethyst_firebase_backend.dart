@@ -11,6 +11,8 @@ import 'package:amethyst/core/firebase/firestore_paths.dart';
 import 'package:amethyst/core/firebase/station_stock_skip.dart';
 import 'package:amethyst/core/network/api_exception.dart';
 import 'package:amethyst/core/station_balance/station_balance_catalog.dart';
+import 'package:amethyst/core/expenses/profit_vehicle_expense_deduction.dart';
+import 'package:amethyst/core/vehicle/vehicle_kind_match.dart';
 import 'package:amethyst/core/vehicle_load/vehicle_load_aggregates.dart';
 import 'package:amethyst/core/vehicle_sale/vehicle_product_columns.dart';
 import 'package:amethyst/core/station_debt/station_debt_entry_utils.dart';
@@ -2000,35 +2002,381 @@ final class AmethystFirebaseBackend {
         : startOfDay(now);
     final DateTime end =
         parseYmd(dateTo) != null ? endOfDay(parseYmd(dateTo)!) : endOfDay(now);
-    double revenue = 0;
-    double expenseTotal = 0;
-    for (final String col in <String>[
-      FirestorePaths.stationSales,
-      FirestorePaths.vehicleSales,
-    ]) {
-      final QuerySnapshot<Map<String, dynamic>> snap = await _db.collection(col).get();
-      for (final QueryDocumentSnapshot<Map<String, dynamic>> doc in snap.docs) {
-        final DateTime? created = timestampToDate(doc.data()['createdAt']);
-        if (isInRange(created, start, end)) {
-          revenue += _num(doc.data()['totalAmount']);
-        }
+    final String todayYmd = ymd(startOfDay(now));
+    final String yesterdayYmd =
+        ymd(startOfDay(now).subtract(const Duration(days: 1)));
+
+    final QuerySnapshot<Map<String, dynamic>> vehiclesSnap =
+        await _db.collection(FirestorePaths.vehicles).get();
+    final Map<String, String> vehicleIdToNumber = <String, String>{
+      for (final QueryDocumentSnapshot<Map<String, dynamic>> doc
+          in vehiclesSnap.docs)
+        doc.id: doc.data()['vehicleNumber']?.toString() ?? '',
+    };
+    final Map<String, String> driverIdToVehicleId = <String, String>{
+      for (final QueryDocumentSnapshot<Map<String, dynamic>> doc
+          in vehiclesSnap.docs)
+        if ((doc.data()['driverId']?.toString() ?? '').isNotEmpty)
+          doc.data()['driverId']!.toString(): doc.id,
+    };
+
+    final Map<String, double> stationSalesByDay = <String, double>{};
+    final Map<String, double> busGrossByDay = <String, double>{};
+    final Map<String, double> bingoGrossByDay = <String, double>{};
+    final Map<String, List<Map<String, dynamic>>> expensesByDay =
+        <String, List<Map<String, dynamic>>>{};
+
+    final QuerySnapshot<Map<String, dynamic>> stationSnap = await _db
+        .collection(FirestorePaths.stationSales)
+        .where('createdAt', isGreaterThanOrEqualTo: Timestamp.fromDate(start))
+        .where('createdAt', isLessThanOrEqualTo: Timestamp.fromDate(end))
+        .get();
+    for (final QueryDocumentSnapshot<Map<String, dynamic>> doc
+        in stationSnap.docs) {
+      profitAccumulateByDay(
+        stationSalesByDay,
+        profitRowLocalYmd(timestampToDate(doc.data()['createdAt'])),
+        _num(doc.data()['totalAmount']),
+      );
+    }
+
+    final QuerySnapshot<Map<String, dynamic>> vehicleSnap = await _db
+        .collection(FirestorePaths.vehicleSales)
+        .where('createdAt', isGreaterThanOrEqualTo: Timestamp.fromDate(start))
+        .where('createdAt', isLessThanOrEqualTo: Timestamp.fromDate(end))
+        .get();
+    for (final QueryDocumentSnapshot<Map<String, dynamic>> doc
+        in vehicleSnap.docs) {
+      final Map<String, dynamic> data = doc.data();
+      final double amount = _num(data['totalAmount']);
+      final String? vehicleId = data['vehicleId']?.toString();
+      final String vehicleNumber = vehicleIdToNumber[vehicleId] ??
+          data['vehicleNumber']?.toString() ??
+          '';
+      final String? dayYmd =
+          profitRowLocalYmd(timestampToDate(data['createdAt']));
+      switch (vehicleSalesBucketForNumber(vehicleNumber)) {
+        case VehicleSalesBucket.bus:
+          profitAccumulateByDay(busGrossByDay, dayYmd, amount);
+        case VehicleSalesBucket.bingo:
+          profitAccumulateByDay(bingoGrossByDay, dayYmd, amount);
+        case VehicleSalesBucket.other:
+          break;
       }
     }
-    final QuerySnapshot<Map<String, dynamic>> expenses =
-        await _db.collection(FirestorePaths.expenses).get();
-    for (final QueryDocumentSnapshot<Map<String, dynamic>> doc in expenses.docs) {
-      final DateTime? created = timestampToDate(doc.data()['createdAt']);
-      if (isInRange(created, start, end)) {
-        expenseTotal += _num(doc.data()['amount']);
-      }
+
+    final QuerySnapshot<Map<String, dynamic>> expensesSnap = await _db
+        .collection(FirestorePaths.expenses)
+        .where('createdAt', isGreaterThanOrEqualTo: Timestamp.fromDate(start))
+        .where('createdAt', isLessThanOrEqualTo: Timestamp.fromDate(end))
+        .get();
+    for (final QueryDocumentSnapshot<Map<String, dynamic>> doc
+        in expensesSnap.docs) {
+      final Map<String, dynamic> row = mapExpenseDoc(doc);
+      profitAppendExpenseByDay(
+        expensesByDay,
+        profitRowLocalYmd(row['createdAt']),
+        row,
+      );
     }
+
+    final ({double today, double yesterday}) cashSnapshot =
+        await _stationCashBalanceSnapshot();
+    final QuerySnapshot<Map<String, dynamic>> cashEntriesSnap = await _db
+        .collection(FirestorePaths.stationCashEntries)
+        .orderBy('createdAt')
+        .get();
+    final Map<String, double> cashRecordedOnDay = buildStationCashRecordedOnDay(
+      cashEntriesSnap.docs.map(mapStationCashEntryDoc),
+    );
+
+    final Set<String> dayKeys = <String>{
+      todayYmd,
+      yesterdayYmd,
+      ...stationSalesByDay.keys,
+      ...busGrossByDay.keys,
+      ...bingoGrossByDay.keys,
+      ...expensesByDay.keys,
+      ...cashRecordedOnDay.keys,
+    };
+
+    final Map<String, Map<String, dynamic>> byDay =
+        <String, Map<String, dynamic>>{};
+    for (final String dayYmd in dayKeys) {
+      byDay[dayYmd] = computeProfitDaySnapshot(
+        stationSalesGross: stationSalesByDay[dayYmd] ?? 0,
+        busSalesGross: busGrossByDay[dayYmd] ?? 0,
+        bingoSalesGross: bingoGrossByDay[dayYmd] ?? 0,
+        expenseRows: expensesByDay[dayYmd] ?? const <Map<String, dynamic>>[],
+        stationCashBalance: resolveStationCashBalanceForDay(
+          dayYmd,
+          todayYmd: todayYmd,
+          yesterdayYmd: yesterdayYmd,
+          currentBalance: cashSnapshot.today,
+          yesterdayBalance: cashSnapshot.yesterday,
+          cashRecordedOnDay: cashRecordedOnDay,
+        ),
+        vehicleIdToNumber: vehicleIdToNumber,
+        driverIdToVehicleId: driverIdToVehicleId,
+      );
+    }
+
+    final List<Map<String, dynamic>> profitDays =
+        buildProfitDayCardsPayload(byDay, now);
+    final Map<String, dynamic> todayPayload =
+        byDay[todayYmd] ?? profitDays.first;
+
     return <String, dynamic>{
       'from': start.toIso8601String(),
       'to': end.toIso8601String(),
-      'revenue': revenue,
-      'expenses': expenseTotal,
-      'net': revenue - expenseTotal,
+      'profitDays': profitDays,
+      ...todayPayload,
     };
+  }
+
+  Future<Map<String, dynamic>> reportsProfitLossMonthly() async {
+    await _requireStaff();
+    final DateTime now = DateTime.now();
+    final DateTime rangeStart = DateTime(now.year, now.month - 11, 1);
+    final DateTime rangeEnd = endOfDay(DateTime(now.year, now.month + 1, 0));
+
+    final QuerySnapshot<Map<String, dynamic>> vehiclesSnap =
+        await _db.collection(FirestorePaths.vehicles).get();
+    final Map<String, String> vehicleIdToNumber = <String, String>{
+      for (final QueryDocumentSnapshot<Map<String, dynamic>> doc
+          in vehiclesSnap.docs)
+        doc.id: doc.data()['vehicleNumber']?.toString() ?? '',
+    };
+    final Map<String, String> driverIdToVehicleId = <String, String>{
+      for (final QueryDocumentSnapshot<Map<String, dynamic>> doc
+          in vehiclesSnap.docs)
+        if ((doc.data()['driverId']?.toString() ?? '').isNotEmpty)
+          doc.data()['driverId']!.toString(): doc.id,
+    };
+
+    final Map<String, double> stationSalesByMonth = <String, double>{};
+    final Map<String, double> busGrossByMonth = <String, double>{};
+    final Map<String, double> bingoGrossByMonth = <String, double>{};
+    final Map<String, List<Map<String, dynamic>>> expensesByMonth =
+        <String, List<Map<String, dynamic>>>{};
+
+    final QuerySnapshot<Map<String, dynamic>> stationSnap = await _db
+        .collection(FirestorePaths.stationSales)
+        .where('createdAt', isGreaterThanOrEqualTo: Timestamp.fromDate(rangeStart))
+        .where('createdAt', isLessThanOrEqualTo: Timestamp.fromDate(rangeEnd))
+        .get();
+    for (final QueryDocumentSnapshot<Map<String, dynamic>> doc
+        in stationSnap.docs) {
+      profitAccumulateByKey(
+        stationSalesByMonth,
+        profitRowLocalMonthKey(timestampToDate(doc.data()['createdAt'])),
+        _num(doc.data()['totalAmount']),
+      );
+    }
+
+    final QuerySnapshot<Map<String, dynamic>> vehicleSnap = await _db
+        .collection(FirestorePaths.vehicleSales)
+        .where('createdAt', isGreaterThanOrEqualTo: Timestamp.fromDate(rangeStart))
+        .where('createdAt', isLessThanOrEqualTo: Timestamp.fromDate(rangeEnd))
+        .get();
+    for (final QueryDocumentSnapshot<Map<String, dynamic>> doc
+        in vehicleSnap.docs) {
+      final Map<String, dynamic> data = doc.data();
+      final double amount = _num(data['totalAmount']);
+      final String? vehicleId = data['vehicleId']?.toString();
+      final String vehicleNumber = vehicleIdToNumber[vehicleId] ??
+          data['vehicleNumber']?.toString() ??
+          '';
+      final String? monthKey =
+          profitRowLocalMonthKey(timestampToDate(data['createdAt']));
+      switch (vehicleSalesBucketForNumber(vehicleNumber)) {
+        case VehicleSalesBucket.bus:
+          profitAccumulateByKey(busGrossByMonth, monthKey, amount);
+        case VehicleSalesBucket.bingo:
+          profitAccumulateByKey(bingoGrossByMonth, monthKey, amount);
+        case VehicleSalesBucket.other:
+          break;
+      }
+    }
+
+    final QuerySnapshot<Map<String, dynamic>> expensesSnap = await _db
+        .collection(FirestorePaths.expenses)
+        .where('createdAt', isGreaterThanOrEqualTo: Timestamp.fromDate(rangeStart))
+        .where('createdAt', isLessThanOrEqualTo: Timestamp.fromDate(rangeEnd))
+        .get();
+    for (final QueryDocumentSnapshot<Map<String, dynamic>> doc
+        in expensesSnap.docs) {
+      final Map<String, dynamic> row = mapExpenseDoc(doc);
+      profitAppendExpenseByKey(
+        expensesByMonth,
+        profitRowLocalMonthKey(row['createdAt']),
+        row,
+      );
+    }
+
+    final ({double today, double yesterday}) cashSnapshot =
+        await _stationCashBalanceSnapshot();
+    final QuerySnapshot<Map<String, dynamic>> cashEntriesSnap = await _db
+        .collection(FirestorePaths.stationCashEntries)
+        .orderBy('createdAt')
+        .get();
+    final Map<String, double> cashRecordedByMonth = buildStationCashRecordedByMonth(
+      cashEntriesSnap.docs.map(mapStationCashEntryDoc),
+    );
+
+    final Set<String> monthKeys = <String>{
+      profitMonthKey(now.year, now.month),
+      profitMonthKey(
+        profitCalendarPreviousMonth(now.year, now.month).y,
+        profitCalendarPreviousMonth(now.year, now.month).m,
+      ),
+      ...stationSalesByMonth.keys,
+      ...busGrossByMonth.keys,
+      ...bingoGrossByMonth.keys,
+      ...expensesByMonth.keys,
+      ...cashRecordedByMonth.keys,
+    };
+
+    final Map<String, Map<String, dynamic>> byMonth =
+        <String, Map<String, dynamic>>{};
+    for (final String monthKey in monthKeys) {
+      final List<String> parts = monthKey.split('-');
+      if (parts.length != 2) {
+        continue;
+      }
+      final int? year = int.tryParse(parts[0]);
+      final int? month = int.tryParse(parts[1]);
+      if (year == null || month == null) {
+        continue;
+      }
+      byMonth[monthKey] = computeProfitDaySnapshot(
+        stationSalesGross: stationSalesByMonth[monthKey] ?? 0,
+        busSalesGross: busGrossByMonth[monthKey] ?? 0,
+        bingoSalesGross: bingoGrossByMonth[monthKey] ?? 0,
+        expenseRows: expensesByMonth[monthKey] ?? const <Map<String, dynamic>>[],
+        stationCashBalance: resolveStationCashBalanceForMonth(
+          year,
+          month,
+          currentYear: now.year,
+          currentMonth: now.month,
+          currentBalance: cashSnapshot.today,
+          cashRecordedByMonth: cashRecordedByMonth,
+        ),
+        vehicleIdToNumber: vehicleIdToNumber,
+        driverIdToVehicleId: driverIdToVehicleId,
+      );
+    }
+
+    final List<Map<String, dynamic>> profitMonths =
+        buildProfitMonthCardsPayload(byMonth, now);
+    final String currentKey = profitMonthKey(now.year, now.month);
+    final Map<String, dynamic> currentPayload =
+        byMonth[currentKey] ?? profitMonths.first;
+
+    return <String, dynamic>{
+      'from': rangeStart.toIso8601String(),
+      'to': rangeEnd.toIso8601String(),
+      'profitMonths': profitMonths,
+      'year': now.year,
+      'month': now.month,
+      ...currentPayload,
+    };
+  }
+
+  Future<Map<String, dynamic>> _profitSnapshotForDateRange(
+    DateTime start,
+    DateTime end,
+  ) async {
+    final QuerySnapshot<Map<String, dynamic>> vehiclesSnap =
+        await _db.collection(FirestorePaths.vehicles).get();
+    final Map<String, String> vehicleIdToNumber = <String, String>{
+      for (final QueryDocumentSnapshot<Map<String, dynamic>> doc
+          in vehiclesSnap.docs)
+        doc.id: doc.data()['vehicleNumber']?.toString() ?? '',
+    };
+    final Map<String, String> driverIdToVehicleId = <String, String>{
+      for (final QueryDocumentSnapshot<Map<String, dynamic>> doc
+          in vehiclesSnap.docs)
+        if ((doc.data()['driverId']?.toString() ?? '').isNotEmpty)
+          doc.data()['driverId']!.toString(): doc.id,
+    };
+
+    var stationSalesGross = 0.0;
+    var busSalesGross = 0.0;
+    var bingoSalesGross = 0.0;
+    final List<Map<String, dynamic>> expenseRows = <Map<String, dynamic>>[];
+
+    final QuerySnapshot<Map<String, dynamic>> stationSnap = await _db
+        .collection(FirestorePaths.stationSales)
+        .where('createdAt', isGreaterThanOrEqualTo: Timestamp.fromDate(start))
+        .where('createdAt', isLessThanOrEqualTo: Timestamp.fromDate(end))
+        .get();
+    for (final QueryDocumentSnapshot<Map<String, dynamic>> doc
+        in stationSnap.docs) {
+      stationSalesGross += _num(doc.data()['totalAmount']);
+    }
+
+    final QuerySnapshot<Map<String, dynamic>> vehicleSnap = await _db
+        .collection(FirestorePaths.vehicleSales)
+        .where('createdAt', isGreaterThanOrEqualTo: Timestamp.fromDate(start))
+        .where('createdAt', isLessThanOrEqualTo: Timestamp.fromDate(end))
+        .get();
+    for (final QueryDocumentSnapshot<Map<String, dynamic>> doc
+        in vehicleSnap.docs) {
+      final Map<String, dynamic> data = doc.data();
+      final double amount = _num(data['totalAmount']);
+      final String? vehicleId = data['vehicleId']?.toString();
+      final String vehicleNumber = vehicleIdToNumber[vehicleId] ??
+          data['vehicleNumber']?.toString() ??
+          '';
+      switch (vehicleSalesBucketForNumber(vehicleNumber)) {
+        case VehicleSalesBucket.bus:
+          busSalesGross += amount;
+        case VehicleSalesBucket.bingo:
+          bingoSalesGross += amount;
+        case VehicleSalesBucket.other:
+          break;
+      }
+    }
+
+    final QuerySnapshot<Map<String, dynamic>> expensesSnap = await _db
+        .collection(FirestorePaths.expenses)
+        .where('createdAt', isGreaterThanOrEqualTo: Timestamp.fromDate(start))
+        .where('createdAt', isLessThanOrEqualTo: Timestamp.fromDate(end))
+        .get();
+    for (final QueryDocumentSnapshot<Map<String, dynamic>> doc
+        in expensesSnap.docs) {
+      expenseRows.add(mapExpenseDoc(doc));
+    }
+
+    final DateTime now = DateTime.now();
+    final ({double today, double yesterday}) cashSnapshot =
+        await _stationCashBalanceSnapshot();
+    final QuerySnapshot<Map<String, dynamic>> cashEntriesSnap = await _db
+        .collection(FirestorePaths.stationCashEntries)
+        .orderBy('createdAt')
+        .get();
+    final Map<String, double> cashRecordedByMonth = buildStationCashRecordedByMonth(
+      cashEntriesSnap.docs.map(mapStationCashEntryDoc),
+    );
+    final double stationCashBalance = resolveStationCashBalanceForMonth(
+      start.year,
+      start.month,
+      currentYear: now.year,
+      currentMonth: now.month,
+      currentBalance: cashSnapshot.today,
+      cashRecordedByMonth: cashRecordedByMonth,
+    );
+
+    return computeProfitDaySnapshot(
+      stationSalesGross: stationSalesGross,
+      busSalesGross: busSalesGross,
+      bingoSalesGross: bingoSalesGross,
+      expenseRows: expenseRows,
+      stationCashBalance: stationCashBalance,
+      vehicleIdToNumber: vehicleIdToNumber,
+      driverIdToVehicleId: driverIdToVehicleId,
+    );
   }
 
   Future<Map<String, dynamic>> reportsSalesMonthly({
@@ -2141,6 +2489,7 @@ final class AmethystFirebaseBackend {
     double monthlyCartonSales = 0,
     double stationCashTodayAmount = 0,
     double stationCashYesterdayAmount = 0,
+    double totalProfitMonth = 0,
   }) {
     final int totalUsers = superAdmins + admins + drivers;
     return <String, dynamic>{
@@ -2152,6 +2501,7 @@ final class AmethystFirebaseBackend {
         'totalExpensesToday': expensesToday,
         'totalMonthlyExpenses': monthlyExpenses,
         'totalProfitToday': stationToday + vehicleToday - expensesToday,
+        'totalProfitMonth': totalProfitMonth,
         'totalMonthlySales': monthlyStation + monthlyVehicle,
         'totalMonthlyCartonSales': monthlyCartonSales,
         'stationCashTodayAmount': stationCashTodayAmount,
@@ -2183,6 +2533,7 @@ final class AmethystFirebaseBackend {
       'totalExpensesToday': expensesToday,
       'totalMonthlyExpenses': monthlyExpenses,
       'totalProfitToday': stationToday + vehicleToday - expensesToday,
+      'totalProfitMonth': totalProfitMonth,
       'totalMonthlySales': monthlyStation + monthlyVehicle,
       'totalMonthlyCartonSales': monthlyCartonSales,
       'stationCashTodayAmount': stationCashTodayAmount,
@@ -2267,11 +2618,14 @@ final class AmethystFirebaseBackend {
       _sumExpenses(month.start, month.end),
       _superAdminCartonMetricsForRange(start: month.start, end: month.end),
       _stationCashBalanceSnapshot(),
+      _profitSnapshotForDateRange(month.start, month.end),
     ]);
     final Map<String, dynamic> cartonMetrics =
         salesTotals[6] as Map<String, dynamic>;
     final ({double today, double yesterday}) cashSnapshot =
         salesTotals[7] as ({double today, double yesterday});
+    final Map<String, dynamic> profitMonthSnapshot =
+        salesTotals[8] as Map<String, dynamic>;
     return _buildSuperAdminDashboardPayload(
       superAdmins: roleCounts.superAdmins,
       admins: roleCounts.admins,
@@ -2292,6 +2646,7 @@ final class AmethystFirebaseBackend {
           _num(cartonMetrics['monthlyCartonSalesTotalAmount']),
       stationCashTodayAmount: cashSnapshot.today,
       stationCashYesterdayAmount: cashSnapshot.yesterday,
+      totalProfitMonth: _num(profitMonthSnapshot['total']),
     );
   }
 

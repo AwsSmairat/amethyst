@@ -519,7 +519,13 @@ final class PrototypeAmethystBackend {
     String? dateFrom,
     String? dateTo,
   }) async =>
-      PrototypeSampleData.reportsProfitLoss();
+      PrototypeSampleData.reportsProfitLoss(
+        dateFrom: dateFrom,
+        dateTo: dateTo,
+      );
+
+  Future<Map<String, dynamic>> reportsProfitLossMonthly() async =>
+      PrototypeSampleData.reportsProfitLossMonthly();
 
   Future<Map<String, dynamic>> reportsSalesMonthly({
     int? year,

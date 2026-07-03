@@ -148,6 +148,7 @@ class _SuperAdminDashboardBodyState extends State<_SuperAdminDashboardBody>
             : (state as DashboardLoadLoading).previousData!;
         final salesToday = _dashboardKpiNum(d['totalSalesToday']);
         final profit = _dashboardKpiNum(d['totalProfitToday']);
+        final profitMonth = _dashboardKpiNum(d['totalProfitMonth']);
         final expenses = _dashboardKpiNum(d['totalExpensesToday']);
         final monthlyExpenses = _dashboardKpiNum(d['totalMonthlyExpenses']);
         final monthly = _dashboardKpiNum(d['totalMonthlySales']);
@@ -215,6 +216,12 @@ class _SuperAdminDashboardBodyState extends State<_SuperAdminDashboardBody>
                     value: profit.toStringAsFixed(0),
                     icon: Icons.savings,
                     onTap: () => context.push('/super-admin/kpi/profit-today'),
+                  ),
+                  _KpiCard(
+                    label: l10n.profitMonth,
+                    value: profitMonth.toStringAsFixed(0),
+                    icon: Icons.savings_outlined,
+                    onTap: () => context.push('/super-admin/kpi/profit-month'),
                   ),
                   _KpiCard(
                     label: l10n.expensesToday,

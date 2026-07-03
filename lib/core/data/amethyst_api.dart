@@ -375,6 +375,9 @@ final class AmethystApi {
         dateTo: dateTo,
       );
 
+  Future<Map<String, dynamic>> reportsProfitLossMonthly() =>
+      _b.reportsProfitLossMonthly();
+
   Future<Map<String, dynamic>> reportsSalesMonthly({
     int? year,
     int? month,

@@ -11,14 +11,12 @@ class BrandMarkSmall extends StatelessWidget {
     return SizedBox(
       width: size,
       height: size,
-      child: ClipOval(
-        child: Image.asset(
-          BrandAssets.logo,
-          fit: BoxFit.cover,
-          semanticLabel: 'Amethyst',
-          errorBuilder: (BuildContext context, Object error, StackTrace? stackTrace) =>
-              Icon(Icons.water_drop, size: size * 0.6),
-        ),
+      child: Image.asset(
+        BrandAssets.logo,
+        fit: BoxFit.contain,
+        semanticLabel: 'Amethyst',
+        errorBuilder: (BuildContext context, Object error, StackTrace? stackTrace) =>
+            Icon(Icons.water_drop, size: size * 0.6),
       ),
     );
   }

@@ -670,6 +670,12 @@ abstract class AppLocalizations {
   /// **'ربح اليوم'**
   String get profitToday;
 
+  /// No description provided for @profitMonth.
+  ///
+  /// In ar, this message translates to:
+  /// **'الربح الشهري'**
+  String get profitMonth;
+
   /// No description provided for @expensesToday.
   ///
   /// In ar, this message translates to:
@@ -2151,6 +2157,48 @@ abstract class AppLocalizations {
   /// In ar, this message translates to:
   /// **'ربح اليوم'**
   String get profitTodayDetail;
+
+  /// No description provided for @profitMonthDetail.
+  ///
+  /// In ar, this message translates to:
+  /// **'الربح الشهري'**
+  String get profitMonthDetail;
+
+  /// No description provided for @profitTodayBusSalesTotal.
+  ///
+  /// In ar, this message translates to:
+  /// **'مجموع بيع الباص'**
+  String get profitTodayBusSalesTotal;
+
+  /// No description provided for @profitTodayBingoSalesTotal.
+  ///
+  /// In ar, this message translates to:
+  /// **'مجموع بيع البينقو'**
+  String get profitTodayBingoSalesTotal;
+
+  /// No description provided for @profitTodayStationCashBalance.
+  ///
+  /// In ar, this message translates to:
+  /// **'رصيد أموال المحطة'**
+  String get profitTodayStationCashBalance;
+
+  /// No description provided for @profitTodayStationExpenses.
+  ///
+  /// In ar, this message translates to:
+  /// **'مصاريف المحطة'**
+  String get profitTodayStationExpenses;
+
+  /// No description provided for @profitTodayStationNetFormula.
+  ///
+  /// In ar, this message translates to:
+  /// **'مجموع المحطة (مبيعات - مصاريف + رصيد)'**
+  String get profitTodayStationNetFormula;
+
+  /// No description provided for @profitTodayGrandTotalFormula.
+  ///
+  /// In ar, this message translates to:
+  /// **'المجموع (محطة + باص + بينقو)'**
+  String get profitTodayGrandTotalFormula;
 
   /// No description provided for @expensesTodayDetail.
   ///

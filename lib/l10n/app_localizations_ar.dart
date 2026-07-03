@@ -306,6 +306,9 @@ class AppLocalizationsAr extends AppLocalizations {
   String get profitToday => 'ربح اليوم';
 
   @override
+  String get profitMonth => 'الربح الشهري';
+
+  @override
   String get expensesToday => 'مصاريف اليوم';
 
   @override
@@ -1114,6 +1117,28 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get profitTodayDetail => 'ربح اليوم';
+
+  @override
+  String get profitMonthDetail => 'الربح الشهري';
+
+  @override
+  String get profitTodayBusSalesTotal => 'مجموع بيع الباص';
+
+  @override
+  String get profitTodayBingoSalesTotal => 'مجموع بيع البينقو';
+
+  @override
+  String get profitTodayStationCashBalance => 'رصيد أموال المحطة';
+
+  @override
+  String get profitTodayStationExpenses => 'مصاريف المحطة';
+
+  @override
+  String get profitTodayStationNetFormula =>
+      'مجموع المحطة (مبيعات - مصاريف + رصيد)';
+
+  @override
+  String get profitTodayGrandTotalFormula => 'المجموع (محطة + باص + بينقو)';
 
   @override
   String get expensesTodayDetail => 'مصاريف اليوم';

@@ -6,6 +6,9 @@ import 'package:amethyst/core/prototype/prototype_session.dart';
 import 'package:amethyst/core/firebase/station_stock_skip.dart';
 import 'package:amethyst/core/station_balance/station_balance_catalog.dart';
 import 'package:amethyst/core/utils/parse_dynamic_double.dart';
+import 'package:amethyst/core/firebase/date_range_utils.dart';
+import 'package:amethyst/core/expenses/profit_vehicle_expense_deduction.dart';
+import 'package:amethyst/core/vehicle/vehicle_kind_match.dart';
 import 'package:amethyst/core/vehicle_load/vehicle_load_aggregates.dart';
 import 'package:amethyst/core/vehicle_load/vehicle_load_catalog.dart';
 import 'package:amethyst/features/auth/domain/entities/user_entity.dart';
@@ -1327,6 +1330,8 @@ final class PrototypeSampleData {
     final double salesMonth =
         _stationSalesAmountThisMonth() + _vehicleSalesAmountThisMonth();
     final double profitToday = salesToday - expensesToday;
+    final double profitMonth =
+        (_profitSnapshotForCurrentMonth()['total'] as num?)?.toDouble() ?? 0.0;
     final double monthlyCarton = _stationSalesAmountThisMonthCarton() +
         _vehicleSalesAmountThisMonth(cartonOnly: true);
     final List<Map<String, dynamic>> debtPreview = _openDebtPreview();
@@ -1346,6 +1351,7 @@ final class PrototypeSampleData {
         'totalExpensesToday': expensesToday,
         'totalMonthlyExpenses': expensesMonth,
         'totalProfitToday': profitToday,
+        'totalProfitMonth': profitMonth,
         'totalMonthlySales': salesMonth,
         'stationCashTodayAmount': stationCashAmount,
         'stationCashYesterdayAmount': cashYesterday,
@@ -1376,6 +1382,7 @@ final class PrototypeSampleData {
       'totalExpensesToday': expensesToday,
       'totalMonthlyExpenses': expensesMonth,
       'totalProfitToday': profitToday,
+      'totalProfitMonth': profitMonth,
       'totalMonthlySales': salesMonth,
       'totalMonthlyCartonSales': monthlyCarton,
       'stationCashTodayAmount': stationCashAmount,
@@ -1926,16 +1933,356 @@ final class PrototypeSampleData {
     return <String, dynamic>{'days': days};
   }
 
-  static Map<String, dynamic> reportsProfitLoss() {
-    final double revenue = _stationSalesAmountToday() + _vehicleSalesAmountToday();
-    final double expenses = _expensesAmountToday();
-    return <String, dynamic>{
-      'from': _today.toIso8601String(),
-      'to': _today.toIso8601String(),
-      'revenue': revenue,
-      'expenses': expenses,
-      'net': revenue - expenses,
+  static Map<String, dynamic> reportsProfitLoss({
+    String? dateFrom,
+    String? dateTo,
+  }) {
+    final DateTime now = _now;
+    final DateTime startDay = parseYmd(dateFrom) != null
+        ? startOfDay(parseYmd(dateFrom)!)
+        : _today;
+    final DateTime endDay =
+        parseYmd(dateTo) != null ? startOfDay(parseYmd(dateTo)!) : _today;
+    final String todayYmd = ymd(_today);
+    final String yesterdayYmd = ymd(_today.subtract(const Duration(days: 1)));
+
+    final Map<String, String> vehicleIdToNumber = <String, String>{
+      for (final Map<String, dynamic> v in vehicles)
+        v['id']?.toString() ?? '': v['vehicleNumber']?.toString() ?? '',
     };
+    final Map<String, String> driverIdToVehicleId = <String, String>{
+      for (final Map<String, dynamic> v in vehicles)
+        if ((v['driverId']?.toString() ?? '').isNotEmpty)
+          v['driverId']!.toString(): v['id']?.toString() ?? '',
+    };
+
+    final Map<String, double> stationSalesByDay = <String, double>{};
+    final Map<String, double> busGrossByDay = <String, double>{};
+    final Map<String, double> bingoGrossByDay = <String, double>{};
+    final Map<String, List<Map<String, dynamic>>> expensesByDay =
+        <String, List<Map<String, dynamic>>>{};
+
+    bool inRange(DateTime? day) {
+      if (day == null) {
+        return false;
+      }
+      final DateTime key = DateTime(day.year, day.month, day.day);
+      return !key.isBefore(startDay) && !key.isAfter(endDay);
+    }
+
+    for (final Map<String, dynamic> s in _stationSales) {
+      final DateTime? day = _rowDateOnly(s);
+      if (!inRange(day)) {
+        continue;
+      }
+      profitAccumulateByDay(
+        stationSalesByDay,
+        profitRowLocalYmd(day),
+        _rowMoney(s),
+      );
+    }
+
+    for (final Map<String, dynamic> vs in _vehicleSales) {
+      if (!_isCashVehicleSale(vs)) {
+        continue;
+      }
+      final DateTime? day = _rowDateOnly(vs);
+      if (!inRange(day)) {
+        continue;
+      }
+      final double amount = _rowMoney(vs);
+      final String vehicleId = vs['vehicleId']?.toString() ?? '';
+      final String vehicleNumber = vehicleIdToNumber[vehicleId] ?? '';
+      final String? dayYmd = profitRowLocalYmd(day);
+      switch (vehicleSalesBucketForNumber(vehicleNumber)) {
+        case VehicleSalesBucket.bus:
+          profitAccumulateByDay(busGrossByDay, dayYmd, amount);
+        case VehicleSalesBucket.bingo:
+          profitAccumulateByDay(bingoGrossByDay, dayYmd, amount);
+        case VehicleSalesBucket.other:
+          break;
+      }
+    }
+
+    for (final Map<String, dynamic> e in _expenses) {
+      final DateTime? day = _rowDateOnly(e);
+      if (!inRange(day)) {
+        continue;
+      }
+      profitAppendExpenseByDay(
+        expensesByDay,
+        profitRowLocalYmd(day),
+        Map<String, dynamic>.from(e),
+      );
+    }
+
+    final List<Map<String, dynamic>> cashEntries = stationCashEntries;
+    final double cashYesterday = cashEntries.isEmpty
+        ? 0.0
+        : (cashEntries.first['previousAmount'] as num?)?.toDouble() ?? 0.0;
+    final Map<String, double> cashRecordedOnDay =
+        buildStationCashRecordedOnDay(cashEntries);
+
+    final Set<String> dayKeys = <String>{
+      todayYmd,
+      yesterdayYmd,
+      ...stationSalesByDay.keys,
+      ...busGrossByDay.keys,
+      ...bingoGrossByDay.keys,
+      ...expensesByDay.keys,
+      ...cashRecordedOnDay.keys,
+    };
+
+    final Map<String, Map<String, dynamic>> byDay =
+        <String, Map<String, dynamic>>{};
+    for (final String dayYmd in dayKeys) {
+      if (dayYmd != todayYmd && dayYmd != yesterdayYmd) {
+        final DateTime? parsed = parseYmd(dayYmd);
+        if (parsed == null || !inRange(parsed)) {
+          continue;
+        }
+      }
+      byDay[dayYmd] = computeProfitDaySnapshot(
+        stationSalesGross: stationSalesByDay[dayYmd] ?? 0,
+        busSalesGross: busGrossByDay[dayYmd] ?? 0,
+        bingoSalesGross: bingoGrossByDay[dayYmd] ?? 0,
+        expenseRows: expensesByDay[dayYmd] ?? const <Map<String, dynamic>>[],
+        stationCashBalance: resolveStationCashBalanceForDay(
+          dayYmd,
+          todayYmd: todayYmd,
+          yesterdayYmd: yesterdayYmd,
+          currentBalance: stationCashAmount,
+          yesterdayBalance: cashYesterday,
+          cashRecordedOnDay: cashRecordedOnDay,
+        ),
+        vehicleIdToNumber: vehicleIdToNumber,
+        driverIdToVehicleId: driverIdToVehicleId,
+      );
+    }
+
+    final List<Map<String, dynamic>> profitDays =
+        buildProfitDayCardsPayload(byDay, now);
+    final Map<String, dynamic> todayPayload =
+        byDay[todayYmd] ?? profitDays.first;
+
+    return <String, dynamic>{
+      'from': startDay.toIso8601String(),
+      'to': endDay.toIso8601String(),
+      'profitDays': profitDays,
+      ...todayPayload,
+    };
+  }
+
+  static Map<String, dynamic> reportsProfitLossMonthly() {
+    final DateTime now = _now;
+    final DateTime rangeStart = DateTime(now.year, now.month - 11, 1);
+    final DateTime rangeEnd = DateTime(now.year, now.month + 1, 0);
+
+    final Map<String, String> vehicleIdToNumber = <String, String>{
+      for (final Map<String, dynamic> v in vehicles)
+        v['id']?.toString() ?? '': v['vehicleNumber']?.toString() ?? '',
+    };
+    final Map<String, String> driverIdToVehicleId = <String, String>{
+      for (final Map<String, dynamic> v in vehicles)
+        if ((v['driverId']?.toString() ?? '').isNotEmpty)
+          v['driverId']!.toString(): v['id']?.toString() ?? '',
+    };
+
+    final Map<String, double> stationSalesByMonth = <String, double>{};
+    final Map<String, double> busGrossByMonth = <String, double>{};
+    final Map<String, double> bingoGrossByMonth = <String, double>{};
+    final Map<String, List<Map<String, dynamic>>> expensesByMonth =
+        <String, List<Map<String, dynamic>>>{};
+
+    bool inRange(DateTime? day) {
+      if (day == null) {
+        return false;
+      }
+      final DateTime key = DateTime(day.year, day.month, day.day);
+      final DateTime start = DateTime(rangeStart.year, rangeStart.month, rangeStart.day);
+      final DateTime end = DateTime(rangeEnd.year, rangeEnd.month, rangeEnd.day);
+      return !key.isBefore(start) && !key.isAfter(end);
+    }
+
+    for (final Map<String, dynamic> s in _stationSales) {
+      final DateTime? day = _rowDateOnly(s);
+      if (!inRange(day)) {
+        continue;
+      }
+      profitAccumulateByKey(
+        stationSalesByMonth,
+        profitRowLocalMonthKey(day),
+        _rowMoney(s),
+      );
+    }
+
+    for (final Map<String, dynamic> vs in _vehicleSales) {
+      if (!_isCashVehicleSale(vs)) {
+        continue;
+      }
+      final DateTime? day = _rowDateOnly(vs);
+      if (!inRange(day)) {
+        continue;
+      }
+      final double amount = _rowMoney(vs);
+      final String vehicleId = vs['vehicleId']?.toString() ?? '';
+      final String vehicleNumber = vehicleIdToNumber[vehicleId] ?? '';
+      final String? monthKey = profitRowLocalMonthKey(day);
+      switch (vehicleSalesBucketForNumber(vehicleNumber)) {
+        case VehicleSalesBucket.bus:
+          profitAccumulateByKey(busGrossByMonth, monthKey, amount);
+        case VehicleSalesBucket.bingo:
+          profitAccumulateByKey(bingoGrossByMonth, monthKey, amount);
+        case VehicleSalesBucket.other:
+          break;
+      }
+    }
+
+    for (final Map<String, dynamic> e in _expenses) {
+      final DateTime? day = _rowDateOnly(e);
+      if (!inRange(day)) {
+        continue;
+      }
+      profitAppendExpenseByKey(
+        expensesByMonth,
+        profitRowLocalMonthKey(day),
+        Map<String, dynamic>.from(e),
+      );
+    }
+
+    final List<Map<String, dynamic>> cashEntries = stationCashEntries;
+    final Map<String, double> cashRecordedByMonth =
+        buildStationCashRecordedByMonth(cashEntries);
+    final ({int y, int m}) prevMonth =
+        profitCalendarPreviousMonth(now.year, now.month);
+
+    final Set<String> monthKeys = <String>{
+      profitMonthKey(now.year, now.month),
+      profitMonthKey(prevMonth.y, prevMonth.m),
+      ...stationSalesByMonth.keys,
+      ...busGrossByMonth.keys,
+      ...bingoGrossByMonth.keys,
+      ...expensesByMonth.keys,
+      ...cashRecordedByMonth.keys,
+    };
+
+    final Map<String, Map<String, dynamic>> byMonth =
+        <String, Map<String, dynamic>>{};
+    for (final String monthKey in monthKeys) {
+      final List<String> parts = monthKey.split('-');
+      if (parts.length != 2) {
+        continue;
+      }
+      final int? year = int.tryParse(parts[0]);
+      final int? month = int.tryParse(parts[1]);
+      if (year == null || month == null) {
+        continue;
+      }
+      byMonth[monthKey] = computeProfitDaySnapshot(
+        stationSalesGross: stationSalesByMonth[monthKey] ?? 0,
+        busSalesGross: busGrossByMonth[monthKey] ?? 0,
+        bingoSalesGross: bingoGrossByMonth[monthKey] ?? 0,
+        expenseRows: expensesByMonth[monthKey] ?? const <Map<String, dynamic>>[],
+        stationCashBalance: resolveStationCashBalanceForMonth(
+          year,
+          month,
+          currentYear: now.year,
+          currentMonth: now.month,
+          currentBalance: stationCashAmount,
+          cashRecordedByMonth: cashRecordedByMonth,
+        ),
+        vehicleIdToNumber: vehicleIdToNumber,
+        driverIdToVehicleId: driverIdToVehicleId,
+      );
+    }
+
+    final List<Map<String, dynamic>> profitMonths =
+        buildProfitMonthCardsPayload(byMonth, now);
+    final String currentKey = profitMonthKey(now.year, now.month);
+    final Map<String, dynamic> currentPayload =
+        byMonth[currentKey] ?? profitMonths.first;
+
+    return <String, dynamic>{
+      'from': rangeStart.toIso8601String(),
+      'to': rangeEnd.toIso8601String(),
+      'profitMonths': profitMonths,
+      'year': now.year,
+      'month': now.month,
+      ...currentPayload,
+    };
+  }
+
+  static Map<String, dynamic> _profitSnapshotForCurrentMonth() {
+    final DateTime now = _now;
+    final DateTime start = DateTime(now.year, now.month, 1);
+    final DateTime end = DateTime(now.year, now.month + 1, 0);
+    final Map<String, dynamic> monthly = reportsProfitLoss(
+      dateFrom: ymd(start),
+      dateTo: ymd(end),
+    );
+    final List<dynamic>? days = monthly['profitDays'] as List<dynamic>?;
+    if (days == null || days.isEmpty) {
+      return monthly;
+    }
+    var stationSales = 0.0;
+    var busGross = 0.0;
+    var bingoGross = 0.0;
+    final List<Map<String, dynamic>> expenseRows = <Map<String, dynamic>>[];
+    final Map<String, String> vehicleIdToNumber = <String, String>{
+      for (final Map<String, dynamic> v in vehicles)
+        v['id']?.toString() ?? '': v['vehicleNumber']?.toString() ?? '',
+    };
+    final Map<String, String> driverIdToVehicleId = <String, String>{
+      for (final Map<String, dynamic> v in vehicles)
+        if ((v['driverId']?.toString() ?? '').isNotEmpty)
+          v['driverId']!.toString(): v['id']?.toString() ?? '',
+    };
+
+    bool inMonth(DateTime? day) {
+      if (day == null) {
+        return false;
+      }
+      return day.year == now.year && day.month == now.month;
+    }
+
+    for (final Map<String, dynamic> s in _stationSales) {
+      if (!inMonth(_rowDateOnly(s))) {
+        continue;
+      }
+      stationSales += _rowMoney(s);
+    }
+    for (final Map<String, dynamic> vs in _vehicleSales) {
+      if (!_isCashVehicleSale(vs) || !inMonth(_rowDateOnly(vs))) {
+        continue;
+      }
+      final String vehicleId = vs['vehicleId']?.toString() ?? '';
+      final String vehicleNumber = vehicleIdToNumber[vehicleId] ?? '';
+      final double amount = _rowMoney(vs);
+      switch (vehicleSalesBucketForNumber(vehicleNumber)) {
+        case VehicleSalesBucket.bus:
+          busGross += amount;
+        case VehicleSalesBucket.bingo:
+          bingoGross += amount;
+        case VehicleSalesBucket.other:
+          break;
+      }
+    }
+    for (final Map<String, dynamic> e in _expenses) {
+      if (!inMonth(_rowDateOnly(e))) {
+        continue;
+      }
+      expenseRows.add(Map<String, dynamic>.from(e));
+    }
+
+    return computeProfitDaySnapshot(
+      stationSalesGross: stationSales,
+      busSalesGross: busGross,
+      bingoSalesGross: bingoGross,
+      expenseRows: expenseRows,
+      stationCashBalance: stationCashAmount,
+      vehicleIdToNumber: vehicleIdToNumber,
+      driverIdToVehicleId: driverIdToVehicleId,
+    );
   }
 
   static Map<String, dynamic> reportsSalesMonthly({int? year, int? month}) {
