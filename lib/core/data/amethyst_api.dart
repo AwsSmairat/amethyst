@@ -256,6 +256,12 @@ final class AmethystApi {
   }) =>
       _b.listStationDebtEntries(page: page, limit: limit);
 
+  Future<Map<String, dynamic>> listStationDebtEntriesForSummary({
+    int page = 1,
+    int limit = 100,
+  }) =>
+      _b.listStationDebtEntriesForSummary(page: page, limit: limit);
+
   Future<Map<String, dynamic>> repayStationDebt({required String debtorName}) =>
       _b.repayStationDebt(debtorName: debtorName);
 

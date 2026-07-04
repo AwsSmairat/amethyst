@@ -24,6 +24,19 @@ final class ListLoadLoaded extends ListLoadState {
   List<Object?> get props => <Object?>[items];
 }
 
+final class StationSalesListLoaded extends ListLoadState {
+  const StationSalesListLoaded({
+    required this.sales,
+    required this.debtEntries,
+  });
+
+  final List<Map<String, dynamic>> sales;
+  final List<Map<String, dynamic>> debtEntries;
+
+  @override
+  List<Object?> get props => <Object?>[sales, debtEntries];
+}
+
 final class ListLoadFailure extends ListLoadState {
   const ListLoadFailure(this.message);
 

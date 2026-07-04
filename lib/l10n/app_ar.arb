@@ -324,6 +324,19 @@
       "count": {"type": "String"}
     }
   },
+  "vehicleSalesSummaryHeaderDebt": "الدين",
+  "vehicleSalesGrandTotalDebt": "إجمالي الدين: {amount}",
+  "@vehicleSalesGrandTotalDebt": {
+    "placeholders": {
+      "amount": {"type": "String"}
+    }
+  },
+  "salesSummaryTotalCoreVolumeQty": "إجمالي الكمية: {count}",
+  "@salesSummaryTotalCoreVolumeQty": {
+    "placeholders": {
+      "count": {"type": "String"}
+    }
+  },
   "titleExpenses": "المصاريف",
   "titleInventoryProducts": "المخزون · المنتجات",
   "titleReturns": "المرتجعات",

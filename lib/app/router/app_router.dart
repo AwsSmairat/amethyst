@@ -7,6 +7,7 @@ import 'package:amethyst/features/auth/presentation/cubit/auth_cubit.dart';
 import 'package:amethyst/features/auth/presentation/cubit/auth_state.dart';
 import 'package:amethyst/features/auth/presentation/pages/login_page.dart';
 import 'package:amethyst/features/catalog/presentation/cubit/json_list_cubit.dart';
+import 'package:amethyst/features/catalog/presentation/cubit/station_sales_list_cubit.dart';
 import 'package:amethyst/features/catalog/presentation/pages/expenses_hub_page.dart';
 import 'package:amethyst/features/catalog/presentation/pages/expense_category_report_page.dart';
 import 'package:amethyst/features/catalog/presentation/pages/json_list_page.dart';
@@ -266,10 +267,7 @@ GoRouter createAppRouter(AuthCubit authCubit) {
               GoRoute(
                 path: 'station-sales',
                 builder: (BuildContext context, _) => BlocProvider(
-                  create: (_) =>
-                      JsonListCubit(
-                        () => sl<AmethystApi>().listStationSales(),
-                      )..load(),
+                  create: (_) => StationSalesListCubit()..load(),
                   child: StationSalesListPage(
                     title: context.l10n.titleStationSales,
                   ),
@@ -439,10 +437,7 @@ GoRouter createAppRouter(AuthCubit authCubit) {
               GoRoute(
                 path: 'station-sales',
                 builder: (BuildContext context, _) => BlocProvider(
-                  create: (_) =>
-                      JsonListCubit(
-                        () => sl<AmethystApi>().listStationSales(),
-                      )..load(),
+                  create: (_) => StationSalesListCubit()..load(),
                   child: StationSalesListPage(
                     title: context.l10n.titleStationSales,
                     fab: Builder(

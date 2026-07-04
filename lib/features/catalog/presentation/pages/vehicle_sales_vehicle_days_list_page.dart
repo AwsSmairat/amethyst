@@ -1,4 +1,5 @@
 import 'package:amethyst/core/data/amethyst_api.dart';
+import 'package:amethyst/core/data/api_list_fetch.dart';
 import 'package:amethyst/core/l10n/context_l10n.dart';
 import 'package:amethyst/core/utils/parse_api_datetime.dart';
 import 'package:amethyst/core/theme/app_colors.dart';
@@ -45,14 +46,11 @@ class _VehicleSalesVehicleDaysListPageState
     });
     try {
       final AmethystApi api = sl<AmethystApi>();
-      final Map<String, dynamic> res = await api.listVehicleSales(
-        vehicleId: widget.vehicleId,
-        limit: 100,
-      );
       final List<Map<String, dynamic>> items =
-          (res['items'] as List<dynamic>? ?? <dynamic>[])
-              .whereType<Map<String, dynamic>>()
-              .toList(growable: false);
+          await fetchAllVehicleSalesInRange(
+        api,
+        vehicleId: widget.vehicleId,
+      );
       final Set<DateTime> daySet = <DateTime>{};
       for (final Map<String, dynamic> item in items) {
         final DateTime? d = parseApiDateOnly(item['createdAt']);

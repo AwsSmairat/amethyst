@@ -10,9 +10,10 @@ import 'package:amethyst/core/firebase/firestore_mappers.dart';
 import 'package:amethyst/core/firebase/firestore_paths.dart';
 import 'package:amethyst/core/firebase/station_stock_skip.dart';
 import 'package:amethyst/core/network/api_exception.dart';
-import 'package:amethyst/core/station_balance/station_balance_catalog.dart';
 import 'package:amethyst/core/expenses/profit_vehicle_expense_deduction.dart';
+import 'package:amethyst/core/station_balance/station_balance_catalog.dart';
 import 'package:amethyst/core/vehicle/vehicle_kind_match.dart';
+import 'package:amethyst/core/vehicle_sale/vehicle_sales_aggregates.dart';
 import 'package:amethyst/core/vehicle_load/vehicle_load_aggregates.dart';
 import 'package:amethyst/core/vehicle_sale/vehicle_product_columns.dart';
 import 'package:amethyst/core/station_debt/station_debt_entry_utils.dart';
@@ -1175,6 +1176,24 @@ final class AmethystFirebaseBackend {
     return _paginate(merged, page: page, limit: limit);
   }
 
+  /// كل سجلات دين المحطة (مفتوحة ومسدّدة) لملخص مبيعات المحطة اليومي.
+  Future<Map<String, dynamic>> listStationDebtEntriesForSummary({
+    int page = 1,
+    int limit = 100,
+  }) async {
+    await _requireStaff();
+    final QuerySnapshot<Map<String, dynamic>> snap = await _db
+        .collection(FirestorePaths.stationDebtEntries)
+        .orderBy('createdAt', descending: true)
+        .get();
+    final List<Map<String, dynamic>> items =
+        await _mapStationDebtsBatch(snap.docs);
+    final List<Map<String, dynamic>> stationOnly = items
+        .where(isStationDebtSummaryEntry)
+        .toList(growable: false);
+    return _paginate(stationOnly, page: page, limit: limit);
+  }
+
   /// جلب مبيعات السيارة للقائمة بدون فهرس مركّب (تصفية/ترتيب في الذاكرة).
   Future<QuerySnapshot<Map<String, dynamic>>> _fetchVehicleSalesForDebtList(
     Map<String, dynamic> actor,
@@ -1344,23 +1363,24 @@ final class AmethystFirebaseBackend {
     if (vehicleId != null && vehicleId.isNotEmpty) {
       q = q.where('vehicleId', isEqualTo: vehicleId);
     }
-    final QuerySnapshot<Map<String, dynamic>> snap =
-        await q.orderBy('createdAt', descending: true).get();
     final DateTime? from = parseYmd(dateFrom);
     final DateTime? to = parseYmd(dateTo);
-    final List<QueryDocumentSnapshot<Map<String, dynamic>>> filtered =
-        <QueryDocumentSnapshot<Map<String, dynamic>>>[];
-    for (final QueryDocumentSnapshot<Map<String, dynamic>> doc in snap.docs) {
-      final DateTime? created = timestampToDate(doc.data()['createdAt']);
-      if (from != null && created != null && created.isBefore(startOfDay(from))) {
-        continue;
-      }
-      if (to != null && created != null && created.isAfter(endOfDay(to))) {
-        continue;
-      }
-      filtered.add(doc);
+    if (from != null) {
+      q = q.where(
+        'createdAt',
+        isGreaterThanOrEqualTo: Timestamp.fromDate(startOfDay(from)),
+      );
     }
-    final List<Map<String, dynamic>> items = await _mapVehicleSalesBatch(filtered);
+    if (to != null) {
+      q = q.where(
+        'createdAt',
+        isLessThanOrEqualTo: Timestamp.fromDate(endOfDay(to)),
+      );
+    }
+    final QuerySnapshot<Map<String, dynamic>> snap =
+        await q.orderBy('createdAt', descending: true).get();
+    final List<Map<String, dynamic>> items =
+        await _mapVehicleSalesBatch(snap.docs);
     return _paginate(items, page: page, limit: limit.clamp(1, 100));
   }
 
@@ -2048,6 +2068,9 @@ final class AmethystFirebaseBackend {
     for (final QueryDocumentSnapshot<Map<String, dynamic>> doc
         in vehicleSnap.docs) {
       final Map<String, dynamic> data = doc.data();
+      if (!isCashVehicleSaleRow(data)) {
+        continue;
+      }
       final double amount = _num(data['totalAmount']);
       final String? vehicleId = data['vehicleId']?.toString();
       final String vehicleNumber = vehicleIdToNumber[vehicleId] ??
@@ -2182,6 +2205,9 @@ final class AmethystFirebaseBackend {
     for (final QueryDocumentSnapshot<Map<String, dynamic>> doc
         in vehicleSnap.docs) {
       final Map<String, dynamic> data = doc.data();
+      if (!isCashVehicleSaleRow(data)) {
+        continue;
+      }
       final double amount = _num(data['totalAmount']);
       final String? vehicleId = data['vehicleId']?.toString();
       final String vehicleNumber = vehicleIdToNumber[vehicleId] ??
@@ -2324,6 +2350,9 @@ final class AmethystFirebaseBackend {
     for (final QueryDocumentSnapshot<Map<String, dynamic>> doc
         in vehicleSnap.docs) {
       final Map<String, dynamic> data = doc.data();
+      if (!isCashVehicleSaleRow(data)) {
+        continue;
+      }
       final double amount = _num(data['totalAmount']);
       final String? vehicleId = data['vehicleId']?.toString();
       final String vehicleNumber = vehicleIdToNumber[vehicleId] ??
@@ -2489,6 +2518,7 @@ final class AmethystFirebaseBackend {
     double monthlyCartonSales = 0,
     double stationCashTodayAmount = 0,
     double stationCashYesterdayAmount = 0,
+    double totalProfitToday = 0,
     double totalProfitMonth = 0,
   }) {
     final int totalUsers = superAdmins + admins + drivers;
@@ -2500,7 +2530,7 @@ final class AmethystFirebaseBackend {
         'vehicleSalesToday': vehicleToday,
         'totalExpensesToday': expensesToday,
         'totalMonthlyExpenses': monthlyExpenses,
-        'totalProfitToday': stationToday + vehicleToday - expensesToday,
+        'totalProfitToday': totalProfitToday,
         'totalProfitMonth': totalProfitMonth,
         'totalMonthlySales': monthlyStation + monthlyVehicle,
         'totalMonthlyCartonSales': monthlyCartonSales,
@@ -2532,7 +2562,7 @@ final class AmethystFirebaseBackend {
       'vehicleSalesToday': vehicleToday,
       'totalExpensesToday': expensesToday,
       'totalMonthlyExpenses': monthlyExpenses,
-      'totalProfitToday': stationToday + vehicleToday - expensesToday,
+      'totalProfitToday': totalProfitToday,
       'totalProfitMonth': totalProfitMonth,
       'totalMonthlySales': monthlyStation + monthlyVehicle,
       'totalMonthlyCartonSales': monthlyCartonSales,
@@ -2611,21 +2641,24 @@ final class AmethystFirebaseBackend {
     );
     final List<Object> salesTotals = await Future.wait<Object>(<Future<Object>>[
       _sumSales(FirestorePaths.stationSales, day.start, day.end),
-      _sumSales(FirestorePaths.vehicleSales, day.start, day.end),
+      _sumVehicleCashSales(day.start, day.end),
       _sumExpenses(day.start, day.end),
       _sumSales(FirestorePaths.stationSales, month.start, month.end),
-      _sumSales(FirestorePaths.vehicleSales, month.start, month.end),
+      _sumVehicleCashSales(month.start, month.end),
       _sumExpenses(month.start, month.end),
       _superAdminCartonMetricsForRange(start: month.start, end: month.end),
       _stationCashBalanceSnapshot(),
+      _profitSnapshotForDateRange(day.start, day.end),
       _profitSnapshotForDateRange(month.start, month.end),
     ]);
     final Map<String, dynamic> cartonMetrics =
         salesTotals[6] as Map<String, dynamic>;
     final ({double today, double yesterday}) cashSnapshot =
         salesTotals[7] as ({double today, double yesterday});
-    final Map<String, dynamic> profitMonthSnapshot =
+    final Map<String, dynamic> profitTodaySnapshot =
         salesTotals[8] as Map<String, dynamic>;
+    final Map<String, dynamic> profitMonthSnapshot =
+        salesTotals[9] as Map<String, dynamic>;
     return _buildSuperAdminDashboardPayload(
       superAdmins: roleCounts.superAdmins,
       admins: roleCounts.admins,
@@ -2646,6 +2679,7 @@ final class AmethystFirebaseBackend {
           _num(cartonMetrics['monthlyCartonSalesTotalAmount']),
       stationCashTodayAmount: cashSnapshot.today,
       stationCashYesterdayAmount: cashSnapshot.yesterday,
+      totalProfitToday: _num(profitTodaySnapshot['total']),
       totalProfitMonth: _num(profitMonthSnapshot['total']),
     );
   }
@@ -2803,9 +2837,9 @@ final class AmethystFirebaseBackend {
           .where('isActive', isEqualTo: true)
           .get(),
       _sumSales(FirestorePaths.stationSales, day.start, day.end),
-      _sumSales(FirestorePaths.vehicleSales, day.start, day.end),
+      _sumVehicleCashSales(day.start, day.end),
       _sumSales(FirestorePaths.stationSales, month.start, month.end),
-      _sumSales(FirestorePaths.vehicleSales, month.start, month.end),
+      _sumVehicleCashSales(month.start, month.end),
     ]);
     final QuerySnapshot<Map<String, dynamic>> products =
         core[0] as QuerySnapshot<Map<String, dynamic>>;
@@ -3251,6 +3285,23 @@ final class AmethystFirebaseBackend {
     double total = 0;
     for (final QueryDocumentSnapshot<Map<String, dynamic>> doc in snap.docs) {
       total += _num(doc.data()['totalAmount']);
+    }
+    return total;
+  }
+
+  Future<double> _sumVehicleCashSales(DateTime start, DateTime end) async {
+    final QuerySnapshot<Map<String, dynamic>> snap = await _db
+        .collection(FirestorePaths.vehicleSales)
+        .where('createdAt', isGreaterThanOrEqualTo: Timestamp.fromDate(start))
+        .where('createdAt', isLessThanOrEqualTo: Timestamp.fromDate(end))
+        .get();
+    double total = 0;
+    for (final QueryDocumentSnapshot<Map<String, dynamic>> doc in snap.docs) {
+      final Map<String, dynamic> data = doc.data();
+      if (!isCashVehicleSaleRow(data)) {
+        continue;
+      }
+      total += _num(data['totalAmount']);
     }
     return total;
   }

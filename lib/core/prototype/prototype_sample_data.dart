@@ -1329,7 +1329,8 @@ final class PrototypeSampleData {
     final double expensesMonth = _expensesAmountThisMonth();
     final double salesMonth =
         _stationSalesAmountThisMonth() + _vehicleSalesAmountThisMonth();
-    final double profitToday = salesToday - expensesToday;
+    final double profitToday =
+        (_profitSnapshotForToday()['total'] as num?)?.toDouble() ?? 0.0;
     final double profitMonth =
         (_profitSnapshotForCurrentMonth()['total'] as num?)?.toDouble() ?? 0.0;
     final double monthlyCarton = _stationSalesAmountThisMonthCarton() +
@@ -2212,77 +2213,15 @@ final class PrototypeSampleData {
     };
   }
 
+  static Map<String, dynamic> _profitSnapshotForToday() {
+    return reportsProfitLoss(
+      dateFrom: ymd(_today),
+      dateTo: ymd(_today),
+    );
+  }
+
   static Map<String, dynamic> _profitSnapshotForCurrentMonth() {
-    final DateTime now = _now;
-    final DateTime start = DateTime(now.year, now.month, 1);
-    final DateTime end = DateTime(now.year, now.month + 1, 0);
-    final Map<String, dynamic> monthly = reportsProfitLoss(
-      dateFrom: ymd(start),
-      dateTo: ymd(end),
-    );
-    final List<dynamic>? days = monthly['profitDays'] as List<dynamic>?;
-    if (days == null || days.isEmpty) {
-      return monthly;
-    }
-    var stationSales = 0.0;
-    var busGross = 0.0;
-    var bingoGross = 0.0;
-    final List<Map<String, dynamic>> expenseRows = <Map<String, dynamic>>[];
-    final Map<String, String> vehicleIdToNumber = <String, String>{
-      for (final Map<String, dynamic> v in vehicles)
-        v['id']?.toString() ?? '': v['vehicleNumber']?.toString() ?? '',
-    };
-    final Map<String, String> driverIdToVehicleId = <String, String>{
-      for (final Map<String, dynamic> v in vehicles)
-        if ((v['driverId']?.toString() ?? '').isNotEmpty)
-          v['driverId']!.toString(): v['id']?.toString() ?? '',
-    };
-
-    bool inMonth(DateTime? day) {
-      if (day == null) {
-        return false;
-      }
-      return day.year == now.year && day.month == now.month;
-    }
-
-    for (final Map<String, dynamic> s in _stationSales) {
-      if (!inMonth(_rowDateOnly(s))) {
-        continue;
-      }
-      stationSales += _rowMoney(s);
-    }
-    for (final Map<String, dynamic> vs in _vehicleSales) {
-      if (!_isCashVehicleSale(vs) || !inMonth(_rowDateOnly(vs))) {
-        continue;
-      }
-      final String vehicleId = vs['vehicleId']?.toString() ?? '';
-      final String vehicleNumber = vehicleIdToNumber[vehicleId] ?? '';
-      final double amount = _rowMoney(vs);
-      switch (vehicleSalesBucketForNumber(vehicleNumber)) {
-        case VehicleSalesBucket.bus:
-          busGross += amount;
-        case VehicleSalesBucket.bingo:
-          bingoGross += amount;
-        case VehicleSalesBucket.other:
-          break;
-      }
-    }
-    for (final Map<String, dynamic> e in _expenses) {
-      if (!inMonth(_rowDateOnly(e))) {
-        continue;
-      }
-      expenseRows.add(Map<String, dynamic>.from(e));
-    }
-
-    return computeProfitDaySnapshot(
-      stationSalesGross: stationSales,
-      busSalesGross: busGross,
-      bingoSalesGross: bingoGross,
-      expenseRows: expenseRows,
-      stationCashBalance: stationCashAmount,
-      vehicleIdToNumber: vehicleIdToNumber,
-      driverIdToVehicleId: driverIdToVehicleId,
-    );
+    return reportsProfitLossMonthly();
   }
 
   static Map<String, dynamic> reportsSalesMonthly({int? year, int? month}) {

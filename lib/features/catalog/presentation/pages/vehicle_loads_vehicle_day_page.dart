@@ -1,5 +1,6 @@
 import 'package:amethyst/core/catalog/catalog_product_display_label.dart';
 import 'package:amethyst/core/data/amethyst_api.dart';
+import 'package:amethyst/core/data/api_list_fetch.dart';
 import 'package:amethyst/core/l10n/context_l10n.dart';
 import 'package:amethyst/core/theme/app_colors.dart';
 import 'package:amethyst/core/utils/parse_dynamic_double.dart';
@@ -96,31 +97,26 @@ class _VehicleLoadsVehicleDayPageState extends State<VehicleLoadsVehicleDayPage>
     final String dayStr = _ymd(_day);
     try {
       final AmethystApi api = sl<AmethystApi>();
-      final List<Map<String, dynamic>> results = await Future.wait(<Future<Map<String, dynamic>>>[
-        api.listVehicleLoads(
-          vehicleId: widget.vehicleId,
-          dateFrom: dayStr,
-          dateTo: dayStr,
-          limit: 100,
-        ),
-        api.listVehicleSales(
-          vehicleId: widget.vehicleId,
-          dateFrom: dayStr,
-          dateTo: dayStr,
-          limit: 100,
-        ),
-      ]);
+      final Map<String, dynamic> loadsRes = await api.listVehicleLoads(
+        vehicleId: widget.vehicleId,
+        dateFrom: dayStr,
+        dateTo: dayStr,
+        limit: 100,
+      );
       if (!mounted) {
         return;
       }
       final List<Map<String, dynamic>> loadItems =
-          (results[0]['items'] as List<dynamic>? ?? <dynamic>[])
+          (loadsRes['items'] as List<dynamic>? ?? <dynamic>[])
               .whereType<Map<String, dynamic>>()
               .toList(growable: false);
       final List<Map<String, dynamic>> saleItems =
-          (results[1]['items'] as List<dynamic>? ?? <dynamic>[])
-              .whereType<Map<String, dynamic>>()
-              .toList(growable: false);
+          await fetchAllVehicleSalesInRange(
+        api,
+        vehicleId: widget.vehicleId,
+        dateFrom: dayStr,
+        dateTo: dayStr,
+      );
       setState(() {
         _loads = loadItems;
         _sales = saleItems;

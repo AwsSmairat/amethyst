@@ -11,6 +11,8 @@ class _ProductAgg {
   int quantity = 0;
   double amount = 0;
   int quantityCoupon = 0;
+  int debtQuantity = 0;
+  double debtAmount = 0;
 }
 
 bool _isSaleCouponByUnitPrice(Map<String, dynamic> item) {
@@ -19,8 +21,9 @@ bool _isSaleCouponByUnitPrice(Map<String, dynamic> item) {
 }
 
 Map<String, _ProductAgg> _aggregateProductSales(
-  List<Map<String, dynamic>> sales,
-) {
+  List<Map<String, dynamic>> sales, {
+  List<Map<String, dynamic>> debtSales = const <Map<String, dynamic>>[],
+}) {
   final Map<String, _ProductAgg> map = <String, _ProductAgg>{};
   for (final Map<String, dynamic> item in sales) {
     final String key = _saleProductKey(item);
@@ -33,6 +36,15 @@ Map<String, _ProductAgg> _aggregateProductSales(
     if (_isSaleCouponByUnitPrice(item)) {
       agg.quantityCoupon += q;
     }
+  }
+  for (final Map<String, dynamic> item in debtSales) {
+    final String key = _saleProductKey(item);
+    final String name = _saleProductName(item);
+    final int q = int.tryParse(item['quantity']?.toString() ?? '') ?? 0;
+    final double amt = parseDynamicDouble(item['totalAmount']) ?? 0;
+    final _ProductAgg agg = map.putIfAbsent(key, () => _ProductAgg(name));
+    agg.debtQuantity += q;
+    agg.debtAmount += amt;
   }
   return map;
 }
@@ -64,12 +76,82 @@ String _saleProductName(Map<String, dynamic> item) {
 const double _kSummaryAmountCol = 56;
 const double _kSummaryQtyCol = 40;
 const double _kSummaryCouponCol = 40;
+const double _kSummaryDebtCol = 44;
+
+enum _CoreVolumeBucket { gallon, bottle, storeGallon, storeBottle }
+
+class _CoreVolumeQtyTotals {
+  int gallon = 0;
+  int bottle = 0;
+  int storeGallon = 0;
+  int storeBottle = 0;
+
+  bool get hasAny =>
+      gallon > 0 || bottle > 0 || storeGallon > 0 || storeBottle > 0;
+
+  int get total => gallon + bottle + storeGallon + storeBottle;
+}
+
+_CoreVolumeBucket? _coreVolumeBucketForItem(Map<String, dynamic> item) {
+  final String label = _saleProductName(item);
+  return switch (label) {
+    'جالون' => _CoreVolumeBucket.gallon,
+    'قاروره' => _CoreVolumeBucket.bottle,
+    'جالون متجر' => _CoreVolumeBucket.storeGallon,
+    'قاروره متجر' => _CoreVolumeBucket.storeBottle,
+    _ => null,
+  };
+}
+
+void _addCoreVolumeQty(_CoreVolumeQtyTotals totals, Map<String, dynamic> item) {
+  final _CoreVolumeBucket? bucket = _coreVolumeBucketForItem(item);
+  if (bucket == null) {
+    return;
+  }
+  final int q = int.tryParse(item['quantity']?.toString() ?? '') ?? 0;
+  switch (bucket) {
+    case _CoreVolumeBucket.gallon:
+      totals.gallon += q;
+    case _CoreVolumeBucket.bottle:
+      totals.bottle += q;
+    case _CoreVolumeBucket.storeGallon:
+      totals.storeGallon += q;
+    case _CoreVolumeBucket.storeBottle:
+      totals.storeBottle += q;
+  }
+}
+
+_CoreVolumeQtyTotals _aggregateCoreVolumeQuantities({
+  required List<Map<String, dynamic>> sales,
+  required List<Map<String, dynamic>> debtSales,
+}) {
+  final _CoreVolumeQtyTotals totals = _CoreVolumeQtyTotals();
+  for (final Map<String, dynamic> item in sales) {
+    _addCoreVolumeQty(totals, item);
+  }
+  for (final Map<String, dynamic> item in debtSales) {
+    _addCoreVolumeQty(totals, item);
+  }
+  return totals;
+}
+
+TextStyle? _summaryTotalTextStyle(ThemeData theme) {
+  return theme.textTheme.titleMedium?.copyWith(
+    fontWeight: FontWeight.w500,
+    color: AppColors.primaryText,
+  );
+}
 
 /// ملخص مبيعات ليوم واحد حسب المنتج (محطة أو مركبة) — نفس أعمدة مبيعات المحطة.
 class ProductSalesDaySummary extends StatelessWidget {
-  const ProductSalesDaySummary({super.key, required this.sales});
+  const ProductSalesDaySummary({
+    super.key,
+    required this.sales,
+    this.debtSales = const <Map<String, dynamic>>[],
+  });
 
   final List<Map<String, dynamic>> sales;
+  final List<Map<String, dynamic>> debtSales;
 
   @override
   Widget build(BuildContext context) {
@@ -77,7 +159,10 @@ class ProductSalesDaySummary extends StatelessWidget {
     final ThemeData theme = Theme.of(context);
     final String locale = Localizations.localeOf(context).toString();
     final NumberFormat money = NumberFormat.decimalPattern(locale);
-    final Map<String, _ProductAgg> agg = _aggregateProductSales(sales);
+    final Map<String, _ProductAgg> agg = _aggregateProductSales(
+      sales,
+      debtSales: debtSales,
+    );
     final List<_ProductAgg> rows = agg.values.toList()
       ..sort(
         (_ProductAgg a, _ProductAgg b) =>
@@ -85,10 +170,20 @@ class ProductSalesDaySummary extends StatelessWidget {
       );
     double grand = 0;
     int grandCouponQty = 0;
+    int grandDebtQty = 0;
+    double grandDebtAmount = 0;
     for (final _ProductAgg r in rows) {
       grand += r.amount;
       grandCouponQty += r.quantityCoupon;
+      grandDebtQty += r.debtQuantity;
+      grandDebtAmount += r.debtAmount;
     }
+    final bool showDebt =
+        debtSales.isNotEmpty || grandDebtQty > 0 || grandDebtAmount > 0;
+    final _CoreVolumeQtyTotals volumeTotals = _aggregateCoreVolumeQuantities(
+      sales: sales,
+      debtSales: debtSales,
+    );
 
     final TextStyle? headerStyle = theme.textTheme.labelSmall?.copyWith(
       fontWeight: FontWeight.w700,
@@ -134,6 +229,16 @@ class ProductSalesDaySummary extends StatelessWidget {
                 style: headerStyle,
               ),
             ),
+            if (showDebt) ...<Widget>[
+              SizedBox(
+                width: _kSummaryDebtCol,
+                child: Text(
+                  l10n.vehicleSalesSummaryHeaderDebt,
+                  textAlign: TextAlign.end,
+                  style: headerStyle,
+                ),
+              ),
+            ],
           ],
         ),
         const SizedBox(height: 8),
@@ -184,6 +289,19 @@ class ProductSalesDaySummary extends StatelessWidget {
                   ),
                 ),
               ),
+              if (showDebt) ...<Widget>[
+                SizedBox(
+                  width: _kSummaryDebtCol,
+                  child: Text(
+                    '${rows[i].debtQuantity}',
+                    textAlign: TextAlign.end,
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.brandPrimary,
+                    ),
+                  ),
+                ),
+              ],
             ],
           ),
         ],
@@ -218,6 +336,31 @@ class ProductSalesDaySummary extends StatelessWidget {
             ),
           ],
         ),
+        if (showDebt) ...<Widget>[
+          const SizedBox(height: 10),
+          Align(
+            alignment: AlignmentDirectional.centerStart,
+            child: Text(
+              l10n.vehicleSalesGrandTotalDebt(money.format(grandDebtAmount)),
+              textAlign: TextAlign.start,
+              style: theme.textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.w600,
+                color: AppColors.brandPrimary,
+              ),
+            ),
+          ),
+        ],
+        if (volumeTotals.hasAny) ...<Widget>[
+          const SizedBox(height: 10),
+          Align(
+            alignment: AlignmentDirectional.centerStart,
+            child: Text(
+              l10n.salesSummaryTotalCoreVolumeQty('${volumeTotals.total}'),
+              textAlign: TextAlign.start,
+              style: _summaryTotalTextStyle(theme),
+            ),
+          ),
+        ],
       ],
     );
   }

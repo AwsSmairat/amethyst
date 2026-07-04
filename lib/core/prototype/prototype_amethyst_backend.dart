@@ -308,6 +308,16 @@ final class PrototypeAmethystBackend {
     );
   }
 
+  Future<Map<String, dynamic>> listStationDebtEntriesForSummary({
+    int page = 1,
+    int limit = 100,
+  }) async {
+    final List<Map<String, dynamic>> items = PrototypeSampleData.stationDebtEntries
+        .where(isStationDebtSummaryEntry)
+        .toList(growable: false);
+    return _paginate(items, page: page, limit: limit);
+  }
+
   Future<Map<String, dynamic>> listStationDebtEntries({
     int page = 1,
     int limit = 100,

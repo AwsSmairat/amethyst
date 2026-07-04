@@ -1342,6 +1342,24 @@ abstract class AppLocalizations {
   /// **'إجمالي الكوبون: {count}'**
   String stationSalesGrandTotalCoupon(String count);
 
+  /// No description provided for @vehicleSalesSummaryHeaderDebt.
+  ///
+  /// In ar, this message translates to:
+  /// **'الدين'**
+  String get vehicleSalesSummaryHeaderDebt;
+
+  /// No description provided for @vehicleSalesGrandTotalDebt.
+  ///
+  /// In ar, this message translates to:
+  /// **'إجمالي الدين: {amount}'**
+  String vehicleSalesGrandTotalDebt(String amount);
+
+  /// No description provided for @salesSummaryTotalCoreVolumeQty.
+  ///
+  /// In ar, this message translates to:
+  /// **'إجمالي الكمية: {count}'**
+  String salesSummaryTotalCoreVolumeQty(String count);
+
   /// No description provided for @titleExpenses.
   ///
   /// In ar, this message translates to:

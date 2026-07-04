@@ -689,6 +689,19 @@ class AppLocalizationsAr extends AppLocalizations {
   }
 
   @override
+  String get vehicleSalesSummaryHeaderDebt => 'الدين';
+
+  @override
+  String vehicleSalesGrandTotalDebt(String amount) {
+    return 'إجمالي الدين: $amount';
+  }
+
+  @override
+  String salesSummaryTotalCoreVolumeQty(String count) {
+    return 'إجمالي الكمية: $count';
+  }
+
+  @override
   String get titleExpenses => 'المصاريف';
 
   @override

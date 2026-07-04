@@ -1,4 +1,5 @@
 import 'package:amethyst/core/data/amethyst_api.dart';
+import 'package:amethyst/core/data/api_list_fetch.dart';
 import 'package:amethyst/core/catalog/catalog_product_display_label.dart';
 import 'package:amethyst/core/l10n/context_l10n.dart';
 import 'package:amethyst/core/theme/app_colors.dart';
@@ -29,7 +30,11 @@ class _DriverSalesPageState extends State<DriverSalesPage> {
   @override
   void initState() {
     super.initState();
-    _cubit = JsonListCubit(() => sl<AmethystApi>().listVehicleSales())..load();
+    _cubit = JsonListCubit(
+      () async => <String, dynamic>{
+        'items': await fetchAllVehicleSalesInRange(sl<AmethystApi>()),
+      },
+    )..load();
     DriverSalesListRefresh.onSalesTabSelected = _cubit.load;
   }
 

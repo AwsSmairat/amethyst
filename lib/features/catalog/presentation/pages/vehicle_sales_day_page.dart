@@ -1,5 +1,6 @@
 import 'package:amethyst/core/catalog/catalog_product_display_label.dart';
 import 'package:amethyst/core/data/amethyst_api.dart';
+import 'package:amethyst/core/data/api_list_fetch.dart';
 import 'package:amethyst/core/vehicle_sale/vehicle_sale_payment_method.dart';
 import 'package:amethyst/core/vehicle_sale/vehicle_sales_aggregates.dart';
 import 'package:amethyst/core/vehicle_sale/vehicle_sales_list_refresh.dart';
@@ -37,6 +38,7 @@ class _VehicleSalesDayPageState extends State<VehicleSalesDayPage> {
   bool _loading = true;
   String? _error;
   List<Map<String, dynamic>> _items = <Map<String, dynamic>>[];
+  List<Map<String, dynamic>> _debtItems = <Map<String, dynamic>>[];
   late DateTime _day;
 
   @override
@@ -98,22 +100,22 @@ class _VehicleSalesDayPageState extends State<VehicleSalesDayPage> {
     });
     final String dayStr = _ymd(_day);
     try {
-      final Map<String, dynamic> res = await sl<AmethystApi>().listVehicleSales(
+      final List<Map<String, dynamic>> list =
+          await fetchAllVehicleSalesInRange(
+        sl<AmethystApi>(),
         vehicleId: widget.vehicleId,
         dateFrom: dayStr,
         dateTo: dayStr,
-        limit: 100,
       );
       if (!mounted) {
         return;
       }
-      final List<Map<String, dynamic>> list =
-          (res['items'] as List<dynamic>? ?? <dynamic>[])
-              .whereType<Map<String, dynamic>>()
-              .toList(growable: false);
       setState(() {
         _items = list
             .where(isVehicleSaleVisibleInSalesList)
+            .toList(growable: false);
+        _debtItems = list
+            .where((Map<String, dynamic> r) => r['isDebt'] == true)
             .toList(growable: false);
         _loading = false;
       });
@@ -281,7 +283,7 @@ class _VehicleSalesDayPageState extends State<VehicleSalesDayPage> {
                     ),
                   ),
                 )
-              : _items.isEmpty
+              : _items.isEmpty && _debtItems.isEmpty
                   ? Center(child: Text(l10n.nothingHereYet))
                   : ListView(
                       padding: EdgeInsets.zero,
@@ -289,8 +291,12 @@ class _VehicleSalesDayPageState extends State<VehicleSalesDayPage> {
                         _dateCard(context, l10n),
                         Padding(
                           padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
-                          child: ProductSalesDaySummary(sales: _items),
+                          child: ProductSalesDaySummary(
+                            sales: _items,
+                            debtSales: _debtItems,
+                          ),
                         ),
+                        if (_items.isNotEmpty) ...<Widget>[
                         Padding(
                           padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
                           child: Align(
@@ -319,6 +325,7 @@ class _VehicleSalesDayPageState extends State<VehicleSalesDayPage> {
                           );
                         }),
                         const SizedBox(height: 24),
+                        ],
                       ],
                     ),
     );

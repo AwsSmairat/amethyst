@@ -4,7 +4,7 @@ import 'package:amethyst/core/vehicle_sale/vehicle_sale_payment_method.dart';
 import 'package:amethyst/core/presentation/list_load_state.dart';
 import 'package:amethyst/core/theme/app_colors.dart';
 import 'package:amethyst/core/utils/parse_api_datetime.dart';
-import 'package:amethyst/features/catalog/presentation/cubit/json_list_cubit.dart';
+import 'package:amethyst/features/catalog/presentation/cubit/station_sales_list_cubit.dart';
 import 'package:amethyst/features/catalog/presentation/widgets/product_sales_day_summary.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -29,13 +29,13 @@ class StationSalesListPage extends StatelessWidget {
         title: Text(title),
         actions: <Widget>[
           IconButton(
-            onPressed: () => context.read<JsonListCubit>().load(),
+            onPressed: () => context.read<StationSalesListCubit>().load(),
             icon: const Icon(Icons.refresh),
           ),
         ],
       ),
       floatingActionButton: fab,
-      body: BlocBuilder<JsonListCubit, ListLoadState>(
+      body: BlocBuilder<StationSalesListCubit, ListLoadState>(
         builder: (BuildContext context, ListLoadState state) {
           if (state is ListLoadLoading || state is ListLoadInitial) {
             return const Center(child: CircularProgressIndicator());
@@ -50,7 +50,8 @@ class StationSalesListPage extends StatelessWidget {
                     Text(state.message, textAlign: TextAlign.center),
                     const SizedBox(height: 16),
                     FilledButton(
-                      onPressed: () => context.read<JsonListCubit>().load(),
+                      onPressed: () =>
+                          context.read<StationSalesListCubit>().load(),
                       child: Text(context.l10n.retry),
                     ),
                   ],
@@ -58,13 +59,14 @@ class StationSalesListPage extends StatelessWidget {
               ),
             );
           }
-          final List<Map<String, dynamic>> items =
-              (state as ListLoadLoaded).items;
-          if (items.isEmpty) {
+          final StationSalesListLoaded loaded = state as StationSalesListLoaded;
+          if (loaded.sales.isEmpty && loaded.debtEntries.isEmpty) {
             return Center(child: Text(context.l10n.nothingHereYet));
           }
-          final List<_StationSalesDayGroup> groups =
-              _groupBySaleDay(items);
+          final List<_StationSalesDayGroup> groups = _groupBySaleDay(
+            loaded.sales,
+            loaded.debtEntries,
+          );
           return ListView.builder(
             padding: EdgeInsets.fromLTRB(16, 12, 16, bottomPad),
             itemCount: groups.length,
@@ -82,33 +84,59 @@ class StationSalesListPage extends StatelessWidget {
 }
 
 class _StationSalesDayGroup {
-  const _StationSalesDayGroup({required this.day, required this.sales});
+  const _StationSalesDayGroup({
+    required this.day,
+    required this.sales,
+    required this.debtSales,
+  });
 
   final DateTime? day;
   final List<Map<String, dynamic>> sales;
+  final List<Map<String, dynamic>> debtSales;
 }
 
 List<_StationSalesDayGroup> _groupBySaleDay(
-  List<Map<String, dynamic>> items,
+  List<Map<String, dynamic>> salesItems,
+  List<Map<String, dynamic>> debtItems,
 ) {
-  final Map<DateTime, List<Map<String, dynamic>>> byDay =
+  final Map<DateTime, List<Map<String, dynamic>>> salesByDay =
       <DateTime, List<Map<String, dynamic>>>{};
-  final List<Map<String, dynamic>> unknown = <Map<String, dynamic>>[];
+  final Map<DateTime, List<Map<String, dynamic>>> debtByDay =
+      <DateTime, List<Map<String, dynamic>>>{};
+  final List<Map<String, dynamic>> unknownSales = <Map<String, dynamic>>[];
+  final List<Map<String, dynamic>> unknownDebt = <Map<String, dynamic>>[];
 
-  for (final Map<String, dynamic> item in items) {
+  for (final Map<String, dynamic> item in salesItems) {
     final DateTime? d = parseApiDateTime(item['createdAt']);
     if (d == null) {
-      unknown.add(item);
+      unknownSales.add(item);
       continue;
     }
     final DateTime day = DateTime(d.year, d.month, d.day);
-    byDay.putIfAbsent(day, () => <Map<String, dynamic>>[]).add(item);
+    salesByDay.putIfAbsent(day, () => <Map<String, dynamic>>[]).add(item);
   }
 
-  final List<_StationSalesDayGroup> out = byDay.entries
+  for (final Map<String, dynamic> item in debtItems) {
+    final DateTime? d = parseApiDateTime(item['createdAt']);
+    if (d == null) {
+      unknownDebt.add(item);
+      continue;
+    }
+    final DateTime day = DateTime(d.year, d.month, d.day);
+    debtByDay.putIfAbsent(day, () => <Map<String, dynamic>>[]).add(item);
+  }
+
+  final Set<DateTime> allDays = <DateTime>{
+    ...salesByDay.keys,
+    ...debtByDay.keys,
+  };
+  final List<_StationSalesDayGroup> out = allDays
       .map(
-        (MapEntry<DateTime, List<Map<String, dynamic>>> e) =>
-            _StationSalesDayGroup(day: e.key, sales: e.value),
+        (DateTime day) => _StationSalesDayGroup(
+          day: day,
+          sales: salesByDay[day] ?? <Map<String, dynamic>>[],
+          debtSales: debtByDay[day] ?? <Map<String, dynamic>>[],
+        ),
       )
       .toList()
     ..sort(
@@ -116,8 +144,14 @@ List<_StationSalesDayGroup> _groupBySaleDay(
           b.day!.compareTo(a.day!),
     );
 
-  if (unknown.isNotEmpty) {
-    out.add(_StationSalesDayGroup(day: null, sales: unknown));
+  if (unknownSales.isNotEmpty || unknownDebt.isNotEmpty) {
+    out.add(
+      _StationSalesDayGroup(
+        day: null,
+        sales: unknownSales,
+        debtSales: unknownDebt,
+      ),
+    );
   }
   return out;
 }
@@ -221,14 +255,19 @@ class _StationSalesDayCard extends StatelessWidget {
             ],
           ),
           children: <Widget>[
-            if (group.sales.isNotEmpty) ...<Widget>[
-              ProductSalesDaySummary(sales: group.sales),
-              const Padding(
-                padding: EdgeInsets.symmetric(vertical: 12),
-                child: Divider(height: 1),
+            if (group.sales.isNotEmpty || group.debtSales.isNotEmpty) ...<Widget>[
+              ProductSalesDaySummary(
+                sales: group.sales,
+                debtSales: group.debtSales,
               ),
+              if (group.sales.isNotEmpty)
+                const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 12),
+                  child: Divider(height: 1),
+                ),
             ],
-            ..._interleavedSaleLines(context, group.sales),
+            if (group.sales.isNotEmpty)
+              ..._interleavedSaleLines(context, group.sales),
           ],
         ),
       ),

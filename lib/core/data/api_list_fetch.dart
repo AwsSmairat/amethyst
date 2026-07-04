@@ -38,7 +38,47 @@ Future<List<Map<String, dynamic>>> fetchAllVehicleLoads(AmethystApi api) =>
     );
 
 Future<List<Map<String, dynamic>>> fetchAllVehicleSales(AmethystApi api) =>
+    fetchAllVehicleSalesInRange(api);
+
+Future<List<Map<String, dynamic>>> fetchAllStationDebtSummaryEntries(
+  AmethystApi api,
+) =>
     fetchAllListItems(
       ({required int page, required int limit}) =>
-          api.listVehicleSales(page: page, limit: limit),
+          api.listStationDebtEntriesForSummary(page: page, limit: limit),
     );
+
+Future<List<Map<String, dynamic>>> fetchAllVehicleSalesInRange(
+  AmethystApi api, {
+  String? vehicleId,
+  String? driverId,
+  String? dateFrom,
+  String? dateTo,
+}) async {
+  const int limit = 100;
+  int page = 1;
+  final List<Map<String, dynamic>> all = <Map<String, dynamic>>[];
+  while (true) {
+    final Map<String, dynamic> res = await api.listVehicleSales(
+      page: page,
+      limit: limit,
+      vehicleId: vehicleId,
+      driverId: driverId,
+      dateFrom: dateFrom,
+      dateTo: dateTo,
+    );
+    final List<Map<String, dynamic>> batch =
+        (res['items'] as List<dynamic>? ?? <dynamic>[])
+            .whereType<Map<String, dynamic>>()
+            .toList(growable: false);
+    all.addAll(batch);
+    if (batch.length < limit) {
+      break;
+    }
+    page += 1;
+    if (page > 500) {
+      break;
+    }
+  }
+  return all;
+}

@@ -31,6 +31,15 @@ bool isVehicleDebtEntry(Map<String, dynamic> entry) {
   return entry['recordingSource']?.toString() == 'vehicle';
 }
 
+/// دين محطة فقط (لملخص مبيعات المحطة — بدون دين المركبات).
+bool isStationDebtSummaryEntry(Map<String, dynamic> entry) {
+  if (entry['vehicleSaleId'] != null) {
+    return false;
+  }
+  final String source = entry['recordingSource']?.toString() ?? 'station';
+  return source == 'station';
+}
+
 /// دين مركبة يخص سائقاً معيّناً (مبيعات سيارة أو سجل محطة قديم).
 bool isDriverVehicleDebtEntry(
   Map<String, dynamic> entry, {
