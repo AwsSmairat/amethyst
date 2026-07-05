@@ -2,6 +2,7 @@ import 'package:amethyst/core/data/amethyst_api.dart';
 import 'package:amethyst/core/expenses/expense_category_match.dart';
 import 'package:amethyst/core/l10n/context_l10n.dart';
 import 'package:amethyst/core/theme/app_colors.dart';
+import 'package:amethyst/core/vehicle/vehicle_kind_match.dart';
 import 'package:amethyst/di/injection.dart';
 import 'package:amethyst/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
@@ -745,9 +746,9 @@ class _ProfitBreakdownMetrics extends StatelessWidget {
     final double stationNetTotal = payload['stationNetTotal'] != null
         ? _toDouble(payload['stationNetTotal'])
         : stationSales - stationExpenses + stationCashBalance;
-    final double busSales = _toDouble(payload['busSales']);
-    final double bingoSales = _toDouble(payload['bingoSales']);
     final double total = _toDouble(payload['total']);
+    final List<Map<String, dynamic>> vehicles =
+        _profitVehicleRows(payload['vehicles']);
     final l = context.l10n;
 
     return Column(
@@ -777,20 +778,12 @@ class _ProfitBreakdownMetrics extends StatelessWidget {
           icon: Icons.store_mall_directory_outlined,
           emphasize: true,
         ),
-        const SizedBox(height: 16),
-        const Divider(height: 1),
-        const SizedBox(height: 16),
-        _ProfitDetailRow(
-          label: l.profitTodayBusSalesTotal,
-          value: busSales,
-          icon: Icons.directions_bus_outlined,
-        ),
-        const SizedBox(height: 12),
-        _ProfitDetailRow(
-          label: l.profitTodayBingoSalesTotal,
-          value: bingoSales,
-          icon: Icons.local_shipping_outlined,
-        ),
+        for (final Map<String, dynamic> vehicle in vehicles) ...<Widget>[
+          const SizedBox(height: 16),
+          const Divider(height: 1),
+          const SizedBox(height: 16),
+          _VehicleProfitBreakdown(vehicle: vehicle),
+        ],
         const SizedBox(height: 16),
         const Divider(height: 1),
         const SizedBox(height: 16),
@@ -798,6 +791,74 @@ class _ProfitBreakdownMetrics extends StatelessWidget {
           label: l.profitTodayGrandTotalFormula,
           value: total,
           icon: Icons.savings_outlined,
+          emphasize: true,
+        ),
+      ],
+    );
+  }
+}
+
+List<Map<String, dynamic>> _profitVehicleRows(Object? raw) {
+  if (raw is! List) {
+    return const <Map<String, dynamic>>[];
+  }
+  return raw
+      .whereType<Map>()
+      .map((Map<dynamic, dynamic> row) => Map<String, dynamic>.from(row))
+      .toList(growable: false);
+}
+
+class _VehicleProfitBreakdown extends StatelessWidget {
+  const _VehicleProfitBreakdown({required this.vehicle});
+
+  final Map<String, dynamic> vehicle;
+
+  IconData _iconForVehicle(String vehicleNumber) {
+    switch (vehicleSalesBucketForNumber(vehicleNumber)) {
+      case VehicleSalesBucket.bus:
+        return Icons.directions_bus_outlined;
+      case VehicleSalesBucket.bingo:
+        return Icons.local_shipping_outlined;
+      case VehicleSalesBucket.other:
+        return Icons.directions_car_outlined;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l = context.l10n;
+    final String vehicleNumber = vehicle['vehicleNumber']?.toString() ?? '';
+    final double sales = _toDouble(vehicle['sales']);
+    final double expenses = _toDouble(vehicle['operatingExpenses']);
+    final double cashBalance = _toDouble(vehicle['cashBalance']);
+    final double netTotal = _toDouble(vehicle['netTotal']);
+    final IconData icon = _iconForVehicle(vehicleNumber);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: <Widget>[
+        _ProfitDetailRow(
+          label: l.profitVehicleSales(vehicleNumber),
+          value: sales,
+          icon: icon,
+        ),
+        const SizedBox(height: 12),
+        _ProfitDetailRow(
+          label: l.profitVehicleOperatingExpenses(vehicleNumber),
+          value: expenses,
+          icon: Icons.payments_outlined,
+        ),
+        const SizedBox(height: 12),
+        _ProfitDetailRow(
+          label: l.profitVehicleCashBalance(vehicleNumber),
+          value: cashBalance,
+          icon: Icons.account_balance_wallet_outlined,
+        ),
+        const SizedBox(height: 12),
+        _ProfitDetailRow(
+          label: l.profitVehicleNetFormula(vehicleNumber),
+          value: netTotal,
+          icon: icon,
           emphasize: true,
         ),
       ],

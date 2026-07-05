@@ -426,6 +426,21 @@ final class AmethystApi {
     String? note,
   }) =>
       _b.setStationCashBalance(amount: amount, note: note);
+
+  Future<Map<String, dynamic>> getDriverCashBalance() =>
+      _b.getDriverCashBalance();
+
+  Future<Map<String, dynamic>> listDriverCashEntries({
+    int page = 1,
+    int limit = 50,
+  }) =>
+      _b.listDriverCashEntries(page: page, limit: limit);
+
+  Future<Map<String, dynamic>> setDriverCashBalance({
+    required double amount,
+    String? note,
+  }) =>
+      _b.setDriverCashBalance(amount: amount, note: note);
 }
 
 extension AmethystApiErrors on AmethystApi {

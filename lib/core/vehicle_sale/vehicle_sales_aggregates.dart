@@ -1,3 +1,4 @@
+import 'package:amethyst/core/station_debt/station_debt_entry_utils.dart';
 import 'package:amethyst/core/data/amethyst_api.dart';
 import 'package:amethyst/core/data/api_list_fetch.dart';
 import 'package:amethyst/core/expenses/expense_aggregates.dart';
@@ -65,11 +66,14 @@ bool shouldShowVehicleSaleCouponBadge(
 
 /// يُعرض في قائمة/ملخص مبيعات المركبة: مبيع نقدي أو سداد دين — لا تسجيل دين مفتوح.
 bool isVehicleSaleVisibleInSalesList(Map<String, dynamic> row) {
-  if (row['isDebt'] == true) {
+  if (isOpenVehicleDebtSale(row)) {
     return false;
   }
   return true;
 }
+
+/// سطر دين مركبة (مفتوح) لملخص اليوم.
+bool isVehicleDebtSaleRow(Map<String, dynamic> row) => isOpenVehicleDebtSale(row);
 
 double vehicleSaleRowMoney(Map<String, dynamic> row) =>
     parseDynamicDouble(row['totalAmount']) ?? 0;

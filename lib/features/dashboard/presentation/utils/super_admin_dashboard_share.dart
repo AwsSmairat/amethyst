@@ -1,27 +1,13 @@
 import 'dart:typed_data';
 
 import 'package:amethyst/core/data/amethyst_api.dart';
+import 'package:amethyst/core/data/api_list_fetch.dart';
 import 'package:amethyst/core/l10n/context_l10n.dart';
 import 'package:amethyst/di/injection.dart';
 import 'package:amethyst/features/dashboard/presentation/utils/super_admin_reports_pdf.dart';
 import 'package:amethyst/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:printing/printing.dart';
-
-int _parseTotal(Object? v) {
-  if (v is int) {
-    return v;
-  }
-  return int.tryParse(v?.toString() ?? '') ?? 0;
-}
-
-int _parseListTotal(Map<String, dynamic> data) {
-  final Object? pag = data['pagination'];
-  if (pag is Map<String, dynamic>) {
-    return _parseTotal(pag['total']);
-  }
-  return _parseTotal(data['total']);
-}
 
 /// iOS (خصوصاً iPad) يتطلب غالباً مصدر إحداثيات لورقة المشاركة وإلا يرمي فشلاً.
 Rect? _sharePositionOrigin(BuildContext context) {
@@ -37,131 +23,126 @@ Rect? _sharePositionOrigin(BuildContext context) {
   );
 }
 
-Future<List<Map<String, dynamic>>> _fetchAllListItems(
-  Future<Map<String, dynamic>> Function(int page) loadPage,
-) async {
-  const int limit = 100;
-  final List<Map<String, dynamic>> out = <Map<String, dynamic>>[];
-  int page = 1;
-  while (page <= 100) {
-    final Map<String, dynamic> data = await loadPage(page);
-    final Object? raw = data['items'];
-    if (raw is! List<dynamic>) {
-      break;
+Future<void> _sharePdfReport(
+  BuildContext context, {
+  required AppLocalizations l10n,
+  required Future<Uint8List> Function() buildPdf,
+  required String filename,
+  required String subject,
+}) async {
+  try {
+    final Uint8List bytes = await buildPdf();
+    if (!context.mounted) {
+      return;
     }
-    final List<Map<String, dynamic>> chunk = <Map<String, dynamic>>[];
-    for (final dynamic e in raw) {
-      if (e is Map<String, dynamic>) {
-        chunk.add(e);
-      } else if (e is Map) {
-        chunk.add(Map<String, dynamic>.from(e));
-      }
+    await Printing.sharePdf(
+      bytes: bytes,
+      filename: filename,
+      subject: subject,
+      bounds: _sharePositionOrigin(context) ?? Rect.fromLTWH(0, 0, 1, 1),
+    );
+  } on Object catch (_) {
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(l10n.printOverviewShareFailed)),
+      );
     }
-    out.addAll(chunk);
-    final int total = _parseListTotal(data);
-    if (out.length >= total || chunk.length < limit) {
-      break;
-    }
-    page++;
   }
-  return out;
 }
 
 Future<void> shareSuperAdminExpensesReport(BuildContext context) async {
   final AppLocalizations l10n = context.l10n;
   final AmethystApi api = sl<AmethystApi>();
-  try {
-    final List<Map<String, dynamic>> items = await _fetchAllListItems(
-      (int page) => api.listExpenses(page: page, limit: 100),
-    );
-    if (!context.mounted) {
-      return;
-    }
-    final Uint8List bytes = await buildExpensesPdf(
-      expenses: items,
-      l10n: l10n,
-    );
-    if (!context.mounted) {
-      return;
-    }
-    await Printing.sharePdf(
-      bytes: bytes,
-      filename: 'expenses-report.pdf',
-      subject: l10n.expenses,
-      bounds: _sharePositionOrigin(context) ??
-          Rect.fromLTWH(0, 0, 1, 1),
-    );
-  } on Object catch (_) {
-    if (context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(l10n.printOverviewShareFailed)),
-      );
-    }
+  final List<Map<String, dynamic>> items = await fetchAllExpenses(api);
+  if (!context.mounted) {
+    return;
   }
+  await _sharePdfReport(
+    context,
+    l10n: l10n,
+    buildPdf: () => buildExpensesPdf(expenses: items, l10n: l10n),
+    filename: 'expenses-report.pdf',
+    subject: l10n.expenses,
+  );
 }
 
 Future<void> shareSuperAdminStationSalesReport(BuildContext context) async {
   final AppLocalizations l10n = context.l10n;
   final AmethystApi api = sl<AmethystApi>();
-  try {
-    final List<Map<String, dynamic>> items = await _fetchAllListItems(
-      (int page) => api.listStationSales(page: page, limit: 100),
-    );
-    if (!context.mounted) {
-      return;
-    }
-    final Uint8List bytes = await buildStationSalesPdf(
-      sales: items,
-      l10n: l10n,
-    );
-    if (!context.mounted) {
-      return;
-    }
-    await Printing.sharePdf(
-      bytes: bytes,
-      filename: 'station-sales.pdf',
-      subject: l10n.stationSales,
-      bounds: _sharePositionOrigin(context) ??
-          Rect.fromLTWH(0, 0, 1, 1),
-    );
-  } on Object catch (_) {
-    if (context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(l10n.printOverviewShareFailed)),
-      );
-    }
+  final List<Map<String, dynamic>> items = await fetchAllStationSales(api);
+  if (!context.mounted) {
+    return;
   }
+  await _sharePdfReport(
+    context,
+    l10n: l10n,
+    buildPdf: () => buildStationSalesPdf(sales: items, l10n: l10n),
+    filename: 'station-sales.pdf',
+    subject: l10n.stationSales,
+  );
 }
 
 Future<void> shareSuperAdminStationStockReport(BuildContext context) async {
   final AppLocalizations l10n = context.l10n;
   final AmethystApi api = sl<AmethystApi>();
-  try {
-    final List<Map<String, dynamic>> items = await _fetchAllListItems(
-      (int page) => api.listProducts(page: page, limit: 100),
-    );
-    if (!context.mounted) {
-      return;
-    }
-    final Uint8List bytes = await buildStationStockPdf(
-      products: items,
-      l10n: l10n,
-    );
-    if (!context.mounted) {
-      return;
-    }
-    await Printing.sharePdf(
-      bytes: bytes,
-      filename: 'station-stock.pdf',
-      subject: l10n.menuStationStock,
-      bounds: _sharePositionOrigin(context) ??
-          Rect.fromLTWH(0, 0, 1, 1),
-    );
-  } on Object catch (_) {
-    if (context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(l10n.printOverviewShareFailed)),
-      );
-    }
+  final List<Map<String, dynamic>> items = await fetchAllProducts(api);
+  if (!context.mounted) {
+    return;
   }
+  await _sharePdfReport(
+    context,
+    l10n: l10n,
+    buildPdf: () => buildStationStockPdf(products: items, l10n: l10n),
+    filename: 'station-stock.pdf',
+    subject: l10n.menuStationStock,
+  );
+}
+
+Future<void> shareSuperAdminStationDebtReport(BuildContext context) async {
+  final AppLocalizations l10n = context.l10n;
+  final AmethystApi api = sl<AmethystApi>();
+  final List<Map<String, dynamic>> items =
+      await fetchAllStationDebtEntries(api);
+  if (!context.mounted) {
+    return;
+  }
+  await _sharePdfReport(
+    context,
+    l10n: l10n,
+    buildPdf: () => buildStationDebtPdf(entries: items, l10n: l10n),
+    filename: 'station-debt.pdf',
+    subject: l10n.titleStationDebtList,
+  );
+}
+
+Future<void> shareSuperAdminVehicleSalesReport(BuildContext context) async {
+  final AppLocalizations l10n = context.l10n;
+  final AmethystApi api = sl<AmethystApi>();
+  final List<Map<String, dynamic>> items = await fetchAllVehicleSales(api);
+  if (!context.mounted) {
+    return;
+  }
+  await _sharePdfReport(
+    context,
+    l10n: l10n,
+    buildPdf: () => buildVehicleSalesPdf(sales: items, l10n: l10n),
+    filename: 'vehicle-sales.pdf',
+    subject: l10n.vehicleSales,
+  );
+}
+
+Future<void> shareSuperAdminVehicleLoadsReport(BuildContext context) async {
+  final AppLocalizations l10n = context.l10n;
+  final AmethystApi api = sl<AmethystApi>();
+  final List<Map<String, dynamic>> items = await fetchAllVehicleLoads(api);
+  if (!context.mounted) {
+    return;
+  }
+  await _sharePdfReport(
+    context,
+    l10n: l10n,
+    buildPdf: () => buildVehicleLoadsPdf(loads: items, l10n: l10n),
+    filename: 'vehicle-loads.pdf',
+    subject: l10n.vehicleLoads,
+  );
 }

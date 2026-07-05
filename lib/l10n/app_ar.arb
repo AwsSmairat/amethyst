@@ -51,6 +51,24 @@
   "printColumnAmount": "المبلغ",
   "printColumnNote": "ملاحظة",
   "printColumnVehicle": "المركبة",
+  "printColumnDebtor": "صاحب الدين",
+  "printColumnDebtKind": "نوع الدين",
+  "printDebtStatusOpen": "مفتوح",
+  "printDebtStatusRepaid": "مسدد",
+  "printReportTotalLabel": "الإجمالي",
+  "printReportRowCount": "عدد السجلات: {count}",
+  "@printReportRowCount": {
+    "placeholders": {
+      "count": {"type": "String"}
+    }
+  },
+  "printReportGrandTotal": "الإجمالي الكلي: {quantity} · {amount}",
+  "@printReportGrandTotal": {
+    "placeholders": {
+      "quantity": {"type": "String"},
+      "amount": {"type": "String"}
+    }
+  },
   "operations": "العمليات",
   "stockSnapshot": "المخزون",
   "remainingStock": "المخزون المتبقي",
@@ -511,10 +529,34 @@
   "profitMonthDetail": "الربح الشهري",
   "profitTodayBusSalesTotal": "مجموع بيع الباص",
   "profitTodayBingoSalesTotal": "مجموع بيع البينقو",
+  "profitVehicleSales": "مبيعات {vehicle}",
+  "@profitVehicleSales": {
+    "placeholders": {
+      "vehicle": { "type": "String" }
+    }
+  },
+  "profitVehicleOperatingExpenses": "مصاريف {vehicle}",
+  "@profitVehicleOperatingExpenses": {
+    "placeholders": {
+      "vehicle": { "type": "String" }
+    }
+  },
+  "profitVehicleCashBalance": "رصيد أموال {vehicle}",
+  "@profitVehicleCashBalance": {
+    "placeholders": {
+      "vehicle": { "type": "String" }
+    }
+  },
+  "profitVehicleNetFormula": "مجموع {vehicle} (مبيعات - مصاريف + رصيد)",
+  "@profitVehicleNetFormula": {
+    "placeholders": {
+      "vehicle": { "type": "String" }
+    }
+  },
   "profitTodayStationCashBalance": "رصيد أموال المحطة",
   "profitTodayStationExpenses": "مصاريف المحطة",
   "profitTodayStationNetFormula": "مجموع المحطة (مبيعات - مصاريف + رصيد)",
-  "profitTodayGrandTotalFormula": "المجموع (محطة + باص + بينقو)",
+  "profitTodayGrandTotalFormula": "المجموع (محطة + المركبات)",
   "expensesTodayDetail": "مصاريف اليوم",
   "monthlyExpensesDetail": "المصاريف الشهرية",
   "monthlySalesDetail": "المبيعات الشهرية",
@@ -664,6 +706,7 @@
   "stationDebtRegistrationTitle": "دين وسداد",
   "stationDebtVehicleRegistrationTitle": "تسجيل الدين من المركبة",
   "driverRegisterVehicleDebt": "تسجيل الدين من المركبة",
+  "driverDashboardDailySalesTotal": "إجمالي المبيعات اليومية",
   "driverVehicleDebtSheetTitle": "تسجيل الدين من المركبة",
   "stationDebtDebtorNameLabel": "اسم صاحب الدين",
   "stationDebtDebtorNameHint": "اكتب الاسم كاملاً",
@@ -809,7 +852,7 @@
   "receiptStyleResetButton": "إعادة الإعدادات الافتراضية",
   "receiptStyleReset": "تمت إعادة نمط الطباعة للوضع الافتراضي",
   "adminDailyReportCardTitle": "تقرير يوم المحطة",
-  "adminDailyReportCardSubtitle": "طباعة رصيد المحطة، المخزون المتبقي، ومبيعات المحطة والمركبات لليوم.",
+  "adminDailyReportCardSubtitle": "طباعة رصيد المحطة، المخزون المتبقي، مبيعات المحطة والمركبات، ودين اليوم.",
   "adminDailyReportPrintButton": "طباعة تقرير اليوم",
   "adminDailyReportTitle": "تقرير يوم المحطة",
   "adminDailyReportPrintFailed": "تعذّر تحضير تقرير اليوم للطباعة",
@@ -822,5 +865,7 @@
   "adminDailyReportTotalSalesToday": "إجمالي المبيعات اليوم",
   "adminDailyReportStationSalesSection": "مبيعات المحطة اليوم",
   "adminDailyReportVehicleSalesSection": "مبيعات المركبات اليوم",
+  "adminDailyReportDebtSection": "دين اليوم",
+  "adminDailyReportDebtTotalToday": "إجمالي دين اليوم",
   "adminVehicleSalesLabel": "مبيعات المركبات"
 }

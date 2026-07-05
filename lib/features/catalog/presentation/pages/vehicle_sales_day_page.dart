@@ -115,7 +115,7 @@ class _VehicleSalesDayPageState extends State<VehicleSalesDayPage> {
             .where(isVehicleSaleVisibleInSalesList)
             .toList(growable: false);
         _debtItems = list
-            .where((Map<String, dynamic> r) => r['isDebt'] == true)
+            .where(isVehicleDebtSaleRow)
             .toList(growable: false);
         _loading = false;
       });

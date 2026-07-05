@@ -37,5 +37,7 @@ DriverDashboard mapDriverDashboardApi(
     shiftRemaining: 'اليوم',
     isActive: vehicle?['isActive'] as bool? ?? false,
     inventory: inventory,
+    dailySalesTotal:
+        (json['vehicleSalesAmountToday'] as num?)?.toDouble() ?? 0,
   );
 }

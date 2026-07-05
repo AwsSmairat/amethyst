@@ -12,7 +12,6 @@ import 'package:amethyst/core/firebase/station_stock_skip.dart';
 import 'package:amethyst/core/network/api_exception.dart';
 import 'package:amethyst/core/expenses/profit_vehicle_expense_deduction.dart';
 import 'package:amethyst/core/station_balance/station_balance_catalog.dart';
-import 'package:amethyst/core/vehicle/vehicle_kind_match.dart';
 import 'package:amethyst/core/vehicle_sale/vehicle_sales_aggregates.dart';
 import 'package:amethyst/core/vehicle_load/vehicle_load_aggregates.dart';
 import 'package:amethyst/core/vehicle_sale/vehicle_product_columns.dart';
@@ -1850,6 +1849,175 @@ final class AmethystFirebaseBackend {
     };
   }
 
+  Future<({double today, double yesterday})> _driverCashBalanceSnapshot(
+    String driverId,
+  ) async {
+    final DocumentSnapshot<Map<String, dynamic>> snap = await _db
+        .collection(FirestorePaths.driverCashBalance)
+        .doc(driverId)
+        .get();
+    final double today = snap.exists
+        ? (snap.data()?['amount'] as num?)?.toDouble() ?? 0.0
+        : 0.0;
+    final QuerySnapshot<Map<String, dynamic>> entries = await _db
+        .collection(FirestorePaths.driverCashEntries)
+        .where('driverId', isEqualTo: driverId)
+        .get();
+    QueryDocumentSnapshot<Map<String, dynamic>>? latestEntry;
+    DateTime? latestCreatedAt;
+    for (final QueryDocumentSnapshot<Map<String, dynamic>> doc in entries.docs) {
+      final DateTime? createdAt = timestampToDate(doc.data()['createdAt']);
+      if (latestEntry == null ||
+          (createdAt != null &&
+              (latestCreatedAt == null || createdAt.isAfter(latestCreatedAt)))) {
+        latestEntry = doc;
+        latestCreatedAt = createdAt;
+      }
+    }
+    final double yesterday = latestEntry == null
+        ? 0.0
+        : (latestEntry.data()['previousAmount'] as num?)?.toDouble() ?? 0.0;
+    return (today: today, yesterday: yesterday);
+  }
+
+  Future<String> _requireDriverActorId() async {
+    final Map<String, dynamic> actor = await _auth.currentActor();
+    if (actor['role'] != 'driver') {
+      throw ApiException('Driver access only', code: 'FORBIDDEN');
+    }
+    final String? id = actor['id']?.toString();
+    if (id == null || id.isEmpty) {
+      throw ApiException('Driver not found', code: 'FORBIDDEN');
+    }
+    return id;
+  }
+
+  Future<Map<String, dynamic>> getDriverCashBalance() async {
+    final String driverId = await _requireDriverActorId();
+    final ({double today, double yesterday}) snapshot =
+        await _driverCashBalanceSnapshot(driverId);
+    final DocumentSnapshot<Map<String, dynamic>> snap = await _db
+        .collection(FirestorePaths.driverCashBalance)
+        .doc(driverId)
+        .get();
+    if (!snap.exists) {
+      return <String, dynamic>{
+        'amount': snapshot.today,
+        'yesterdayAmount': snapshot.yesterday,
+        'driverId': driverId,
+      };
+    }
+    final Map<String, dynamic> data = snap.data() ?? <String, dynamic>{};
+    return <String, dynamic>{
+      'amount': snapshot.today,
+      'yesterdayAmount': snapshot.yesterday,
+      'driverId': driverId,
+      'updatedAt': timestampToDate(data['updatedAt']),
+      'updatedById': data['updatedById'],
+    };
+  }
+
+  Future<Map<String, dynamic>> listDriverCashEntries({
+    int page = 1,
+    int limit = 50,
+  }) async {
+    final String driverId = await _requireDriverActorId();
+    final QuerySnapshot<Map<String, dynamic>> snap = await _db
+        .collection(FirestorePaths.driverCashEntries)
+        .where('driverId', isEqualTo: driverId)
+        .get();
+    final List<QueryDocumentSnapshot<Map<String, dynamic>>> sortedDocs =
+        snap.docs.toList(growable: true)
+          ..sort(
+            (
+              QueryDocumentSnapshot<Map<String, dynamic>> a,
+              QueryDocumentSnapshot<Map<String, dynamic>> b,
+            ) {
+              final DateTime? aAt = timestampToDate(a.data()['createdAt']);
+              final DateTime? bAt = timestampToDate(b.data()['createdAt']);
+              return (bAt ?? DateTime(0)).compareTo(aAt ?? DateTime(0));
+            },
+          );
+    final List<Map<String, dynamic>> items = sortedDocs
+        .map(mapDriverCashEntryDoc)
+        .toList(growable: false);
+    return _paginate(items, page: page, limit: limit.clamp(1, 100));
+  }
+
+  Future<Map<String, dynamic>> setDriverCashBalance({
+    required double amount,
+    String? note,
+  }) async {
+    if (amount < 0) {
+      throw ApiException('Amount cannot be negative', code: 'INVALID_AMOUNT');
+    }
+    final String driverId = await _requireDriverActorId();
+    final Map<String, dynamic> actor = await _auth.currentActor();
+    final DocumentReference<Map<String, dynamic>> balanceRef = _db
+        .collection(FirestorePaths.driverCashBalance)
+        .doc(driverId);
+    final DocumentSnapshot<Map<String, dynamic>> current = await balanceRef.get();
+    final double previous = current.exists
+        ? (current.data()?['amount'] as num?)?.toDouble() ?? 0.0
+        : 0.0;
+    final WriteBatch batch = _db.batch();
+    batch.set(
+      balanceRef,
+      <String, dynamic>{
+        'amount': amount,
+        'driverId': driverId,
+        'updatedById': actor['id'],
+        'updatedAt': serverTimestamp(),
+      },
+      SetOptions(merge: true),
+    );
+    final DocumentReference<Map<String, dynamic>> entryRef =
+        _db.collection(FirestorePaths.driverCashEntries).doc();
+    batch.set(entryRef, <String, dynamic>{
+      'driverId': driverId,
+      'amount': amount,
+      'previousAmount': previous,
+      if (note != null && note.trim().isNotEmpty) 'note': note.trim(),
+      'createdById': actor['id'],
+      'createdAt': serverTimestamp(),
+    });
+    await batch.commit();
+    return <String, dynamic>{
+      'amount': amount,
+      'previousAmount': previous,
+      'entryId': entryRef.id,
+      'driverId': driverId,
+    };
+  }
+
+  Future<({
+    Map<String, double> todayByDriverId,
+    Map<String, double> yesterdayByDriverId,
+    Map<String, Map<String, double>> recordedOnDayByDriverId,
+    Map<String, Map<String, double>> recordedByMonthByDriverId,
+  })> _driverCashProfitContext() async {
+    final QuerySnapshot<Map<String, dynamic>> balanceSnap = await _db
+        .collection(FirestorePaths.driverCashBalance)
+        .get();
+    final Map<String, double> todayByDriverId = <String, double>{
+      for (final QueryDocumentSnapshot<Map<String, dynamic>> doc
+          in balanceSnap.docs)
+        doc.id: _num(doc.data()['amount']),
+    };
+    final QuerySnapshot<Map<String, dynamic>> entriesSnap = await _db
+        .collection(FirestorePaths.driverCashEntries)
+        .get();
+    final List<Map<String, dynamic>> entries = entriesSnap.docs
+        .map(mapDriverCashEntryDoc)
+        .toList(growable: false);
+    return (
+      todayByDriverId: todayByDriverId,
+      yesterdayByDriverId: buildDriverCashYesterdayByDriver(entries),
+      recordedOnDayByDriverId: buildDriverCashRecordedOnDayByDriver(entries),
+      recordedByMonthByDriverId: buildDriverCashRecordedByMonthByDriver(entries),
+    );
+  }
+
   Future<Map<String, dynamic>> listReturns({int page = 1, int limit = 100}) async {
     await _requireStaff();
     final QuerySnapshot<Map<String, dynamic>> snap =
@@ -2033,6 +2201,11 @@ final class AmethystFirebaseBackend {
           in vehiclesSnap.docs)
         doc.id: doc.data()['vehicleNumber']?.toString() ?? '',
     };
+    final Map<String, String> vehicleIdToDriverId = <String, String>{
+      for (final QueryDocumentSnapshot<Map<String, dynamic>> doc
+          in vehiclesSnap.docs)
+        doc.id: doc.data()['driverId']?.toString() ?? '',
+    };
     final Map<String, String> driverIdToVehicleId = <String, String>{
       for (final QueryDocumentSnapshot<Map<String, dynamic>> doc
           in vehiclesSnap.docs)
@@ -2041,8 +2214,8 @@ final class AmethystFirebaseBackend {
     };
 
     final Map<String, double> stationSalesByDay = <String, double>{};
-    final Map<String, double> busGrossByDay = <String, double>{};
-    final Map<String, double> bingoGrossByDay = <String, double>{};
+    final Map<String, Map<String, double>> vehicleGrossByDay =
+        <String, Map<String, double>>{};
     final Map<String, List<Map<String, dynamic>>> expensesByDay =
         <String, List<Map<String, dynamic>>>{};
 
@@ -2073,19 +2246,14 @@ final class AmethystFirebaseBackend {
       }
       final double amount = _num(data['totalAmount']);
       final String? vehicleId = data['vehicleId']?.toString();
-      final String vehicleNumber = vehicleIdToNumber[vehicleId] ??
-          data['vehicleNumber']?.toString() ??
-          '';
       final String? dayYmd =
           profitRowLocalYmd(timestampToDate(data['createdAt']));
-      switch (vehicleSalesBucketForNumber(vehicleNumber)) {
-        case VehicleSalesBucket.bus:
-          profitAccumulateByDay(busGrossByDay, dayYmd, amount);
-        case VehicleSalesBucket.bingo:
-          profitAccumulateByDay(bingoGrossByDay, dayYmd, amount);
-        case VehicleSalesBucket.other:
-          break;
-      }
+      profitAccumulateVehicleSalesByKey(
+        vehicleGrossByDay,
+        dayYmd,
+        vehicleId,
+        amount,
+      );
     }
 
     final QuerySnapshot<Map<String, dynamic>> expensesSnap = await _db
@@ -2112,13 +2280,18 @@ final class AmethystFirebaseBackend {
     final Map<String, double> cashRecordedOnDay = buildStationCashRecordedOnDay(
       cashEntriesSnap.docs.map(mapStationCashEntryDoc),
     );
+    final ({
+      Map<String, double> todayByDriverId,
+      Map<String, double> yesterdayByDriverId,
+      Map<String, Map<String, double>> recordedOnDayByDriverId,
+      Map<String, Map<String, double>> recordedByMonthByDriverId,
+    }) driverCash = await _driverCashProfitContext();
 
     final Set<String> dayKeys = <String>{
       todayYmd,
       yesterdayYmd,
       ...stationSalesByDay.keys,
-      ...busGrossByDay.keys,
-      ...bingoGrossByDay.keys,
+      ...vehicleGrossByDay.keys,
       ...expensesByDay.keys,
       ...cashRecordedOnDay.keys,
     };
@@ -2128,8 +2301,8 @@ final class AmethystFirebaseBackend {
     for (final String dayYmd in dayKeys) {
       byDay[dayYmd] = computeProfitDaySnapshot(
         stationSalesGross: stationSalesByDay[dayYmd] ?? 0,
-        busSalesGross: busGrossByDay[dayYmd] ?? 0,
-        bingoSalesGross: bingoGrossByDay[dayYmd] ?? 0,
+        vehicleSalesGrossById:
+            vehicleGrossByDay[dayYmd] ?? const <String, double>{},
         expenseRows: expensesByDay[dayYmd] ?? const <Map<String, dynamic>>[],
         stationCashBalance: resolveStationCashBalanceForDay(
           dayYmd,
@@ -2140,7 +2313,14 @@ final class AmethystFirebaseBackend {
           cashRecordedOnDay: cashRecordedOnDay,
         ),
         vehicleIdToNumber: vehicleIdToNumber,
+        vehicleIdToDriverId: vehicleIdToDriverId,
         driverIdToVehicleId: driverIdToVehicleId,
+        driverCashTodayByDriverId: driverCash.todayByDriverId,
+        driverCashYesterdayByDriverId: driverCash.yesterdayByDriverId,
+        driverCashRecordedOnDayByDriverId: driverCash.recordedOnDayByDriverId,
+        dayYmd: dayYmd,
+        todayYmd: todayYmd,
+        yesterdayYmd: yesterdayYmd,
       );
     }
 
@@ -2170,6 +2350,11 @@ final class AmethystFirebaseBackend {
           in vehiclesSnap.docs)
         doc.id: doc.data()['vehicleNumber']?.toString() ?? '',
     };
+    final Map<String, String> vehicleIdToDriverId = <String, String>{
+      for (final QueryDocumentSnapshot<Map<String, dynamic>> doc
+          in vehiclesSnap.docs)
+        doc.id: doc.data()['driverId']?.toString() ?? '',
+    };
     final Map<String, String> driverIdToVehicleId = <String, String>{
       for (final QueryDocumentSnapshot<Map<String, dynamic>> doc
           in vehiclesSnap.docs)
@@ -2178,8 +2363,8 @@ final class AmethystFirebaseBackend {
     };
 
     final Map<String, double> stationSalesByMonth = <String, double>{};
-    final Map<String, double> busGrossByMonth = <String, double>{};
-    final Map<String, double> bingoGrossByMonth = <String, double>{};
+    final Map<String, Map<String, double>> vehicleGrossByMonth =
+        <String, Map<String, double>>{};
     final Map<String, List<Map<String, dynamic>>> expensesByMonth =
         <String, List<Map<String, dynamic>>>{};
 
@@ -2210,19 +2395,14 @@ final class AmethystFirebaseBackend {
       }
       final double amount = _num(data['totalAmount']);
       final String? vehicleId = data['vehicleId']?.toString();
-      final String vehicleNumber = vehicleIdToNumber[vehicleId] ??
-          data['vehicleNumber']?.toString() ??
-          '';
       final String? monthKey =
           profitRowLocalMonthKey(timestampToDate(data['createdAt']));
-      switch (vehicleSalesBucketForNumber(vehicleNumber)) {
-        case VehicleSalesBucket.bus:
-          profitAccumulateByKey(busGrossByMonth, monthKey, amount);
-        case VehicleSalesBucket.bingo:
-          profitAccumulateByKey(bingoGrossByMonth, monthKey, amount);
-        case VehicleSalesBucket.other:
-          break;
-      }
+      profitAccumulateVehicleSalesByKey(
+        vehicleGrossByMonth,
+        monthKey,
+        vehicleId,
+        amount,
+      );
     }
 
     final QuerySnapshot<Map<String, dynamic>> expensesSnap = await _db
@@ -2257,11 +2437,17 @@ final class AmethystFirebaseBackend {
         profitCalendarPreviousMonth(now.year, now.month).m,
       ),
       ...stationSalesByMonth.keys,
-      ...busGrossByMonth.keys,
-      ...bingoGrossByMonth.keys,
+      ...vehicleGrossByMonth.keys,
       ...expensesByMonth.keys,
       ...cashRecordedByMonth.keys,
     };
+
+    final ({
+      Map<String, double> todayByDriverId,
+      Map<String, double> yesterdayByDriverId,
+      Map<String, Map<String, double>> recordedOnDayByDriverId,
+      Map<String, Map<String, double>> recordedByMonthByDriverId,
+    }) driverCash = await _driverCashProfitContext();
 
     final Map<String, Map<String, dynamic>> byMonth =
         <String, Map<String, dynamic>>{};
@@ -2277,9 +2463,10 @@ final class AmethystFirebaseBackend {
       }
       byMonth[monthKey] = computeProfitDaySnapshot(
         stationSalesGross: stationSalesByMonth[monthKey] ?? 0,
-        busSalesGross: busGrossByMonth[monthKey] ?? 0,
-        bingoSalesGross: bingoGrossByMonth[monthKey] ?? 0,
-        expenseRows: expensesByMonth[monthKey] ?? const <Map<String, dynamic>>[],
+        vehicleSalesGrossById:
+            vehicleGrossByMonth[monthKey] ?? const <String, double>{},
+        expenseRows:
+            expensesByMonth[monthKey] ?? const <Map<String, dynamic>>[],
         stationCashBalance: resolveStationCashBalanceForMonth(
           year,
           month,
@@ -2289,7 +2476,17 @@ final class AmethystFirebaseBackend {
           cashRecordedByMonth: cashRecordedByMonth,
         ),
         vehicleIdToNumber: vehicleIdToNumber,
+        vehicleIdToDriverId: vehicleIdToDriverId,
         driverIdToVehicleId: driverIdToVehicleId,
+        driverCashTodayByDriverId: driverCash.todayByDriverId,
+        driverCashYesterdayByDriverId: const <String, double>{},
+        driverCashRecordedOnDayByDriverId: const <String, Map<String, double>>{},
+        cashMonthYear: year,
+        cashMonth: month,
+        cashCurrentYear: now.year,
+        cashCurrentMonth: now.month,
+        driverCashRecordedByMonthByDriverId:
+            driverCash.recordedByMonthByDriverId,
       );
     }
 
@@ -2320,6 +2517,11 @@ final class AmethystFirebaseBackend {
           in vehiclesSnap.docs)
         doc.id: doc.data()['vehicleNumber']?.toString() ?? '',
     };
+    final Map<String, String> vehicleIdToDriverId = <String, String>{
+      for (final QueryDocumentSnapshot<Map<String, dynamic>> doc
+          in vehiclesSnap.docs)
+        doc.id: doc.data()['driverId']?.toString() ?? '',
+    };
     final Map<String, String> driverIdToVehicleId = <String, String>{
       for (final QueryDocumentSnapshot<Map<String, dynamic>> doc
           in vehiclesSnap.docs)
@@ -2328,8 +2530,7 @@ final class AmethystFirebaseBackend {
     };
 
     var stationSalesGross = 0.0;
-    var busSalesGross = 0.0;
-    var bingoSalesGross = 0.0;
+    final Map<String, double> vehicleSalesGrossById = <String, double>{};
     final List<Map<String, dynamic>> expenseRows = <Map<String, dynamic>>[];
 
     final QuerySnapshot<Map<String, dynamic>> stationSnap = await _db
@@ -2355,16 +2556,9 @@ final class AmethystFirebaseBackend {
       }
       final double amount = _num(data['totalAmount']);
       final String? vehicleId = data['vehicleId']?.toString();
-      final String vehicleNumber = vehicleIdToNumber[vehicleId] ??
-          data['vehicleNumber']?.toString() ??
-          '';
-      switch (vehicleSalesBucketForNumber(vehicleNumber)) {
-        case VehicleSalesBucket.bus:
-          busSalesGross += amount;
-        case VehicleSalesBucket.bingo:
-          bingoSalesGross += amount;
-        case VehicleSalesBucket.other:
-          break;
+      if (vehicleId != null && vehicleId.isNotEmpty) {
+        vehicleSalesGrossById[vehicleId] =
+            (vehicleSalesGrossById[vehicleId] ?? 0) + amount;
       }
     }
 
@@ -2396,15 +2590,30 @@ final class AmethystFirebaseBackend {
       currentBalance: cashSnapshot.today,
       cashRecordedByMonth: cashRecordedByMonth,
     );
+    final ({
+      Map<String, double> todayByDriverId,
+      Map<String, double> yesterdayByDriverId,
+      Map<String, Map<String, double>> recordedOnDayByDriverId,
+      Map<String, Map<String, double>> recordedByMonthByDriverId,
+    }) driverCash = await _driverCashProfitContext();
 
     return computeProfitDaySnapshot(
       stationSalesGross: stationSalesGross,
-      busSalesGross: busSalesGross,
-      bingoSalesGross: bingoSalesGross,
+      vehicleSalesGrossById: vehicleSalesGrossById,
       expenseRows: expenseRows,
       stationCashBalance: stationCashBalance,
       vehicleIdToNumber: vehicleIdToNumber,
+      vehicleIdToDriverId: vehicleIdToDriverId,
       driverIdToVehicleId: driverIdToVehicleId,
+      driverCashTodayByDriverId: driverCash.todayByDriverId,
+      driverCashYesterdayByDriverId: const <String, double>{},
+      driverCashRecordedOnDayByDriverId: const <String, Map<String, double>>{},
+      cashMonthYear: start.year,
+      cashMonth: start.month,
+      cashCurrentYear: now.year,
+      cashCurrentMonth: now.month,
+      driverCashRecordedByMonthByDriverId:
+          driverCash.recordedByMonthByDriverId,
     );
   }
 
@@ -2582,8 +2791,8 @@ final class AmethystFirebaseBackend {
     final DateTime now = DateTime.now();
     final ({DateTime start, DateTime end}) day = businessDayRange(now);
     final ({DateTime start, DateTime end}) month = businessMonthRange(now);
-    final List<QuerySnapshot<Map<String, dynamic>>> coreSnaps =
-        await Future.wait(<Future<QuerySnapshot<Map<String, dynamic>>>>[
+    final List<Object> coreSnaps =
+        await Future.wait(<Future<Object>>[
       _db
           .collection(FirestorePaths.users)
           .where('role', whereIn: <String>['super_admin', 'admin', 'driver'])
@@ -2596,12 +2805,24 @@ final class AmethystFirebaseBackend {
           .where('repaidAt', isNull: true)
           .limit(400)
           .get(),
+      _db
+          .collection(FirestorePaths.vehicleSales)
+          .where('isDebt', isEqualTo: true)
+          .limit(400)
+          .get(),
     ]);
-    final QuerySnapshot<Map<String, dynamic>> users = coreSnaps[0];
-    final QuerySnapshot<Map<String, dynamic>> vehicles = coreSnaps[1];
-    final QuerySnapshot<Map<String, dynamic>> products = coreSnaps[2];
-    final QuerySnapshot<Map<String, dynamic>> openLoads = coreSnaps[3];
-    final QuerySnapshot<Map<String, dynamic>> debtSnap = coreSnaps[4];
+    final QuerySnapshot<Map<String, dynamic>> users =
+        coreSnaps[0] as QuerySnapshot<Map<String, dynamic>>;
+    final QuerySnapshot<Map<String, dynamic>> vehicles =
+        coreSnaps[1] as QuerySnapshot<Map<String, dynamic>>;
+    final QuerySnapshot<Map<String, dynamic>> products =
+        coreSnaps[2] as QuerySnapshot<Map<String, dynamic>>;
+    final QuerySnapshot<Map<String, dynamic>> openLoads =
+        coreSnaps[3] as QuerySnapshot<Map<String, dynamic>>;
+    final QuerySnapshot<Map<String, dynamic>> debtSnap =
+        coreSnaps[4] as QuerySnapshot<Map<String, dynamic>>;
+    final QuerySnapshot<Map<String, dynamic>> vehicleDebtSnap =
+        coreSnaps[5] as QuerySnapshot<Map<String, dynamic>>;
     final ({int superAdmins, int admins, int drivers}) roleCounts =
         _countUsersByRole(users);
     int priced = 0;
@@ -2622,8 +2843,16 @@ final class AmethystFirebaseBackend {
         .where((Map<String, dynamic> p) => ((p['stationStock'] as num?)?.toInt() ?? 0) < 50)
         .take(10)
         .toList(growable: false);
-    final List<Map<String, dynamic>> debtPreview = _debtOpenPreviewFromSnap(
-      snap: debtSnap,
+    final List<Map<String, dynamic>> debtPreview = _debtOpenPreviewFromEntries(
+      entries: _openDebtPreviewRowsFromStationSnap(
+        debtSnap,
+        productById: productById,
+      )..addAll(
+          _openDebtPreviewRowsFromVehicleDebtSnap(
+            vehicleDebtSnap,
+            productById: productById,
+          ),
+        ),
       productById: productById,
     );
     onPartial?.call(
@@ -3343,31 +3572,103 @@ final class AmethystFirebaseBackend {
     };
   }
 
-  List<Map<String, dynamic>> _debtOpenPreviewFromSnap({
-    required QuerySnapshot<Map<String, dynamic>> snap,
+  List<Map<String, dynamic>> _openDebtPreviewRowsFromStationSnap(
+    QuerySnapshot<Map<String, dynamic>> snap, {
+    required Map<String, Map<String, dynamic>> productById,
+  }) {
+    final List<Map<String, dynamic>> rows = <Map<String, dynamic>>[];
+    for (final QueryDocumentSnapshot<Map<String, dynamic>> doc in snap.docs) {
+      final Map<String, dynamic> e = doc.data();
+      final String debtor = normalizeDebtorName(e['debtorName']?.toString());
+      final String? productId = e['productId']?.toString();
+      if (debtor.isEmpty || productId == null || productId.isEmpty) {
+        continue;
+      }
+      rows.add(<String, dynamic>{
+        'debtorName': debtor,
+        'productId': productId,
+        'quantity': (e['quantity'] as num?)?.toInt() ?? 0,
+        'recordingSource': 'station',
+        'product': productById[productId],
+      });
+    }
+    return rows;
+  }
+
+  List<Map<String, dynamic>> _openDebtPreviewRowsFromVehicleDebtSnap(
+    QuerySnapshot<Map<String, dynamic>> snap, {
+    required Map<String, Map<String, dynamic>> productById,
+  }) {
+    final List<Map<String, dynamic>> rows = <Map<String, dynamic>>[];
+    for (final QueryDocumentSnapshot<Map<String, dynamic>> doc in snap.docs) {
+      final Map<String, dynamic> e = doc.data();
+      if (!isOpenVehicleDebtSale(e)) {
+        continue;
+      }
+      final String debtor = normalizeDebtorName(e['debtorName']?.toString());
+      final String? productId = e['productId']?.toString();
+      if (debtor.isEmpty || productId == null || productId.isEmpty) {
+        continue;
+      }
+      rows.add(<String, dynamic>{
+        'debtorName': debtor,
+        'productId': productId,
+        'quantity': (e['quantity'] as num?)?.toInt() ?? 0,
+        'recordingSource': 'vehicle',
+        'saleDestination': e['saleDestination']?.toString() ?? 'home',
+        'vehicleSaleId': doc.id,
+        'product': productById[productId],
+      });
+    }
+    return rows;
+  }
+
+  String _debtPreviewLineKey(Map<String, dynamic> entry) {
+    final String productId = entry['productId']?.toString() ?? '';
+    if (isVehicleDebtEntry(entry)) {
+      final String dest = entry['saleDestination']?.toString() ?? 'home';
+      return '$productId:$dest';
+    }
+    return productId;
+  }
+
+  List<Map<String, dynamic>> _debtOpenPreviewFromEntries({
+    required List<Map<String, dynamic>> entries,
     required Map<String, Map<String, dynamic>> productById,
   }) {
     final Map<String, Map<String, Map<String, dynamic>>> byDebtor =
         <String, Map<String, Map<String, dynamic>>>{};
-    for (final QueryDocumentSnapshot<Map<String, dynamic>> doc in snap.docs) {
-      final Map<String, dynamic> e = doc.data();
-      final String dname = e['debtorName'] as String;
+    for (final Map<String, dynamic> e in entries) {
+      final String dname = normalizeDebtorName(e['debtorName']?.toString());
+      if (dname.isEmpty) {
+        continue;
+      }
       byDebtor.putIfAbsent(dname, () => <String, Map<String, dynamic>>{});
-      final String pid = e['productId'] as String;
-      final Map<String, dynamic>? product = productById[pid];
+      final String lineKey = _debtPreviewLineKey(e);
+      if (lineKey.isEmpty) {
+        continue;
+      }
+      final Map<String, dynamic>? product =
+          e['product'] as Map<String, dynamic>? ??
+              productById[e['productId']?.toString() ?? ''];
       final Map<String, Map<String, dynamic>> prodMap = byDebtor[dname]!;
-      final Map<String, dynamic>? prev = prodMap[pid];
+      final Map<String, dynamic>? prev = prodMap[lineKey];
       final int qty = (e['quantity'] as num?)?.toInt() ?? 0;
-      prodMap[pid] = <String, dynamic>{
-        'productName': product?['name'] ?? '',
+      final String rawName = product?['name']?.toString() ?? '';
+      prodMap[lineKey] = <String, dynamic>{
+        'productName': rawName,
         'quantity': ((prev?['quantity'] as num?)?.toInt() ?? 0) + qty,
+        'kind': isVehicleDebtEntry(e) ? 'vehicle' : 'station',
       };
     }
     return byDebtor.entries
-        .map((MapEntry<String, Map<String, Map<String, dynamic>>> e) => <String, dynamic>{
-              'debtorName': e.key,
-              'lines': e.value.values.toList(growable: false),
-            })
+        .map(
+          (MapEntry<String, Map<String, Map<String, dynamic>>> e) =>
+              <String, dynamic>{
+            'debtorName': e.key,
+            'lines': e.value.values.toList(growable: false),
+          },
+        )
         .toList(growable: false);
   }
 

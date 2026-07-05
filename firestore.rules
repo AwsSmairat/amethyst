@@ -141,5 +141,17 @@ service cloud.firestore {
       allow read: if isStaff();
       allow create: if isStaff();
     }
+
+    match /driver_cash_balance/{driverId} {
+      allow read: if isStaff() || (isDriver() && request.auth.uid == driverId);
+      allow write: if isStaff() || (isDriver() && request.auth.uid == driverId);
+    }
+
+    match /driver_cash_entries/{entryId} {
+      allow read: if isStaff()
+        || (isDriver() && resource.data.driverId == request.auth.uid);
+      allow create: if isStaff()
+        || (isDriver() && request.resource.data.driverId == request.auth.uid);
+    }
   }
 }

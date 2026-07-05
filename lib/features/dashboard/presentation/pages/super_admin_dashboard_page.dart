@@ -294,10 +294,15 @@ double _dashboardKpiNum(dynamic v) {
 }
 
 final class _DebtLine {
-  const _DebtLine({required this.productName, required this.quantity});
+  const _DebtLine({
+    required this.productName,
+    required this.quantity,
+    this.kind,
+  });
 
   final String productName;
   final int quantity;
+  final String? kind;
 }
 
 final class _DebtGroup {
@@ -336,6 +341,7 @@ List<_DebtGroup> _parseStationDebtOpenPreview(dynamic v) {
             _DebtLine(
               productName: catalogProductArabicDisplayLabel(pn),
               quantity: iq,
+              kind: lm['kind']?.toString(),
             ),
           );
         }
@@ -389,8 +395,15 @@ class _StationDebtListPreviewCard extends StatelessWidget {
                               Text(
                                 g.lines
                                     .map(
-                                      (_DebtLine l) =>
-                                          '${l.productName} ×${l.quantity}',
+                                      (_DebtLine l) {
+                                        final String kindPrefix =
+                                            l.kind == 'vehicle'
+                                                ? '${context.l10n.stationDebtKindVehicle} · '
+                                                : l.kind == 'station'
+                                                    ? '${context.l10n.stationDebtKindStation} · '
+                                                    : '';
+                                        return '$kindPrefix${l.productName} ×${l.quantity}';
+                                      },
                                     )
                                     .join(' · '),
                                 style: textTheme.bodyMedium?.copyWith(

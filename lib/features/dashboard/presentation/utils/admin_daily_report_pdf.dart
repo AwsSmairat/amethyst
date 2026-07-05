@@ -1,10 +1,12 @@
 import 'dart:typed_data';
 
 import 'package:amethyst/core/catalog/catalog_product_display_label.dart';
+import 'package:amethyst/core/station_debt/station_debt_entry_utils.dart';
 import 'package:amethyst/core/utils/format_money.dart';
 import 'package:amethyst/core/utils/parse_api_datetime.dart';
 import 'package:amethyst/core/utils/parse_dynamic_double.dart';
 import 'package:amethyst/features/admin/presentation/station_balance/station_balance_lines.dart';
+import 'package:amethyst/features/admin/presentation/station_debt/station_debt_display.dart';
 import 'package:amethyst/features/dashboard/presentation/utils/admin_daily_report_data.dart';
 import 'package:amethyst/l10n/app_localizations.dart';
 import 'package:intl/intl.dart';
@@ -129,6 +131,39 @@ Future<Uint8List> buildAdminDailyReportPdf({
     }
   }
 
+  final List<pw.TableRow> debtRows = <pw.TableRow>[
+    _pdfHeaderRow(
+      fontBold,
+      <String>[
+        l10n.printColumnDebtor,
+        l10n.printColumnDebtKind,
+        l10n.printColumnProduct,
+        l10n.printColumnAmount,
+      ],
+    ),
+  ];
+  if (data.debtEntriesToday.isEmpty) {
+    debtRows.add(_pdfDataRow(font, <String>['—', '—', '—', '—']));
+  } else {
+    for (final Map<String, dynamic> e in data.debtEntriesToday) {
+      final String debtor = e['debtorName']?.toString().trim() ?? '—';
+      final String kind = isVehicleDebtEntry(e)
+          ? l10n.stationDebtKindVehicle
+          : l10n.stationDebtKindStation;
+      debtRows.add(
+        _pdfDataRow(
+          font,
+          <String>[
+            debtor,
+            kind,
+            debtEntryProductDisplayLabel(e),
+            money.format(parseDynamicDouble(e['totalAmount']) ?? 0),
+          ],
+        ),
+      );
+    }
+  }
+
   final pdf = pw.Document(
     theme: pw.ThemeData.withFont(base: font, bold: fontBold),
   );
@@ -211,6 +246,20 @@ Future<Uint8List> buildAdminDailyReportPdf({
             2: const pw.FlexColumnWidth(0.9),
             3: const pw.FlexColumnWidth(0.8),
             4: const pw.FlexColumnWidth(1.2),
+          },
+        ),
+        sectionTitle(l10n.adminDailyReportDebtSection),
+        summaryLine(
+          l10n.adminDailyReportDebtTotalToday,
+          formatMoneyAmount(data.debtTotalToday),
+        ),
+        _pdfTable(
+          debtRows,
+          columnWidths: <int, pw.TableColumnWidth>{
+            0: const pw.FlexColumnWidth(1.4),
+            1: const pw.FlexColumnWidth(1),
+            2: const pw.FlexColumnWidth(1.6),
+            3: const pw.FlexColumnWidth(0.8),
           },
         ),
       ],

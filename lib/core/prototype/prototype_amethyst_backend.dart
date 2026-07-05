@@ -667,6 +667,62 @@ final class PrototypeAmethystBackend {
     return <String, dynamic>{'amount': amount};
   }
 
+  Future<Map<String, dynamic>> getDriverCashBalance() async {
+    await PrototypeSampleData.ensureLoaded();
+    final String driverId = _requirePrototypeDriverId();
+    final List<Map<String, dynamic>> entries =
+        PrototypeSampleData.driverCashEntriesFor(driverId);
+    final double yesterday = entries.isEmpty
+        ? 0.0
+        : (entries.first['previousAmount'] as num?)?.toDouble() ?? 0.0;
+    return <String, dynamic>{
+      'amount': PrototypeSampleData.driverCashAmountFor(driverId),
+      'yesterdayAmount': yesterday,
+      'driverId': driverId,
+    };
+  }
+
+  Future<Map<String, dynamic>> listDriverCashEntries({
+    int page = 1,
+    int limit = 50,
+  }) async {
+    await PrototypeSampleData.ensureLoaded();
+    final String driverId = _requirePrototypeDriverId();
+    return _paginate(
+      PrototypeSampleData.driverCashEntriesFor(driverId),
+      page: page,
+      limit: limit,
+    );
+  }
+
+  Future<Map<String, dynamic>> setDriverCashBalance({
+    required double amount,
+    String? note,
+  }) async {
+    await PrototypeSampleData.ensureLoaded();
+    if (amount < 0) {
+      throw ApiException('Amount cannot be negative', code: 'INVALID_AMOUNT');
+    }
+    final String driverId = _requirePrototypeDriverId();
+    PrototypeSampleData.setDriverCashAmount(
+      driverId: driverId,
+      amount: amount,
+      note: note,
+    );
+    return <String, dynamic>{'amount': amount, 'driverId': driverId};
+  }
+
+  String _requirePrototypeDriverId() {
+    final String? id = PrototypeSession.current?.id;
+    if (id == null || id.isEmpty) {
+      throw ApiException('Driver not signed in', code: 'FORBIDDEN');
+    }
+    if (PrototypeSession.current?.role != 'driver') {
+      throw ApiException('Driver access only', code: 'FORBIDDEN');
+    }
+    return id;
+  }
+
   Map<String, dynamic> _paginate(
     List<Map<String, dynamic>> all, {
     required int page,

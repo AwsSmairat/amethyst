@@ -7,6 +7,7 @@ class DriverDashboard extends Equatable {
     required this.shiftRemaining,
     required this.isActive,
     required this.inventory,
+    required this.dailySalesTotal,
   });
 
   final String title;
@@ -14,6 +15,7 @@ class DriverDashboard extends Equatable {
   final String shiftRemaining;
   final bool isActive;
   final List<InventoryItem> inventory;
+  final double dailySalesTotal;
 
   @override
   List<Object?> get props => <Object?>[
@@ -22,6 +24,7 @@ class DriverDashboard extends Equatable {
         shiftRemaining,
         isActive,
         inventory,
+        dailySalesTotal,
       ];
 }
 

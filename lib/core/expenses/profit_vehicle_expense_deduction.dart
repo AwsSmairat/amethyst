@@ -15,10 +15,9 @@ bool _expenseNoteHasCategoryPrefix(String note, String prefix) {
   return n == prefix || n.startsWith('$prefix —') || n.startsWith('$prefix:');
 }
 
-/// يحدد باص/بينقو لمصروف سائق (ديزل أو تصليح) حسب المركبة أو السائق.
-VehicleSalesBucket? vehicleBucketForDriverOperatingExpense(
+/// يحدد مركبة مصروف ديزل/تصليح السائق.
+String? vehicleIdForDriverOperatingExpense(
   Map<String, dynamic> expense, {
-  required Map<String, String> vehicleIdToNumber,
   required Map<String, String> driverIdToVehicleId,
 }) {
   final String note = expense['note']?.toString() ?? '';
@@ -35,6 +34,22 @@ VehicleSalesBucket? vehicleBucketForDriverOperatingExpense(
   if (vehicleId == null || vehicleId.isEmpty) {
     return null;
   }
+  return vehicleId;
+}
+
+/// يحدد باص/بينقو لمصروف سائق (ديزل أو تصليح) حسب المركبة أو السائق.
+VehicleSalesBucket? vehicleBucketForDriverOperatingExpense(
+  Map<String, dynamic> expense, {
+  required Map<String, String> vehicleIdToNumber,
+  required Map<String, String> driverIdToVehicleId,
+}) {
+  final String? vehicleId = vehicleIdForDriverOperatingExpense(
+    expense,
+    driverIdToVehicleId: driverIdToVehicleId,
+  );
+  if (vehicleId == null) {
+    return null;
+  }
   final String vehicleNumber = vehicleIdToNumber[vehicleId] ?? '';
   switch (vehicleSalesBucketForNumber(vehicleNumber)) {
     case VehicleSalesBucket.bus:
@@ -44,6 +59,145 @@ VehicleSalesBucket? vehicleBucketForDriverOperatingExpense(
     case VehicleSalesBucket.other:
       return null;
   }
+}
+
+Map<String, double> computeVehicleOperatingExpensesByVehicleId({
+  required Iterable<Map<String, dynamic>> expenses,
+  required Map<String, String> driverIdToVehicleId,
+}) {
+  final Map<String, double> byVehicle = <String, double>{};
+  for (final Map<String, dynamic> expense in expenses) {
+    final double amount = _expenseAmount(expense);
+    if (amount <= 0) {
+      continue;
+    }
+    final String? vehicleId = vehicleIdForDriverOperatingExpense(
+      expense,
+      driverIdToVehicleId: driverIdToVehicleId,
+    );
+    if (vehicleId == null) {
+      continue;
+    }
+    byVehicle[vehicleId] = (byVehicle[vehicleId] ?? 0) + amount;
+  }
+  return byVehicle;
+}
+
+void profitAccumulateVehicleSalesByKey(
+  Map<String, Map<String, double>> map,
+  String? key,
+  String? vehicleId,
+  double amount,
+) {
+  if (key == null ||
+      key.isEmpty ||
+      vehicleId == null ||
+      vehicleId.isEmpty ||
+      amount == 0) {
+    return;
+  }
+  final Map<String, double> bucket =
+      map.putIfAbsent(key, () => <String, double>{});
+  bucket[vehicleId] = (bucket[vehicleId] ?? 0) + amount;
+}
+
+Map<String, Map<String, double>> buildDriverCashRecordedOnDayByDriver(
+  Iterable<Map<String, dynamic>> entries,
+) {
+  final Map<String, Map<String, double>> out = <String, Map<String, double>>{};
+  for (final Map<String, dynamic> entry in entries) {
+    final String? driverId = entry['driverId']?.toString();
+    final String? dayYmd = profitRowLocalYmd(entry['createdAt']);
+    if (driverId == null || driverId.isEmpty || dayYmd == null) {
+      continue;
+    }
+    final double amount = _expenseAmount(entry);
+    out.putIfAbsent(driverId, () => <String, double>{})[dayYmd] = amount;
+  }
+  return out;
+}
+
+Map<String, Map<String, double>> buildDriverCashRecordedByMonthByDriver(
+  Iterable<Map<String, dynamic>> entries,
+) {
+  final Map<String, Map<String, double>> out = <String, Map<String, double>>{};
+  for (final Map<String, dynamic> entry in entries) {
+    final String? driverId = entry['driverId']?.toString();
+    final String? monthKey = profitRowLocalMonthKey(entry['createdAt']);
+    if (driverId == null || driverId.isEmpty || monthKey == null) {
+      continue;
+    }
+    final double amount = _expenseAmount(entry);
+    out.putIfAbsent(driverId, () => <String, double>{})[monthKey] = amount;
+  }
+  return out;
+}
+
+Map<String, double> buildDriverCashYesterdayByDriver(
+  Iterable<Map<String, dynamic>> entries,
+) {
+  final Map<String, double> out = <String, double>{};
+  final Map<String, DateTime?> latestAt = <String, DateTime?>{};
+  for (final Map<String, dynamic> entry in entries) {
+    final String? driverId = entry['driverId']?.toString();
+    if (driverId == null || driverId.isEmpty) {
+      continue;
+    }
+    final DateTime? createdAt = entry['createdAt'] is DateTime
+        ? entry['createdAt'] as DateTime
+        : DateTime.tryParse(entry['createdAt']?.toString() ?? '');
+    final DateTime? previous = latestAt[driverId];
+    if (previous == null ||
+        (createdAt != null && createdAt.isAfter(previous))) {
+      latestAt[driverId] = createdAt;
+      out[driverId] = _expenseAmount(entry['previousAmount']);
+    }
+  }
+  return out;
+}
+
+double resolveDriverCashBalanceForDay(
+  String driverId,
+  String dayYmd, {
+  required String todayYmd,
+  required String yesterdayYmd,
+  required Map<String, double> todayByDriverId,
+  required Map<String, double> yesterdayByDriverId,
+  required Map<String, Map<String, double>> recordedOnDayByDriverId,
+}) {
+  if (driverId.isEmpty) {
+    return 0;
+  }
+  return resolveStationCashBalanceForDay(
+    dayYmd,
+    todayYmd: todayYmd,
+    yesterdayYmd: yesterdayYmd,
+    currentBalance: todayByDriverId[driverId] ?? 0,
+    yesterdayBalance: yesterdayByDriverId[driverId] ?? 0,
+    cashRecordedOnDay: recordedOnDayByDriverId[driverId] ?? const <String, double>{},
+  );
+}
+
+double resolveDriverCashBalanceForMonth(
+  String driverId,
+  int year,
+  int month, {
+  required int currentYear,
+  required int currentMonth,
+  required Map<String, double> todayByDriverId,
+  required Map<String, Map<String, double>> recordedByMonthByDriverId,
+}) {
+  if (driverId.isEmpty) {
+    return 0;
+  }
+  return resolveStationCashBalanceForMonth(
+    year,
+    month,
+    currentYear: currentYear,
+    currentMonth: currentMonth,
+    currentBalance: todayByDriverId[driverId] ?? 0,
+    cashRecordedByMonth: recordedByMonthByDriverId[driverId] ?? const <String, double>{},
+  );
 }
 
 /// يخصم مصاريف ديزل/تصليح السائق من مبيعات الباص والبينقو ويستبعدها من إجمالي المصاريف.
@@ -110,13 +264,12 @@ double computeStationNetTotal({
 }) =>
     stationSales - stationExpenses + stationCashBalance;
 
-/// المجموع الكلي = مجموع المحطة + صافي الباص + صافي البينقو.
+/// المجموع الكلي = مجموع المحطة + صافي جميع المركبات.
 double computeProfitGrandTotal({
   required double stationNetTotal,
-  required double busSalesNet,
-  required double bingoSalesNet,
+  required double vehiclesNetTotal,
 }) =>
-    stationNetTotal + busSalesNet + bingoSalesNet;
+    stationNetTotal + vehiclesNetTotal;
 
 String? profitRowLocalYmd(Object? createdAt) {
   DateTime? at;
@@ -257,52 +410,119 @@ double resolveStationCashBalanceForDay(
 
 Map<String, dynamic> computeProfitDaySnapshot({
   required double stationSalesGross,
-  required double busSalesGross,
-  required double bingoSalesGross,
+  required Map<String, double> vehicleSalesGrossById,
   required List<Map<String, dynamic>> expenseRows,
   required double stationCashBalance,
   required Map<String, String> vehicleIdToNumber,
+  required Map<String, String> vehicleIdToDriverId,
   required Map<String, String> driverIdToVehicleId,
+  required Map<String, double> driverCashTodayByDriverId,
+  required Map<String, double> driverCashYesterdayByDriverId,
+  required Map<String, Map<String, double>> driverCashRecordedOnDayByDriverId,
+  String? dayYmd,
+  String? todayYmd,
+  String? yesterdayYmd,
+  int? cashMonthYear,
+  int? cashMonth,
+  int? cashCurrentYear,
+  int? cashCurrentMonth,
+  Map<String, Map<String, double>>? driverCashRecordedByMonthByDriverId,
 }) {
   var expenseTotalGross = 0.0;
   for (final Map<String, dynamic> row in expenseRows) {
     expenseTotalGross += _expenseAmount(row);
   }
-  final ({
-    double busSalesNet,
-    double bingoSalesNet,
-    double expensesExcludingVehicleOperating,
-  }) netted = applyDriverOperatingExpenseDeductions(
-    busSalesGross: busSalesGross,
-    bingoSalesGross: bingoSalesGross,
-    expensesGross: expenseTotalGross,
+  final Map<String, double> operatingByVehicle =
+      computeVehicleOperatingExpensesByVehicleId(
     expenses: expenseRows,
-    vehicleIdToNumber: vehicleIdToNumber,
     driverIdToVehicleId: driverIdToVehicleId,
   );
-  final double stationExpenses = netted.expensesExcludingVehicleOperating;
+  var operatingTotal = 0.0;
+  for (final double amount in operatingByVehicle.values) {
+    operatingTotal += amount;
+  }
+  final double stationExpenses = expenseTotalGross - operatingTotal;
   final double stationNetTotal = computeStationNetTotal(
     stationSales: stationSalesGross,
     stationExpenses: stationExpenses,
     stationCashBalance: stationCashBalance,
   );
-  final double busSales = netted.busSalesNet;
-  final double bingoSales = netted.bingoSalesNet;
+
+  final List<String> vehicleIds = vehicleIdToNumber.keys.toList()
+    ..sort(
+      (String a, String b) =>
+          (vehicleIdToNumber[a] ?? '').compareTo(vehicleIdToNumber[b] ?? ''),
+    );
+
+  final List<Map<String, dynamic>> vehicles = <Map<String, dynamic>>[];
+  var vehiclesNetTotal = 0.0;
+  var busSalesNet = 0.0;
+  var bingoSalesNet = 0.0;
+
+  for (final String vehicleId in vehicleIds) {
+    final double sales = vehicleSalesGrossById[vehicleId] ?? 0;
+    final double operatingExpenses = operatingByVehicle[vehicleId] ?? 0;
+    final String driverId = vehicleIdToDriverId[vehicleId] ?? '';
+    final double cashBalance = cashMonthYear != null &&
+            cashMonth != null &&
+            cashCurrentYear != null &&
+            cashCurrentMonth != null &&
+            driverCashRecordedByMonthByDriverId != null
+        ? resolveDriverCashBalanceForMonth(
+            driverId,
+            cashMonthYear,
+            cashMonth,
+            currentYear: cashCurrentYear,
+            currentMonth: cashCurrentMonth,
+            todayByDriverId: driverCashTodayByDriverId,
+            recordedByMonthByDriverId: driverCashRecordedByMonthByDriverId,
+          )
+        : resolveDriverCashBalanceForDay(
+            driverId,
+            dayYmd ?? todayYmd ?? '',
+            todayYmd: todayYmd ?? dayYmd ?? '',
+            yesterdayYmd: yesterdayYmd ?? dayYmd ?? '',
+            todayByDriverId: driverCashTodayByDriverId,
+            yesterdayByDriverId: driverCashYesterdayByDriverId,
+            recordedOnDayByDriverId: driverCashRecordedOnDayByDriverId,
+          );
+    final double netTotal = sales - operatingExpenses + cashBalance;
+    vehiclesNetTotal += netTotal;
+    final String vehicleNumber = vehicleIdToNumber[vehicleId] ?? vehicleId;
+    switch (vehicleSalesBucketForNumber(vehicleNumber)) {
+      case VehicleSalesBucket.bus:
+        busSalesNet += netTotal;
+      case VehicleSalesBucket.bingo:
+        bingoSalesNet += netTotal;
+      case VehicleSalesBucket.other:
+        break;
+    }
+    vehicles.add(<String, dynamic>{
+      'vehicleId': vehicleId,
+      'vehicleNumber': vehicleNumber,
+      'sales': sales,
+      'operatingExpenses': operatingExpenses,
+      'cashBalance': cashBalance,
+      'netTotal': netTotal,
+    });
+  }
+
   final double total = computeProfitGrandTotal(
     stationNetTotal: stationNetTotal,
-    busSalesNet: busSales,
-    bingoSalesNet: bingoSales,
+    vehiclesNetTotal: vehiclesNetTotal,
   );
   return <String, dynamic>{
     'stationSales': stationSalesGross,
     'stationExpenses': stationExpenses,
     'stationNetTotal': stationNetTotal,
-    'busSales': busSales,
-    'bingoSales': bingoSales,
+    'vehicles': vehicles,
+    'busSales': busSalesNet,
+    'bingoSales': bingoSalesNet,
     'expenses': stationExpenses,
     'stationCashBalance': stationCashBalance,
     'total': total,
-    'revenue': stationSalesGross + busSales + bingoSales,
+    'revenue': stationSalesGross +
+        vehicleSalesGrossById.values.fold<double>(0, (double a, double b) => a + b),
     'net': total,
   };
 }
@@ -320,7 +540,34 @@ bool profitDayHasActivity(Map<String, dynamic> day) {
       read('busSales') != 0 ||
       read('bingoSales') != 0 ||
       read('stationExpenses') > 0 ||
-      read('stationCashBalance') != 0;
+      read('stationCashBalance') != 0 ||
+      _vehiclesHaveActivity(day['vehicles']);
+}
+
+bool _vehiclesHaveActivity(Object? raw) {
+  if (raw is! List) {
+    return false;
+  }
+  for (final Object? item in raw) {
+    if (item is! Map) {
+      continue;
+    }
+    final Map<String, dynamic> vehicle = Map<String, dynamic>.from(item);
+    double read(String key) {
+      final Object? value = vehicle[key];
+      if (value is num) {
+        return value.toDouble();
+      }
+      return double.tryParse(value?.toString() ?? '') ?? 0;
+    }
+
+    if (read('sales') != 0 ||
+        read('operatingExpenses') != 0 ||
+        read('cashBalance') != 0) {
+      return true;
+    }
+  }
+  return false;
 }
 
 /// اليوم والأمس دائماً؛ أيام أقدم تظهر فقط إن فيها بيانات ربح.
@@ -339,12 +586,15 @@ List<Map<String, dynamic>> buildProfitDayCardsPayload(
       ...byDay[dayYmd] ??
           computeProfitDaySnapshot(
             stationSalesGross: 0,
-            busSalesGross: 0,
-            bingoSalesGross: 0,
+            vehicleSalesGrossById: const <String, double>{},
             expenseRows: const <Map<String, dynamic>>[],
             stationCashBalance: 0,
             vehicleIdToNumber: const <String, String>{},
+            vehicleIdToDriverId: const <String, String>{},
             driverIdToVehicleId: const <String, String>{},
+            driverCashTodayByDriverId: const <String, double>{},
+            driverCashYesterdayByDriverId: const <String, double>{},
+            driverCashRecordedOnDayByDriverId: const <String, Map<String, double>>{},
           ),
     };
   }
@@ -387,12 +637,15 @@ List<Map<String, dynamic>> buildProfitMonthCardsPayload(
       ...byMonth[monthKey] ??
           computeProfitDaySnapshot(
             stationSalesGross: 0,
-            busSalesGross: 0,
-            bingoSalesGross: 0,
+            vehicleSalesGrossById: const <String, double>{},
             expenseRows: const <Map<String, dynamic>>[],
             stationCashBalance: 0,
             vehicleIdToNumber: const <String, String>{},
+            vehicleIdToDriverId: const <String, String>{},
             driverIdToVehicleId: const <String, String>{},
+            driverCashTodayByDriverId: const <String, double>{},
+            driverCashYesterdayByDriverId: const <String, double>{},
+            driverCashRecordedOnDayByDriverId: const <String, Map<String, double>>{},
           ),
     };
   }

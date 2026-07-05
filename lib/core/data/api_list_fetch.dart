@@ -37,6 +37,12 @@ Future<List<Map<String, dynamic>>> fetchAllVehicleLoads(AmethystApi api) =>
           api.listVehicleLoads(page: page, limit: limit),
     );
 
+Future<List<Map<String, dynamic>>> fetchAllStationSales(AmethystApi api) =>
+    fetchAllListItems(
+      ({required int page, required int limit}) =>
+          api.listStationSales(page: page, limit: limit),
+    );
+
 Future<List<Map<String, dynamic>>> fetchAllVehicleSales(AmethystApi api) =>
     fetchAllVehicleSalesInRange(api);
 
@@ -46,6 +52,13 @@ Future<List<Map<String, dynamic>>> fetchAllStationDebtSummaryEntries(
     fetchAllListItems(
       ({required int page, required int limit}) =>
           api.listStationDebtEntriesForSummary(page: page, limit: limit),
+    );
+
+/// قائمة الدين المفتوحة (محطة + مركبات) — نفس مصدر شاشة قائمة الدين.
+Future<List<Map<String, dynamic>>> fetchAllStationDebtEntries(AmethystApi api) =>
+    fetchAllListItems(
+      ({required int page, required int limit}) =>
+          api.listStationDebtEntries(page: page, limit: limit),
     );
 
 Future<List<Map<String, dynamic>>> fetchAllVehicleSalesInRange(

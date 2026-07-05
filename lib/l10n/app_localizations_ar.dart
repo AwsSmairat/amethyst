@@ -162,6 +162,31 @@ class AppLocalizationsAr extends AppLocalizations {
   String get printColumnVehicle => 'المركبة';
 
   @override
+  String get printColumnDebtor => 'صاحب الدين';
+
+  @override
+  String get printColumnDebtKind => 'نوع الدين';
+
+  @override
+  String get printDebtStatusOpen => 'مفتوح';
+
+  @override
+  String get printDebtStatusRepaid => 'مسدد';
+
+  @override
+  String get printReportTotalLabel => 'الإجمالي';
+
+  @override
+  String printReportRowCount(String count) {
+    return 'عدد السجلات: $count';
+  }
+
+  @override
+  String printReportGrandTotal(String quantity, String amount) {
+    return 'الإجمالي الكلي: $quantity · $amount';
+  }
+
+  @override
   String get operations => 'العمليات';
 
   @override
@@ -1141,6 +1166,26 @@ class AppLocalizationsAr extends AppLocalizations {
   String get profitTodayBingoSalesTotal => 'مجموع بيع البينقو';
 
   @override
+  String profitVehicleSales(String vehicle) {
+    return 'مبيعات $vehicle';
+  }
+
+  @override
+  String profitVehicleOperatingExpenses(String vehicle) {
+    return 'مصاريف $vehicle';
+  }
+
+  @override
+  String profitVehicleCashBalance(String vehicle) {
+    return 'رصيد أموال $vehicle';
+  }
+
+  @override
+  String profitVehicleNetFormula(String vehicle) {
+    return 'مجموع $vehicle (مبيعات - مصاريف + رصيد)';
+  }
+
+  @override
   String get profitTodayStationCashBalance => 'رصيد أموال المحطة';
 
   @override
@@ -1151,7 +1196,7 @@ class AppLocalizationsAr extends AppLocalizations {
       'مجموع المحطة (مبيعات - مصاريف + رصيد)';
 
   @override
-  String get profitTodayGrandTotalFormula => 'المجموع (محطة + باص + بينقو)';
+  String get profitTodayGrandTotalFormula => 'المجموع (محطة + المركبات)';
 
   @override
   String get expensesTodayDetail => 'مصاريف اليوم';
@@ -1477,6 +1522,9 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get driverRegisterVehicleDebt => 'تسجيل الدين من المركبة';
+
+  @override
+  String get driverDashboardDailySalesTotal => 'إجمالي المبيعات اليومية';
 
   @override
   String get driverVehicleDebtSheetTitle => 'تسجيل الدين من المركبة';
@@ -1906,7 +1954,7 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get adminDailyReportCardSubtitle =>
-      'طباعة رصيد المحطة، المخزون المتبقي، ومبيعات المحطة والمركبات لليوم.';
+      'طباعة رصيد المحطة، المخزون المتبقي، مبيعات المحطة والمركبات، ودين اليوم.';
 
   @override
   String get adminDailyReportPrintButton => 'طباعة تقرير اليوم';
@@ -1943,6 +1991,12 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get adminDailyReportVehicleSalesSection => 'مبيعات المركبات اليوم';
+
+  @override
+  String get adminDailyReportDebtSection => 'دين اليوم';
+
+  @override
+  String get adminDailyReportDebtTotalToday => 'إجمالي دين اليوم';
 
   @override
   String get adminVehicleSalesLabel => 'مبيعات المركبات';

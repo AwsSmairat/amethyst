@@ -7,7 +7,6 @@ import 'package:amethyst/l10n/app_localizations.dart';
 import 'package:amethyst/core/station_balance/station_balance_catalog.dart';
 import 'package:amethyst/core/vehicle_sale/vehicle_product_columns.dart';
 import 'package:amethyst/core/vehicle_sale/vehicle_sale_payment_method.dart';
-import 'package:amethyst/core/vehicle_load/vehicle_load_aggregates.dart';
 import 'package:amethyst/core/vehicle_load/vehicle_load_catalog.dart';
 import 'package:amethyst/core/theme/app_colors.dart';
 import 'package:amethyst/di/injection.dart';
@@ -275,73 +274,26 @@ class _AddVehicleSaleBodyState extends State<_AddVehicleSaleBody> {
     return sum;
   }
 
-  List<String> _loadNameCandidatesForColumn(int columnIndex) {
-    final VehicleSalePlace? place = _selectedPlace;
-    if (place == null) {
-      return <String>[];
-    }
-    return switch (place) {
-      VehicleSalePlace.home => columnIndex < kVehicleLoadFixedRowCount
-          ? <String>[
-              kVehicleLoadFixedApiNames[columnIndex],
-              ...vehicleLoadNameCandidatesForRow(columnIndex),
-            ]
-          : <String>[],
-      VehicleSalePlace.store => switch (columnIndex) {
-          0 => vehicleLoadNameCandidatesForRow(0),
-          1 => vehicleLoadNameCandidatesForRow(1),
-          2 => <String>[
-            ...kMahdiCartonStockNameCandidates,
-            ..._kStoreMahdiCanonicalProductNames,
-            if (_kStoreProductNames.length > 2) _kStoreProductNames[2],
-          ],
-          _ => <String>[],
-        },
-    };
-  }
-
   int _vehicleRemainingForColumn(int columnIndex) {
     if (_selectedPlace == null || _driverLoadLines.isEmpty) {
       return 0;
     }
-
+    final VehicleProductColumnPlace columnPlace =
+        _selectedPlace == VehicleSalePlace.store
+            ? VehicleProductColumnPlace.store
+            : VehicleProductColumnPlace.home;
     final String? stockId = columnIndex < _stockProductIds.length
         ? _stockProductIds[columnIndex]
         : null;
-    final String? columnProductId = stockId ?? _productIds[columnIndex];
-    if (columnProductId != null && columnProductId.isNotEmpty) {
-      var fromProductId = 0;
-      for (final Map<String, dynamic> line in _driverLoadLines) {
-        if (line['productId']?.toString() == columnProductId) {
-          fromProductId += vehicleLoadRemainingQty(line);
-        }
-      }
-      if (fromProductId > 0) {
-        return fromProductId;
-      }
-    }
-
-    final List<String> candidates = _loadNameCandidatesForColumn(columnIndex);
-    if (candidates.isEmpty) {
-      return 0;
-    }
-
-    var sum = 0;
-    for (final Map<String, dynamic> line in _driverLoadLines) {
-      final String loadName =
-          (line['product'] as Map<String, dynamic>?)?['name']?.toString() ??
-              '';
-      if (loadName.isEmpty) {
-        continue;
-      }
-      for (final String candidate in candidates) {
-        if (stationBalanceProductNamesMatch(loadName, candidate)) {
-          sum += vehicleLoadRemainingQty(line);
-          break;
-        }
-      }
-    }
-    return sum;
+    final String? saleId =
+        columnIndex < _productIds.length ? _productIds[columnIndex] : null;
+    return vehicleRemainingFromDriverLoad(
+      loadLines: _driverLoadLines,
+      place: columnPlace,
+      columnIndex: columnIndex,
+      stockProductId: stockId,
+      saleProductId: saleId,
+    );
   }
 
   /// يطابق اسم القالب مع `products.name` بعد `trim` (وتطابق حالة الأحرف للأسماء اللاتينية).

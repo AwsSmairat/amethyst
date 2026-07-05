@@ -106,6 +106,18 @@ Map<String, dynamic> mapVehicleSaleDoc(
 Map<String, dynamic> mapStationCashEntryDoc(
   DocumentSnapshot<Map<String, dynamic>> doc,
 ) {
+  return mapCashEntryDoc(doc);
+}
+
+Map<String, dynamic> mapDriverCashEntryDoc(
+  DocumentSnapshot<Map<String, dynamic>> doc,
+) {
+  return mapCashEntryDoc(doc);
+}
+
+Map<String, dynamic> mapCashEntryDoc(
+  DocumentSnapshot<Map<String, dynamic>> doc,
+) {
   final Map<String, dynamic> e =
       Map<String, dynamic>.from(doc.data() ?? <String, dynamic>{});
   e['id'] = doc.id;

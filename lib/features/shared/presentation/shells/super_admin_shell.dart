@@ -37,6 +37,15 @@ class SuperAdminShell extends StatelessWidget {
                     case 'sales':
                       shareSuperAdminStationSalesReport(context);
                       break;
+                    case 'debt':
+                      shareSuperAdminStationDebtReport(context);
+                      break;
+                    case 'vehicle_sales':
+                      shareSuperAdminVehicleSalesReport(context);
+                      break;
+                    case 'vehicle_loads':
+                      shareSuperAdminVehicleLoadsReport(context);
+                      break;
                     case 'stock':
                       shareSuperAdminStationStockReport(context);
                       break;
@@ -50,6 +59,18 @@ class SuperAdminShell extends StatelessWidget {
                   PopupMenuItem<String>(
                     value: 'sales',
                     child: Text(l10n.stationSales),
+                  ),
+                  PopupMenuItem<String>(
+                    value: 'debt',
+                    child: Text(l10n.titleStationDebtList),
+                  ),
+                  PopupMenuItem<String>(
+                    value: 'vehicle_sales',
+                    child: Text(l10n.vehicleSales),
+                  ),
+                  PopupMenuItem<String>(
+                    value: 'vehicle_loads',
+                    child: Text(l10n.vehicleLoads),
                   ),
                   PopupMenuItem<String>(
                     value: 'stock',

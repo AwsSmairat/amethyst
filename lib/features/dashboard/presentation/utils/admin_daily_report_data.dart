@@ -28,6 +28,7 @@ final class AdminDailyReportData {
     required this.remainingOnVehicles,
     required this.stationSales,
     required this.vehicleSales,
+    required this.debtEntriesToday,
   });
 
   final DateTime day;
@@ -41,8 +42,22 @@ final class AdminDailyReportData {
   final int remainingOnVehicles;
   final List<Map<String, dynamic>> stationSales;
   final List<Map<String, dynamic>> vehicleSales;
+  final List<Map<String, dynamic>> debtEntriesToday;
 
   double get totalSalesToday => stationSalesToday + vehicleSalesToday;
+
+  double get debtTotalToday {
+    var total = 0.0;
+    for (final Map<String, dynamic> entry in debtEntriesToday) {
+      final Object? raw = entry['totalAmount'];
+      if (raw is num) {
+        total += raw.toDouble();
+      } else {
+        total += double.tryParse(raw?.toString() ?? '') ?? 0;
+      }
+    }
+    return total;
+  }
 }
 
 Future<AdminDailyReportData> loadAdminDailyReportData() async {
@@ -62,6 +77,7 @@ Future<AdminDailyReportData> loadAdminDailyReportData() async {
       ({required int page, required int limit}) =>
           api.listVehicleSales(page: page, limit: limit),
     ),
+    fetchAllStationDebtEntries(api),
   ]);
 
   final Map<String, dynamic> dash = results[0] as Map<String, dynamic>;
@@ -73,6 +89,8 @@ Future<AdminDailyReportData> loadAdminDailyReportData() async {
       results[3] as List<Map<String, dynamic>>;
   final List<Map<String, dynamic>> allVehicleSales =
       results[4] as List<Map<String, dynamic>>;
+  final List<Map<String, dynamic>> allDebtEntries =
+      results[5] as List<Map<String, dynamic>>;
 
   bool isToday(dynamic createdAt) {
     final DateTime? dt = parseApiDateTime(createdAt);
@@ -84,6 +102,9 @@ Future<AdminDailyReportData> loadAdminDailyReportData() async {
       .toList(growable: false);
   final List<Map<String, dynamic>> vehicleSalesToday = allVehicleSales
       .where((Map<String, dynamic> s) => isToday(s['createdAt']))
+      .toList(growable: false);
+  final List<Map<String, dynamic>> debtEntriesToday = allDebtEntries
+      .where((Map<String, dynamic> e) => isToday(e['createdAt']))
       .toList(growable: false);
 
   final StationBalanceSummary summary =
@@ -118,5 +139,6 @@ Future<AdminDailyReportData> loadAdminDailyReportData() async {
     remainingOnVehicles: (dash['remainingOnVehicles'] as num?)?.toInt() ?? 0,
     stationSales: stationSalesToday,
     vehicleSales: vehicleSalesToday,
+    debtEntriesToday: debtEntriesToday,
   );
 }

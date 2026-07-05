@@ -400,6 +400,48 @@ abstract class AppLocalizations {
   /// **'المركبة'**
   String get printColumnVehicle;
 
+  /// No description provided for @printColumnDebtor.
+  ///
+  /// In ar, this message translates to:
+  /// **'صاحب الدين'**
+  String get printColumnDebtor;
+
+  /// No description provided for @printColumnDebtKind.
+  ///
+  /// In ar, this message translates to:
+  /// **'نوع الدين'**
+  String get printColumnDebtKind;
+
+  /// No description provided for @printDebtStatusOpen.
+  ///
+  /// In ar, this message translates to:
+  /// **'مفتوح'**
+  String get printDebtStatusOpen;
+
+  /// No description provided for @printDebtStatusRepaid.
+  ///
+  /// In ar, this message translates to:
+  /// **'مسدد'**
+  String get printDebtStatusRepaid;
+
+  /// No description provided for @printReportTotalLabel.
+  ///
+  /// In ar, this message translates to:
+  /// **'الإجمالي'**
+  String get printReportTotalLabel;
+
+  /// No description provided for @printReportRowCount.
+  ///
+  /// In ar, this message translates to:
+  /// **'عدد السجلات: {count}'**
+  String printReportRowCount(String count);
+
+  /// No description provided for @printReportGrandTotal.
+  ///
+  /// In ar, this message translates to:
+  /// **'الإجمالي الكلي: {quantity} · {amount}'**
+  String printReportGrandTotal(String quantity, String amount);
+
   /// No description provided for @operations.
   ///
   /// In ar, this message translates to:
@@ -2194,6 +2236,30 @@ abstract class AppLocalizations {
   /// **'مجموع بيع البينقو'**
   String get profitTodayBingoSalesTotal;
 
+  /// No description provided for @profitVehicleSales.
+  ///
+  /// In ar, this message translates to:
+  /// **'مبيعات {vehicle}'**
+  String profitVehicleSales(String vehicle);
+
+  /// No description provided for @profitVehicleOperatingExpenses.
+  ///
+  /// In ar, this message translates to:
+  /// **'مصاريف {vehicle}'**
+  String profitVehicleOperatingExpenses(String vehicle);
+
+  /// No description provided for @profitVehicleCashBalance.
+  ///
+  /// In ar, this message translates to:
+  /// **'رصيد أموال {vehicle}'**
+  String profitVehicleCashBalance(String vehicle);
+
+  /// No description provided for @profitVehicleNetFormula.
+  ///
+  /// In ar, this message translates to:
+  /// **'مجموع {vehicle} (مبيعات - مصاريف + رصيد)'**
+  String profitVehicleNetFormula(String vehicle);
+
   /// No description provided for @profitTodayStationCashBalance.
   ///
   /// In ar, this message translates to:
@@ -2215,7 +2281,7 @@ abstract class AppLocalizations {
   /// No description provided for @profitTodayGrandTotalFormula.
   ///
   /// In ar, this message translates to:
-  /// **'المجموع (محطة + باص + بينقو)'**
+  /// **'المجموع (محطة + المركبات)'**
   String get profitTodayGrandTotalFormula;
 
   /// No description provided for @expensesTodayDetail.
@@ -2816,6 +2882,12 @@ abstract class AppLocalizations {
   /// In ar, this message translates to:
   /// **'تسجيل الدين من المركبة'**
   String get driverRegisterVehicleDebt;
+
+  /// No description provided for @driverDashboardDailySalesTotal.
+  ///
+  /// In ar, this message translates to:
+  /// **'إجمالي المبيعات اليومية'**
+  String get driverDashboardDailySalesTotal;
 
   /// No description provided for @driverVehicleDebtSheetTitle.
   ///
@@ -3606,7 +3678,7 @@ abstract class AppLocalizations {
   /// No description provided for @adminDailyReportCardSubtitle.
   ///
   /// In ar, this message translates to:
-  /// **'طباعة رصيد المحطة، المخزون المتبقي، ومبيعات المحطة والمركبات لليوم.'**
+  /// **'طباعة رصيد المحطة، المخزون المتبقي، مبيعات المحطة والمركبات، ودين اليوم.'**
   String get adminDailyReportCardSubtitle;
 
   /// No description provided for @adminDailyReportPrintButton.
@@ -3680,6 +3752,18 @@ abstract class AppLocalizations {
   /// In ar, this message translates to:
   /// **'مبيعات المركبات اليوم'**
   String get adminDailyReportVehicleSalesSection;
+
+  /// No description provided for @adminDailyReportDebtSection.
+  ///
+  /// In ar, this message translates to:
+  /// **'دين اليوم'**
+  String get adminDailyReportDebtSection;
+
+  /// No description provided for @adminDailyReportDebtTotalToday.
+  ///
+  /// In ar, this message translates to:
+  /// **'إجمالي دين اليوم'**
+  String get adminDailyReportDebtTotalToday;
 
   /// No description provided for @adminVehicleSalesLabel.
   ///

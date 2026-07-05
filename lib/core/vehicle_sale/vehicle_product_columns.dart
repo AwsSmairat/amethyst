@@ -178,49 +178,53 @@ int vehicleRemainingFromDriverLoad({
 }) {
   if (stockProductId != null && stockProductId.isNotEmpty) {
     var fromStockId = 0;
+    var foundStockLine = false;
     for (final Map<String, dynamic> line in loadLines) {
       if (line['productId']?.toString() == stockProductId) {
+        foundStockLine = true;
         fromStockId += _loadLineRemainingQty(line);
       }
     }
-    if (fromStockId > 0) {
+    if (foundStockLine) {
       return fromStockId;
     }
   }
 
   final List<String> candidates =
       vehicleProductLoadNameCandidates(place, columnIndex);
-  if (candidates.isEmpty) {
-    return 0;
-  }
-
-  var sum = 0;
-  for (final Map<String, dynamic> line in loadLines) {
-    final String loadName =
-        (line['product'] as Map<String, dynamic>?)?['name']?.toString() ?? '';
-    for (final String candidate in candidates) {
-      if (stationBalanceProductNamesMatch(loadName, candidate)) {
-        sum += _loadLineRemainingQty(line);
-        break;
+  if (candidates.isNotEmpty) {
+    var sum = 0;
+    var matchedByName = false;
+    for (final Map<String, dynamic> line in loadLines) {
+      final String loadName =
+          (line['product'] as Map<String, dynamic>?)?['name']?.toString() ?? '';
+      for (final String candidate in candidates) {
+        if (stationBalanceProductNamesMatch(loadName, candidate)) {
+          matchedByName = true;
+          sum += _loadLineRemainingQty(line);
+          break;
+        }
       }
     }
-  }
-  if (sum > 0) {
-    return sum;
+    if (matchedByName) {
+      return sum;
+    }
   }
 
   if (saleProductId != null && saleProductId.isNotEmpty) {
     var fromSaleId = 0;
+    var foundSaleLine = false;
     for (final Map<String, dynamic> line in loadLines) {
       if (line['productId']?.toString() == saleProductId) {
+        foundSaleLine = true;
         fromSaleId += _loadLineRemainingQty(line);
       }
     }
-    if (fromSaleId > 0) {
+    if (foundSaleLine) {
       return fromSaleId;
     }
   }
-  return sum;
+  return 0;
 }
 
 /// أقصى كمية لتسجيل دين من المركبة — مطابق [add_vehicle_sale_sheet.dart] `_maxSellableQuantity`.

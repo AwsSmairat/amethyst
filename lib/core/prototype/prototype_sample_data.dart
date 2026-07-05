@@ -8,7 +8,6 @@ import 'package:amethyst/core/station_balance/station_balance_catalog.dart';
 import 'package:amethyst/core/utils/parse_dynamic_double.dart';
 import 'package:amethyst/core/firebase/date_range_utils.dart';
 import 'package:amethyst/core/expenses/profit_vehicle_expense_deduction.dart';
-import 'package:amethyst/core/vehicle/vehicle_kind_match.dart';
 import 'package:amethyst/core/vehicle_load/vehicle_load_aggregates.dart';
 import 'package:amethyst/core/vehicle_load/vehicle_load_catalog.dart';
 import 'package:amethyst/features/auth/domain/entities/user_entity.dart';
@@ -1211,6 +1210,68 @@ final class PrototypeSampleData {
     _persist();
   }
 
+  static final Map<String, double> _driverCashAmountByDriverId =
+      <String, double>{};
+  static final Map<String, List<Map<String, dynamic>>> _driverCashEntriesByDriverId =
+      <String, List<Map<String, dynamic>>>{};
+
+  static double driverCashAmountFor(String driverId) =>
+      _driverCashAmountByDriverId[driverId] ?? 0.0;
+
+  static List<Map<String, dynamic>> driverCashEntriesFor(String driverId) {
+    final List<Map<String, dynamic>>? entries =
+        _driverCashEntriesByDriverId[driverId];
+    if (entries == null) {
+      return const <Map<String, dynamic>>[];
+    }
+    return List<Map<String, dynamic>>.from(entries);
+  }
+
+  static void setDriverCashAmount({
+    required String driverId,
+    required double amount,
+    String? note,
+  }) {
+    final double previous = driverCashAmountFor(driverId);
+    _driverCashAmountByDriverId[driverId] = amount;
+    final List<Map<String, dynamic>> entries =
+        _driverCashEntriesByDriverId.putIfAbsent(
+      driverId,
+      () => <Map<String, dynamic>>[],
+    );
+    entries.insert(
+      0,
+      <String, dynamic>{
+        'id': 'driver_cash_${driverId}_${entries.length + 1}',
+        'driverId': driverId,
+        'amount': amount,
+        'previousAmount': previous,
+        if (note != null && note.trim().isNotEmpty) 'note': note.trim(),
+        'createdAt': DateTime.now(),
+      },
+    );
+    _persist();
+  }
+
+  static ({
+    Map<String, double> todayByDriverId,
+    Map<String, double> yesterdayByDriverId,
+    Map<String, Map<String, double>> recordedOnDayByDriverId,
+    Map<String, Map<String, double>> recordedByMonthByDriverId,
+  }) driverCashProfitContext() {
+    final List<Map<String, dynamic>> entries = <Map<String, dynamic>>[];
+    for (final List<Map<String, dynamic>> driverEntries
+        in _driverCashEntriesByDriverId.values) {
+      entries.addAll(driverEntries);
+    }
+    return (
+      todayByDriverId: Map<String, double>.from(_driverCashAmountByDriverId),
+      yesterdayByDriverId: buildDriverCashYesterdayByDriver(entries),
+      recordedOnDayByDriverId: buildDriverCashRecordedOnDayByDriver(entries),
+      recordedByMonthByDriverId: buildDriverCashRecordedByMonthByDriver(entries),
+    );
+  }
+
   static double _expensesTotalForDriverToday(String? driverId) =>
       _expensesAmountToday(driverId: driverId);
 
@@ -1648,22 +1709,44 @@ final class PrototypeSampleData {
   }
 
   static List<Map<String, dynamic>> _openDebtPreview() {
-    final Map<String, double> totals = <String, double>{};
-    final Map<String, int> counts = <String, int>{};
+    final Map<String, Map<String, Map<String, dynamic>>> byDebtor =
+        <String, Map<String, Map<String, dynamic>>>{};
     for (final Map<String, dynamic> e in openStationDebtEntries) {
       final String name = e['debtorName']?.toString().trim() ?? '';
       if (name.isEmpty) {
         continue;
       }
-      totals[name] = (totals[name] ?? 0) + _rowMoney(e);
-      counts[name] = (counts[name] ?? 0) + 1;
+      final bool vehicle = e['vehicleSaleId'] != null ||
+          e['recordingSource']?.toString() == 'vehicle';
+      final String productId = e['productId']?.toString() ?? '';
+      if (productId.isEmpty) {
+        continue;
+      }
+      final String lineKey = vehicle
+          ? '$productId:${e['saleDestination']?.toString() ?? 'home'}'
+          : productId;
+      final Map<String, dynamic>? product = e['product'] is Map<String, dynamic>
+          ? e['product'] as Map<String, dynamic>
+          : productById(productId);
+      final String productName = product?['name']?.toString() ?? '';
+      if (productName.isEmpty) {
+        continue;
+      }
+      byDebtor.putIfAbsent(name, () => <String, Map<String, dynamic>>{});
+      final Map<String, dynamic>? prev = byDebtor[name]![lineKey];
+      final int qty = _intField(e, 'quantity');
+      byDebtor[name]![lineKey] = <String, dynamic>{
+        'productName': productName,
+        'quantity': ((prev?['quantity'] as num?)?.toInt() ?? 0) + qty,
+        'kind': vehicle ? 'vehicle' : 'station',
+      };
     }
-    return totals.entries
+    return byDebtor.entries
         .map(
-          (MapEntry<String, double> e) => <String, dynamic>{
+          (MapEntry<String, Map<String, Map<String, dynamic>>> e) =>
+              <String, dynamic>{
             'debtorName': e.key,
-            'totalAmount': e.value,
-            'entryCount': counts[e.key] ?? 0,
+            'lines': e.value.values.toList(growable: false),
           },
         )
         .toList(growable: false);
@@ -1951,6 +2034,10 @@ final class PrototypeSampleData {
       for (final Map<String, dynamic> v in vehicles)
         v['id']?.toString() ?? '': v['vehicleNumber']?.toString() ?? '',
     };
+    final Map<String, String> vehicleIdToDriverId = <String, String>{
+      for (final Map<String, dynamic> v in vehicles)
+        v['id']?.toString() ?? '': v['driverId']?.toString() ?? '',
+    };
     final Map<String, String> driverIdToVehicleId = <String, String>{
       for (final Map<String, dynamic> v in vehicles)
         if ((v['driverId']?.toString() ?? '').isNotEmpty)
@@ -1958,8 +2045,8 @@ final class PrototypeSampleData {
     };
 
     final Map<String, double> stationSalesByDay = <String, double>{};
-    final Map<String, double> busGrossByDay = <String, double>{};
-    final Map<String, double> bingoGrossByDay = <String, double>{};
+    final Map<String, Map<String, double>> vehicleGrossByDay =
+        <String, Map<String, double>>{};
     final Map<String, List<Map<String, dynamic>>> expensesByDay =
         <String, List<Map<String, dynamic>>>{};
 
@@ -1993,16 +2080,13 @@ final class PrototypeSampleData {
       }
       final double amount = _rowMoney(vs);
       final String vehicleId = vs['vehicleId']?.toString() ?? '';
-      final String vehicleNumber = vehicleIdToNumber[vehicleId] ?? '';
       final String? dayYmd = profitRowLocalYmd(day);
-      switch (vehicleSalesBucketForNumber(vehicleNumber)) {
-        case VehicleSalesBucket.bus:
-          profitAccumulateByDay(busGrossByDay, dayYmd, amount);
-        case VehicleSalesBucket.bingo:
-          profitAccumulateByDay(bingoGrossByDay, dayYmd, amount);
-        case VehicleSalesBucket.other:
-          break;
-      }
+      profitAccumulateVehicleSalesByKey(
+        vehicleGrossByDay,
+        dayYmd,
+        vehicleId.isEmpty ? null : vehicleId,
+        amount,
+      );
     }
 
     for (final Map<String, dynamic> e in _expenses) {
@@ -2023,13 +2107,18 @@ final class PrototypeSampleData {
         : (cashEntries.first['previousAmount'] as num?)?.toDouble() ?? 0.0;
     final Map<String, double> cashRecordedOnDay =
         buildStationCashRecordedOnDay(cashEntries);
+    final ({
+      Map<String, double> todayByDriverId,
+      Map<String, double> yesterdayByDriverId,
+      Map<String, Map<String, double>> recordedOnDayByDriverId,
+      Map<String, Map<String, double>> recordedByMonthByDriverId,
+    }) driverCash = driverCashProfitContext();
 
     final Set<String> dayKeys = <String>{
       todayYmd,
       yesterdayYmd,
       ...stationSalesByDay.keys,
-      ...busGrossByDay.keys,
-      ...bingoGrossByDay.keys,
+      ...vehicleGrossByDay.keys,
       ...expensesByDay.keys,
       ...cashRecordedOnDay.keys,
     };
@@ -2045,8 +2134,8 @@ final class PrototypeSampleData {
       }
       byDay[dayYmd] = computeProfitDaySnapshot(
         stationSalesGross: stationSalesByDay[dayYmd] ?? 0,
-        busSalesGross: busGrossByDay[dayYmd] ?? 0,
-        bingoSalesGross: bingoGrossByDay[dayYmd] ?? 0,
+        vehicleSalesGrossById:
+            vehicleGrossByDay[dayYmd] ?? const <String, double>{},
         expenseRows: expensesByDay[dayYmd] ?? const <Map<String, dynamic>>[],
         stationCashBalance: resolveStationCashBalanceForDay(
           dayYmd,
@@ -2057,7 +2146,14 @@ final class PrototypeSampleData {
           cashRecordedOnDay: cashRecordedOnDay,
         ),
         vehicleIdToNumber: vehicleIdToNumber,
+        vehicleIdToDriverId: vehicleIdToDriverId,
         driverIdToVehicleId: driverIdToVehicleId,
+        driverCashTodayByDriverId: driverCash.todayByDriverId,
+        driverCashYesterdayByDriverId: driverCash.yesterdayByDriverId,
+        driverCashRecordedOnDayByDriverId: driverCash.recordedOnDayByDriverId,
+        dayYmd: dayYmd,
+        todayYmd: todayYmd,
+        yesterdayYmd: yesterdayYmd,
       );
     }
 
@@ -2083,6 +2179,10 @@ final class PrototypeSampleData {
       for (final Map<String, dynamic> v in vehicles)
         v['id']?.toString() ?? '': v['vehicleNumber']?.toString() ?? '',
     };
+    final Map<String, String> vehicleIdToDriverId = <String, String>{
+      for (final Map<String, dynamic> v in vehicles)
+        v['id']?.toString() ?? '': v['driverId']?.toString() ?? '',
+    };
     final Map<String, String> driverIdToVehicleId = <String, String>{
       for (final Map<String, dynamic> v in vehicles)
         if ((v['driverId']?.toString() ?? '').isNotEmpty)
@@ -2090,8 +2190,8 @@ final class PrototypeSampleData {
     };
 
     final Map<String, double> stationSalesByMonth = <String, double>{};
-    final Map<String, double> busGrossByMonth = <String, double>{};
-    final Map<String, double> bingoGrossByMonth = <String, double>{};
+    final Map<String, Map<String, double>> vehicleGrossByMonth =
+        <String, Map<String, double>>{};
     final Map<String, List<Map<String, dynamic>>> expensesByMonth =
         <String, List<Map<String, dynamic>>>{};
 
@@ -2127,16 +2227,13 @@ final class PrototypeSampleData {
       }
       final double amount = _rowMoney(vs);
       final String vehicleId = vs['vehicleId']?.toString() ?? '';
-      final String vehicleNumber = vehicleIdToNumber[vehicleId] ?? '';
       final String? monthKey = profitRowLocalMonthKey(day);
-      switch (vehicleSalesBucketForNumber(vehicleNumber)) {
-        case VehicleSalesBucket.bus:
-          profitAccumulateByKey(busGrossByMonth, monthKey, amount);
-        case VehicleSalesBucket.bingo:
-          profitAccumulateByKey(bingoGrossByMonth, monthKey, amount);
-        case VehicleSalesBucket.other:
-          break;
-      }
+      profitAccumulateVehicleSalesByKey(
+        vehicleGrossByMonth,
+        monthKey,
+        vehicleId.isEmpty ? null : vehicleId,
+        amount,
+      );
     }
 
     for (final Map<String, dynamic> e in _expenses) {
@@ -2157,12 +2254,18 @@ final class PrototypeSampleData {
     final ({int y, int m}) prevMonth =
         profitCalendarPreviousMonth(now.year, now.month);
 
+    final ({
+      Map<String, double> todayByDriverId,
+      Map<String, double> yesterdayByDriverId,
+      Map<String, Map<String, double>> recordedOnDayByDriverId,
+      Map<String, Map<String, double>> recordedByMonthByDriverId,
+    }) driverCash = driverCashProfitContext();
+
     final Set<String> monthKeys = <String>{
       profitMonthKey(now.year, now.month),
       profitMonthKey(prevMonth.y, prevMonth.m),
       ...stationSalesByMonth.keys,
-      ...busGrossByMonth.keys,
-      ...bingoGrossByMonth.keys,
+      ...vehicleGrossByMonth.keys,
       ...expensesByMonth.keys,
       ...cashRecordedByMonth.keys,
     };
@@ -2181,9 +2284,10 @@ final class PrototypeSampleData {
       }
       byMonth[monthKey] = computeProfitDaySnapshot(
         stationSalesGross: stationSalesByMonth[monthKey] ?? 0,
-        busSalesGross: busGrossByMonth[monthKey] ?? 0,
-        bingoSalesGross: bingoGrossByMonth[monthKey] ?? 0,
-        expenseRows: expensesByMonth[monthKey] ?? const <Map<String, dynamic>>[],
+        vehicleSalesGrossById:
+            vehicleGrossByMonth[monthKey] ?? const <String, double>{},
+        expenseRows:
+            expensesByMonth[monthKey] ?? const <Map<String, dynamic>>[],
         stationCashBalance: resolveStationCashBalanceForMonth(
           year,
           month,
@@ -2193,7 +2297,17 @@ final class PrototypeSampleData {
           cashRecordedByMonth: cashRecordedByMonth,
         ),
         vehicleIdToNumber: vehicleIdToNumber,
+        vehicleIdToDriverId: vehicleIdToDriverId,
         driverIdToVehicleId: driverIdToVehicleId,
+        driverCashTodayByDriverId: driverCash.todayByDriverId,
+        driverCashYesterdayByDriverId: const <String, double>{},
+        driverCashRecordedOnDayByDriverId: const <String, Map<String, double>>{},
+        cashMonthYear: year,
+        cashMonth: month,
+        cashCurrentYear: now.year,
+        cashCurrentMonth: now.month,
+        driverCashRecordedByMonthByDriverId:
+            driverCash.recordedByMonthByDriverId,
       );
     }
 

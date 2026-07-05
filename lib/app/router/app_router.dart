@@ -495,6 +495,10 @@ GoRouter createAppRouter(AuthCubit authCubit) {
                 ],
               ),
               GoRoute(
+                path: 'printer-settings',
+                builder: (_, __) => const PrinterSettingsScreen(),
+              ),
+              GoRoute(
                 path: 'station-balance',
                 builder: (_, __) => const AdminStationBalancePage(
                   shellBase: '/admin',

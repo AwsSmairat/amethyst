@@ -178,7 +178,7 @@ class ProductSalesDaySummary extends StatelessWidget {
       grandDebtQty += r.debtQuantity;
       grandDebtAmount += r.debtAmount;
     }
-    final bool showDebt =
+    final bool showDebtTotal =
         debtSales.isNotEmpty || grandDebtQty > 0 || grandDebtAmount > 0;
     final _CoreVolumeQtyTotals volumeTotals = _aggregateCoreVolumeQuantities(
       sales: sales,
@@ -229,16 +229,14 @@ class ProductSalesDaySummary extends StatelessWidget {
                 style: headerStyle,
               ),
             ),
-            if (showDebt) ...<Widget>[
-              SizedBox(
-                width: _kSummaryDebtCol,
-                child: Text(
-                  l10n.vehicleSalesSummaryHeaderDebt,
-                  textAlign: TextAlign.end,
-                  style: headerStyle,
-                ),
+            SizedBox(
+              width: _kSummaryDebtCol,
+              child: Text(
+                l10n.vehicleSalesSummaryHeaderDebt,
+                textAlign: TextAlign.end,
+                style: headerStyle,
               ),
-            ],
+            ),
           ],
         ),
         const SizedBox(height: 8),
@@ -289,19 +287,17 @@ class ProductSalesDaySummary extends StatelessWidget {
                   ),
                 ),
               ),
-              if (showDebt) ...<Widget>[
-                SizedBox(
-                  width: _kSummaryDebtCol,
-                  child: Text(
-                    '${rows[i].debtQuantity}',
-                    textAlign: TextAlign.end,
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.brandPrimary,
-                    ),
+              SizedBox(
+                width: _kSummaryDebtCol,
+                child: Text(
+                  '${rows[i].debtQuantity}',
+                  textAlign: TextAlign.end,
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.brandPrimary,
                   ),
                 ),
-              ],
+              ),
             ],
           ),
         ],
@@ -336,7 +332,7 @@ class ProductSalesDaySummary extends StatelessWidget {
             ),
           ],
         ),
-        if (showDebt) ...<Widget>[
+        if (showDebtTotal) ...<Widget>[
           const SizedBox(height: 10),
           Align(
             alignment: AlignmentDirectional.centerStart,

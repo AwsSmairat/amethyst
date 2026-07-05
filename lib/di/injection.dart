@@ -25,6 +25,10 @@ import 'package:amethyst/features/station_cash/domain/usecases/get_station_cash_
 import 'package:amethyst/features/station_cash/domain/usecases/get_station_cash_snapshot_usecase.dart';
 import 'package:amethyst/features/station_cash/domain/usecases/list_station_cash_entries_usecase.dart';
 import 'package:amethyst/features/station_cash/domain/usecases/set_station_cash_balance_usecase.dart';
+import 'package:amethyst/features/driver_cash/data/repositories/driver_cash_repository_impl.dart';
+import 'package:amethyst/features/driver_cash/domain/repositories/driver_cash_repository.dart';
+import 'package:amethyst/features/driver_cash/domain/usecases/get_driver_cash_snapshot_usecase.dart';
+import 'package:amethyst/features/driver_cash/domain/usecases/set_driver_cash_balance_usecase.dart';
 import 'package:get_it/get_it.dart';
 
 final GetIt sl = GetIt.instance;
@@ -123,6 +127,16 @@ void setupDependencies() {
   );
   sl.registerLazySingleton<SetStationCashBalanceUseCase>(
     () => SetStationCashBalanceUseCase(sl<StationCashRepository>()),
+  );
+
+  sl.registerLazySingleton<DriverCashRepository>(
+    () => DriverCashRepositoryImpl(sl<AmethystApi>()),
+  );
+  sl.registerLazySingleton<GetDriverCashSnapshotUseCase>(
+    () => GetDriverCashSnapshotUseCase(sl<DriverCashRepository>()),
+  );
+  sl.registerLazySingleton<SetDriverCashBalanceUseCase>(
+    () => SetDriverCashBalanceUseCase(sl<DriverCashRepository>()),
   );
 
   sl.registerLazySingleton<UserDashboardRepository>(
