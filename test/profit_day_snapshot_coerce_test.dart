@@ -50,4 +50,48 @@ void main() {
     expect(vehicles, isNotEmpty);
     expect(vehicles.first['sales'], 0);
   });
+
+  test('computeProfitDaySnapshot excludes cash balance when monthly', () {
+    final Map<String, dynamic> withBalance = computeProfitDaySnapshot(
+      stationSalesGross: 100,
+      vehicleSalesGrossById: const <String, double>{'v1': 50},
+      expenseRows: const <Map<String, dynamic>>[
+        <String, dynamic>{'amount': 10},
+      ],
+      stationCashBalance: 11,
+      vehicleIdToNumber: const <String, String>{'v1': 'باص'},
+      vehicleIdToDriverId: const <String, String>{'v1': 'd1'},
+      driverIdToVehicleId: const <String, String>{'d1': 'v1'},
+      driverCashTodayByDriverId: const <String, double>{'d1': 4},
+      driverCashYesterdayByDriverId: const <String, double>{},
+      driverCashRecordedOnDayByDriverId: const <String, Map<String, double>>{},
+      dayYmd: '2026-07-07',
+      todayYmd: '2026-07-07',
+      yesterdayYmd: '2026-07-06',
+      includeCashBalance: true,
+    );
+    final Map<String, dynamic> withoutBalance = computeProfitDaySnapshot(
+      stationSalesGross: 100,
+      vehicleSalesGrossById: const <String, double>{'v1': 50},
+      expenseRows: const <Map<String, dynamic>>[
+        <String, dynamic>{'amount': 10},
+      ],
+      stationCashBalance: 11,
+      vehicleIdToNumber: const <String, String>{'v1': 'باص'},
+      vehicleIdToDriverId: const <String, String>{'v1': 'd1'},
+      driverIdToVehicleId: const <String, String>{'d1': 'v1'},
+      driverCashTodayByDriverId: const <String, double>{'d1': 4},
+      driverCashYesterdayByDriverId: const <String, double>{},
+      driverCashRecordedOnDayByDriverId: const <String, Map<String, double>>{},
+      dayYmd: '2026-07-07',
+      todayYmd: '2026-07-07',
+      yesterdayYmd: '2026-07-06',
+      includeCashBalance: false,
+    );
+
+    expect(withoutBalance['stationCashBalance'], 0);
+    expect(withoutBalance['total'], (withBalance['total'] as num) - 15);
+    final List<dynamic> vehicles = withoutBalance['vehicles'] as List<dynamic>;
+    expect(vehicles.first['cashBalance'], 0);
+  });
 }

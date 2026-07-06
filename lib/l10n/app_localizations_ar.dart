@@ -722,6 +722,16 @@ class AppLocalizationsAr extends AppLocalizations {
   }
 
   @override
+  String salesSummaryTotalCashAmount(String amount) {
+    return 'مجموع مبلغ الكاش: $amount';
+  }
+
+  @override
+  String salesSummaryTotalCliqAmount(String amount) {
+    return 'مجموع مبلغ كليك: $amount';
+  }
+
+  @override
   String salesSummaryTotalCoreVolumeQty(String count) {
     return 'إجمالي الكمية: $count';
   }
@@ -1194,6 +1204,14 @@ class AppLocalizationsAr extends AppLocalizations {
   @override
   String get profitTodayStationNetFormula =>
       'مجموع المحطة (مبيعات - مصاريف + رصيد)';
+
+  @override
+  String get profitMonthStationNetFormula => 'مجموع المحطة (مبيعات - مصاريف)';
+
+  @override
+  String profitMonthVehicleNetFormula(String vehicle) {
+    return 'مجموع $vehicle (مبيعات - مصاريف)';
+  }
 
   @override
   String get profitTodayGrandTotalFormula => 'المجموع (محطة + المركبات)';

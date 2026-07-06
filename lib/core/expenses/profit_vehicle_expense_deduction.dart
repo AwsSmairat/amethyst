@@ -481,6 +481,7 @@ Map<String, dynamic> computeProfitDaySnapshot({
   int? cashCurrentYear,
   int? cashCurrentMonth,
   Map<String, Map<String, double>>? driverCashRecordedByMonthByDriverId,
+  bool includeCashBalance = true,
 }) {
   final double stationSalesGrossValue =
       _coerceStationSalesGross(stationSalesGross);
@@ -502,10 +503,12 @@ Map<String, dynamic> computeProfitDaySnapshot({
     operatingTotal += amount;
   }
   final double stationExpenses = expenseTotalGross - operatingTotal;
+  final double effectiveStationCashBalance =
+      includeCashBalance ? stationCashBalance : 0;
   final double stationNetTotal = computeStationNetTotal(
     stationSales: stationSalesGrossValue,
     stationExpenses: stationExpenses,
-    stationCashBalance: stationCashBalance,
+    stationCashBalance: effectiveStationCashBalance,
   );
 
   final List<String> vehicleIds = vehicleIdToNumber.keys.toList()
@@ -523,7 +526,7 @@ Map<String, dynamic> computeProfitDaySnapshot({
     final double sales = vehicleSalesById[vehicleId] ?? 0;
     final double operatingExpenses = operatingByVehicle[vehicleId] ?? 0;
     final String driverId = vehicleIdToDriverId[vehicleId] ?? '';
-    final double cashBalance = cashMonthYear != null &&
+    final double resolvedCashBalance = cashMonthYear != null &&
             cashMonth != null &&
             cashCurrentYear != null &&
             cashCurrentMonth != null &&
@@ -546,6 +549,8 @@ Map<String, dynamic> computeProfitDaySnapshot({
             yesterdayByDriverId: driverCashYesterdayByDriverId,
             recordedOnDayByDriverId: driverCashRecordedOnDayByDriverId,
           );
+    final double cashBalance =
+        includeCashBalance ? resolvedCashBalance : 0;
     final double netTotal = sales - operatingExpenses + cashBalance;
     vehiclesNetTotal += netTotal;
     final String vehicleNumber = vehicleIdToNumber[vehicleId] ?? vehicleId;
@@ -579,7 +584,7 @@ Map<String, dynamic> computeProfitDaySnapshot({
     'busSales': busSalesNet,
     'bingoSales': bingoSalesNet,
     'expenses': stationExpenses,
-    'stationCashBalance': stationCashBalance,
+    'stationCashBalance': effectiveStationCashBalance,
     'total': total,
     'revenue': stationSalesGrossValue +
         vehicleSalesById.values.fold<double>(0, (double a, double b) => a + b),
@@ -706,6 +711,7 @@ List<Map<String, dynamic>> buildProfitMonthCardsPayload(
             driverCashTodayByDriverId: const <String, double>{},
             driverCashYesterdayByDriverId: const <String, double>{},
             driverCashRecordedOnDayByDriverId: const <String, Map<String, double>>{},
+            includeCashBalance: false,
           ),
     };
   }

@@ -2487,6 +2487,7 @@ final class AmethystFirebaseBackend {
         cashCurrentMonth: now.month,
         driverCashRecordedByMonthByDriverId:
             driverCash.recordedByMonthByDriverId,
+        includeCashBalance: false,
       );
     }
 
@@ -2691,6 +2692,7 @@ final class AmethystFirebaseBackend {
       cashCurrentMonth: now.month,
       driverCashRecordedByMonthByDriverId:
           driverCash.recordedByMonthByDriverId,
+      includeCashBalance: false,
     );
 
     return (

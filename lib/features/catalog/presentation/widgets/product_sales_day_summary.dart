@@ -2,6 +2,7 @@ import 'package:amethyst/core/catalog/catalog_product_display_label.dart';
 import 'package:amethyst/core/l10n/context_l10n.dart';
 import 'package:amethyst/core/theme/app_colors.dart';
 import 'package:amethyst/core/utils/parse_dynamic_double.dart';
+import 'package:amethyst/core/vehicle_sale/vehicle_sale_payment_method.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
@@ -184,6 +185,8 @@ class ProductSalesDaySummary extends StatelessWidget {
       sales: sales,
       debtSales: debtSales,
     );
+    final SalePaymentMethodAmountTotals paymentTotals =
+        sumSalePaymentMethodAmounts(sales);
 
     final TextStyle? headerStyle = theme.textTheme.labelSmall?.copyWith(
       fontWeight: FontWeight.w700,
@@ -345,6 +348,34 @@ class ProductSalesDaySummary extends StatelessWidget {
               ),
             ),
           ),
+        ],
+        if (paymentTotals.hasAny) ...<Widget>[
+          if (paymentTotals.cash != 0) ...<Widget>[
+            const SizedBox(height: 10),
+            Align(
+              alignment: AlignmentDirectional.centerStart,
+              child: Text(
+                l10n.salesSummaryTotalCashAmount(
+                  money.format(paymentTotals.cash),
+                ),
+                textAlign: TextAlign.start,
+                style: _summaryTotalTextStyle(theme),
+              ),
+            ),
+          ],
+          if (paymentTotals.cliq != 0) ...<Widget>[
+            const SizedBox(height: 10),
+            Align(
+              alignment: AlignmentDirectional.centerStart,
+              child: Text(
+                l10n.salesSummaryTotalCliqAmount(
+                  money.format(paymentTotals.cliq),
+                ),
+                textAlign: TextAlign.start,
+                style: _summaryTotalTextStyle(theme),
+              ),
+            ),
+          ],
         ],
         if (volumeTotals.hasAny) ...<Widget>[
           const SizedBox(height: 10),

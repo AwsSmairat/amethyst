@@ -349,6 +349,18 @@
       "amount": {"type": "String"}
     }
   },
+  "salesSummaryTotalCashAmount": "مجموع مبلغ الكاش: {amount}",
+  "@salesSummaryTotalCashAmount": {
+    "placeholders": {
+      "amount": {"type": "String"}
+    }
+  },
+  "salesSummaryTotalCliqAmount": "مجموع مبلغ كليك: {amount}",
+  "@salesSummaryTotalCliqAmount": {
+    "placeholders": {
+      "amount": {"type": "String"}
+    }
+  },
   "salesSummaryTotalCoreVolumeQty": "إجمالي الكمية: {count}",
   "@salesSummaryTotalCoreVolumeQty": {
     "placeholders": {
@@ -556,6 +568,13 @@
   "profitTodayStationCashBalance": "رصيد أموال المحطة",
   "profitTodayStationExpenses": "مصاريف المحطة",
   "profitTodayStationNetFormula": "مجموع المحطة (مبيعات - مصاريف + رصيد)",
+  "profitMonthStationNetFormula": "مجموع المحطة (مبيعات - مصاريف)",
+  "profitMonthVehicleNetFormula": "مجموع {vehicle} (مبيعات - مصاريف)",
+  "@profitMonthVehicleNetFormula": {
+    "placeholders": {
+      "vehicle": { "type": "String" }
+    }
+  },
   "profitTodayGrandTotalFormula": "المجموع (محطة + المركبات)",
   "expensesTodayDetail": "مصاريف اليوم",
   "monthlyExpensesDetail": "المصاريف الشهرية",

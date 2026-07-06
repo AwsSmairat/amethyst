@@ -2308,6 +2308,7 @@ final class PrototypeSampleData {
         cashCurrentMonth: now.month,
         driverCashRecordedByMonthByDriverId:
             driverCash.recordedByMonthByDriverId,
+        includeCashBalance: false,
       );
     }
 

@@ -1396,6 +1396,18 @@ abstract class AppLocalizations {
   /// **'إجمالي الدين: {amount}'**
   String vehicleSalesGrandTotalDebt(String amount);
 
+  /// No description provided for @salesSummaryTotalCashAmount.
+  ///
+  /// In ar, this message translates to:
+  /// **'مجموع مبلغ الكاش: {amount}'**
+  String salesSummaryTotalCashAmount(String amount);
+
+  /// No description provided for @salesSummaryTotalCliqAmount.
+  ///
+  /// In ar, this message translates to:
+  /// **'مجموع مبلغ كليك: {amount}'**
+  String salesSummaryTotalCliqAmount(String amount);
+
   /// No description provided for @salesSummaryTotalCoreVolumeQty.
   ///
   /// In ar, this message translates to:
@@ -2277,6 +2289,18 @@ abstract class AppLocalizations {
   /// In ar, this message translates to:
   /// **'مجموع المحطة (مبيعات - مصاريف + رصيد)'**
   String get profitTodayStationNetFormula;
+
+  /// No description provided for @profitMonthStationNetFormula.
+  ///
+  /// In ar, this message translates to:
+  /// **'مجموع المحطة (مبيعات - مصاريف)'**
+  String get profitMonthStationNetFormula;
+
+  /// No description provided for @profitMonthVehicleNetFormula.
+  ///
+  /// In ar, this message translates to:
+  /// **'مجموع {vehicle} (مبيعات - مصاريف)'**
+  String profitMonthVehicleNetFormula(String vehicle);
 
   /// No description provided for @profitTodayGrandTotalFormula.
   ///

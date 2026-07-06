@@ -646,7 +646,10 @@ class _ProfitDayCard extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 16),
-            _ProfitBreakdownMetrics(payload: dayPayload),
+            _ProfitBreakdownMetrics(
+              payload: dayPayload,
+              includeCashBalance: true,
+            ),
           ],
         ),
       ),
@@ -771,7 +774,10 @@ class _ProfitMonthCard extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 16),
-            _ProfitBreakdownMetrics(payload: monthPayload),
+            _ProfitBreakdownMetrics(
+              payload: monthPayload,
+              includeCashBalance: false,
+            ),
           ],
         ),
       ),
@@ -780,9 +786,13 @@ class _ProfitMonthCard extends StatelessWidget {
 }
 
 class _ProfitBreakdownMetrics extends StatelessWidget {
-  const _ProfitBreakdownMetrics({required this.payload});
+  const _ProfitBreakdownMetrics({
+    required this.payload,
+    required this.includeCashBalance,
+  });
 
   final Map<String, dynamic> payload;
+  final bool includeCashBalance;
 
   @override
   Widget build(BuildContext context) {
@@ -793,7 +803,9 @@ class _ProfitBreakdownMetrics extends StatelessWidget {
     final double stationCashBalance = _toDouble(payload['stationCashBalance']);
     final double stationNetTotal = payload['stationNetTotal'] != null
         ? _toDouble(payload['stationNetTotal'])
-        : stationSales - stationExpenses + stationCashBalance;
+        : includeCashBalance
+            ? stationSales - stationExpenses + stationCashBalance
+            : stationSales - stationExpenses;
     final double total = _toDouble(payload['total']);
     final List<Map<String, dynamic>> vehicles =
         _profitVehicleRows(payload['vehicles']);
@@ -813,15 +825,19 @@ class _ProfitBreakdownMetrics extends StatelessWidget {
           value: stationExpenses,
           icon: Icons.payments_outlined,
         ),
+        if (includeCashBalance) ...<Widget>[
+          const SizedBox(height: 12),
+          _ProfitDetailRow(
+            label: l.profitTodayStationCashBalance,
+            value: stationCashBalance,
+            icon: Icons.account_balance_wallet_outlined,
+          ),
+        ],
         const SizedBox(height: 12),
         _ProfitDetailRow(
-          label: l.profitTodayStationCashBalance,
-          value: stationCashBalance,
-          icon: Icons.account_balance_wallet_outlined,
-        ),
-        const SizedBox(height: 12),
-        _ProfitDetailRow(
-          label: l.profitTodayStationNetFormula,
+          label: includeCashBalance
+              ? l.profitTodayStationNetFormula
+              : l.profitMonthStationNetFormula,
           value: stationNetTotal,
           icon: Icons.store_mall_directory_outlined,
           emphasize: true,
@@ -830,7 +846,10 @@ class _ProfitBreakdownMetrics extends StatelessWidget {
           const SizedBox(height: 16),
           const Divider(height: 1),
           const SizedBox(height: 16),
-          _VehicleProfitBreakdown(vehicle: vehicle),
+          _VehicleProfitBreakdown(
+            vehicle: vehicle,
+            includeCashBalance: includeCashBalance,
+          ),
         ],
         const SizedBox(height: 16),
         const Divider(height: 1),
@@ -850,9 +869,13 @@ List<Map<String, dynamic>> _profitVehicleRows(Object? raw) =>
     _coerceMapRows(raw);
 
 class _VehicleProfitBreakdown extends StatelessWidget {
-  const _VehicleProfitBreakdown({required this.vehicle});
+  const _VehicleProfitBreakdown({
+    required this.vehicle,
+    required this.includeCashBalance,
+  });
 
   final Map<String, dynamic> vehicle;
+  final bool includeCashBalance;
 
   IconData _iconForVehicle(String vehicleNumber) {
     switch (vehicleSalesBucketForNumber(vehicleNumber)) {
@@ -889,15 +912,19 @@ class _VehicleProfitBreakdown extends StatelessWidget {
           value: expenses,
           icon: Icons.payments_outlined,
         ),
+        if (includeCashBalance) ...<Widget>[
+          const SizedBox(height: 12),
+          _ProfitDetailRow(
+            label: l.profitVehicleCashBalance(vehicleNumber),
+            value: cashBalance,
+            icon: Icons.account_balance_wallet_outlined,
+          ),
+        ],
         const SizedBox(height: 12),
         _ProfitDetailRow(
-          label: l.profitVehicleCashBalance(vehicleNumber),
-          value: cashBalance,
-          icon: Icons.account_balance_wallet_outlined,
-        ),
-        const SizedBox(height: 12),
-        _ProfitDetailRow(
-          label: l.profitVehicleNetFormula(vehicleNumber),
+          label: includeCashBalance
+              ? l.profitVehicleNetFormula(vehicleNumber)
+              : l.profitMonthVehicleNetFormula(vehicleNumber),
           value: netTotal,
           icon: icon,
           emphasize: true,
