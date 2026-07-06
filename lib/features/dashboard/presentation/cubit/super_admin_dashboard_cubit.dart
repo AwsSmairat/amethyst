@@ -28,7 +28,7 @@ final class SuperAdminDashboardCubit extends Cubit<DashboardLoadState> {
           .getDashboardSuperAdmin(
             forceRefresh: forceRefresh,
             onPartial: (Map<String, dynamic> partial) {
-              if (isClosed || hasCache) {
+              if (isClosed) {
                 return;
               }
               _cached = partial;

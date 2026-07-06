@@ -66,7 +66,7 @@ Map<String, double> computeVehicleOperatingExpensesByVehicleId({
   required Map<String, String> driverIdToVehicleId,
 }) {
   final Map<String, double> byVehicle = <String, double>{};
-  for (final Map<String, dynamic> expense in expenses) {
+  for (final Map<String, dynamic> expense in _coerceExpenseRows(expenses)) {
     final double amount = _expenseAmount(expense);
     if (amount <= 0) {
       continue;
@@ -102,10 +102,10 @@ void profitAccumulateVehicleSalesByKey(
 }
 
 Map<String, Map<String, double>> buildDriverCashRecordedOnDayByDriver(
-  Iterable<Map<String, dynamic>> entries,
+  Iterable<dynamic> entries,
 ) {
   final Map<String, Map<String, double>> out = <String, Map<String, double>>{};
-  for (final Map<String, dynamic> entry in entries) {
+  for (final Map<String, dynamic> entry in _coerceMapRows(entries)) {
     final String? driverId = entry['driverId']?.toString();
     final String? dayYmd = profitRowLocalYmd(entry['createdAt']);
     if (driverId == null || driverId.isEmpty || dayYmd == null) {
@@ -118,10 +118,10 @@ Map<String, Map<String, double>> buildDriverCashRecordedOnDayByDriver(
 }
 
 Map<String, Map<String, double>> buildDriverCashRecordedByMonthByDriver(
-  Iterable<Map<String, dynamic>> entries,
+  Iterable<dynamic> entries,
 ) {
   final Map<String, Map<String, double>> out = <String, Map<String, double>>{};
-  for (final Map<String, dynamic> entry in entries) {
+  for (final Map<String, dynamic> entry in _coerceMapRows(entries)) {
     final String? driverId = entry['driverId']?.toString();
     final String? monthKey = profitRowLocalMonthKey(entry['createdAt']);
     if (driverId == null || driverId.isEmpty || monthKey == null) {
@@ -134,11 +134,11 @@ Map<String, Map<String, double>> buildDriverCashRecordedByMonthByDriver(
 }
 
 Map<String, double> buildDriverCashYesterdayByDriver(
-  Iterable<Map<String, dynamic>> entries,
+  Iterable<dynamic> entries,
 ) {
   final Map<String, double> out = <String, double>{};
   final Map<String, DateTime?> latestAt = <String, DateTime?>{};
-  for (final Map<String, dynamic> entry in entries) {
+  for (final Map<String, dynamic> entry in _coerceMapRows(entries)) {
     final String? driverId = entry['driverId']?.toString();
     if (driverId == null || driverId.isEmpty) {
       continue;
@@ -150,7 +150,7 @@ Map<String, double> buildDriverCashYesterdayByDriver(
     if (previous == null ||
         (createdAt != null && createdAt.isAfter(previous))) {
       latestAt[driverId] = createdAt;
-      out[driverId] = _expenseAmount(entry['previousAmount']);
+      out[driverId] = _readMoneyValue(entry['previousAmount']);
     }
   }
   return out;
@@ -174,7 +174,7 @@ double resolveDriverCashBalanceForDay(
     yesterdayYmd: yesterdayYmd,
     currentBalance: todayByDriverId[driverId] ?? 0,
     yesterdayBalance: yesterdayByDriverId[driverId] ?? 0,
-    cashRecordedOnDay: recordedOnDayByDriverId[driverId] ?? const <String, double>{},
+    cashRecordedOnDay: _coerceDayAmountMap(recordedOnDayByDriverId[driverId]),
   );
 }
 
@@ -196,7 +196,8 @@ double resolveDriverCashBalanceForMonth(
     currentYear: currentYear,
     currentMonth: currentMonth,
     currentBalance: todayByDriverId[driverId] ?? 0,
-    cashRecordedByMonth: recordedByMonthByDriverId[driverId] ?? const <String, double>{},
+    cashRecordedByMonth:
+        _coerceDayAmountMap(recordedByMonthByDriverId[driverId]),
   );
 }
 
@@ -217,7 +218,7 @@ double resolveDriverCashBalanceForMonth(
   var bingoDeduction = 0.0;
   var excludedFromExpenses = 0.0;
 
-  for (final Map<String, dynamic> expense in expenses) {
+  for (final Map<String, dynamic> expense in _coerceExpenseRows(expenses)) {
     final double amount = _expenseAmount(expense);
     if (amount <= 0) {
       continue;
@@ -248,12 +249,69 @@ double resolveDriverCashBalanceForMonth(
   );
 }
 
-double _expenseAmount(Map<String, dynamic> expense) {
-  final Object? raw = expense['amount'];
+double _readMoneyValue(Object? raw) {
   if (raw is num) {
     return raw.toDouble();
   }
+  if (raw is Map) {
+    return _readMoneyValue(raw['amount']);
+  }
   return double.tryParse(raw?.toString() ?? '') ?? 0;
+}
+
+double _expenseAmount(Map<String, dynamic> expense) =>
+    _readMoneyValue(expense['amount']);
+
+List<Map<String, dynamic>> _coerceMapRows(Iterable<dynamic> rows) {
+  final List<Map<String, dynamic>> out = <Map<String, dynamic>>[];
+  for (final dynamic row in rows) {
+    if (row is Map<String, dynamic>) {
+      out.add(row);
+      continue;
+    }
+    if (row is Map) {
+      out.add(Map<String, dynamic>.from(row));
+    }
+  }
+  return out;
+}
+
+List<Map<String, dynamic>> _coerceExpenseRows(Iterable<dynamic> expenses) =>
+    _coerceMapRows(expenses);
+
+Map<String, double> _coerceVehicleSalesGrossById(Object? raw) {
+  if (raw is! Map) {
+    return const <String, double>{};
+  }
+  final Map<String, double> out = <String, double>{};
+  for (final MapEntry<dynamic, dynamic> entry in raw.entries) {
+    final String? vehicleId = entry.key?.toString();
+    if (vehicleId == null || vehicleId.isEmpty) {
+      continue;
+    }
+    out[vehicleId] = _readMoneyValue(entry.value);
+  }
+  return out;
+}
+
+double _coerceStationSalesGross(Object? raw) => _readMoneyValue(raw);
+
+Map<String, double> _coerceDayAmountMap(Object? raw) {
+  if (raw is! Map) {
+    return const <String, double>{};
+  }
+  final Map<String, double> out = <String, double>{};
+  for (final MapEntry<dynamic, dynamic> entry in raw.entries) {
+    final String? key = entry.key?.toString();
+    if (key == null || key.isEmpty) {
+      continue;
+    }
+    final Object? value = entry.value;
+    if (value is num) {
+      out[key] = value.toDouble();
+    }
+  }
+  return out;
 }
 
 /// مجموع المحطة = مبيعات المحطة − مصاريف المحطة + رصيد أموال المحطة.
@@ -374,19 +432,15 @@ double resolveStationCashBalanceForMonth(
 }
 
 Map<String, double> buildStationCashRecordedOnDay(
-  Iterable<Map<String, dynamic>> cashEntries,
+  Iterable<dynamic> cashEntries,
 ) {
   final Map<String, double> out = <String, double>{};
-  for (final Map<String, dynamic> entry in cashEntries) {
+  for (final Map<String, dynamic> entry in _coerceMapRows(cashEntries)) {
     final String? dayYmd = profitRowLocalYmd(entry['createdAt']);
     if (dayYmd == null) {
       continue;
     }
-    final Object? raw = entry['amount'];
-    final double amount = raw is num
-        ? raw.toDouble()
-        : double.tryParse(raw?.toString() ?? '') ?? 0;
-    out[dayYmd] = amount;
+    out[dayYmd] = _readMoneyValue(entry['amount']);
   }
   return out;
 }
@@ -409,9 +463,9 @@ double resolveStationCashBalanceForDay(
 }
 
 Map<String, dynamic> computeProfitDaySnapshot({
-  required double stationSalesGross,
-  required Map<String, double> vehicleSalesGrossById,
-  required List<Map<String, dynamic>> expenseRows,
+  required Object? stationSalesGross,
+  required Object? vehicleSalesGrossById,
+  required Iterable<dynamic> expenseRows,
   required double stationCashBalance,
   required Map<String, String> vehicleIdToNumber,
   required Map<String, String> vehicleIdToDriverId,
@@ -428,13 +482,19 @@ Map<String, dynamic> computeProfitDaySnapshot({
   int? cashCurrentMonth,
   Map<String, Map<String, double>>? driverCashRecordedByMonthByDriverId,
 }) {
+  final double stationSalesGrossValue =
+      _coerceStationSalesGross(stationSalesGross);
+  final Map<String, double> vehicleSalesById =
+      _coerceVehicleSalesGrossById(vehicleSalesGrossById);
+  final List<Map<String, dynamic>> safeExpenseRows =
+      _coerceExpenseRows(expenseRows);
   var expenseTotalGross = 0.0;
-  for (final Map<String, dynamic> row in expenseRows) {
+  for (final Map<String, dynamic> row in safeExpenseRows) {
     expenseTotalGross += _expenseAmount(row);
   }
   final Map<String, double> operatingByVehicle =
       computeVehicleOperatingExpensesByVehicleId(
-    expenses: expenseRows,
+    expenses: safeExpenseRows,
     driverIdToVehicleId: driverIdToVehicleId,
   );
   var operatingTotal = 0.0;
@@ -443,7 +503,7 @@ Map<String, dynamic> computeProfitDaySnapshot({
   }
   final double stationExpenses = expenseTotalGross - operatingTotal;
   final double stationNetTotal = computeStationNetTotal(
-    stationSales: stationSalesGross,
+    stationSales: stationSalesGrossValue,
     stationExpenses: stationExpenses,
     stationCashBalance: stationCashBalance,
   );
@@ -460,7 +520,7 @@ Map<String, dynamic> computeProfitDaySnapshot({
   var bingoSalesNet = 0.0;
 
   for (final String vehicleId in vehicleIds) {
-    final double sales = vehicleSalesGrossById[vehicleId] ?? 0;
+    final double sales = vehicleSalesById[vehicleId] ?? 0;
     final double operatingExpenses = operatingByVehicle[vehicleId] ?? 0;
     final String driverId = vehicleIdToDriverId[vehicleId] ?? '';
     final double cashBalance = cashMonthYear != null &&
@@ -512,7 +572,7 @@ Map<String, dynamic> computeProfitDaySnapshot({
     vehiclesNetTotal: vehiclesNetTotal,
   );
   return <String, dynamic>{
-    'stationSales': stationSalesGross,
+    'stationSales': stationSalesGrossValue,
     'stationExpenses': stationExpenses,
     'stationNetTotal': stationNetTotal,
     'vehicles': vehicles,
@@ -521,8 +581,8 @@ Map<String, dynamic> computeProfitDaySnapshot({
     'expenses': stationExpenses,
     'stationCashBalance': stationCashBalance,
     'total': total,
-    'revenue': stationSalesGross +
-        vehicleSalesGrossById.values.fold<double>(0, (double a, double b) => a + b),
+    'revenue': stationSalesGrossValue +
+        vehicleSalesById.values.fold<double>(0, (double a, double b) => a + b),
     'net': total,
   };
 }

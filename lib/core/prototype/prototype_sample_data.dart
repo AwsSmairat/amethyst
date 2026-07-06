@@ -2166,7 +2166,7 @@ final class PrototypeSampleData {
       'from': startDay.toIso8601String(),
       'to': endDay.toIso8601String(),
       'profitDays': profitDays,
-      ...todayPayload,
+      'today': todayPayload,
     };
   }
 
@@ -2323,7 +2323,7 @@ final class PrototypeSampleData {
       'profitMonths': profitMonths,
       'year': now.year,
       'month': now.month,
-      ...currentPayload,
+      'current': currentPayload,
     };
   }
 

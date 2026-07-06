@@ -54,6 +54,56 @@ double _toDouble(dynamic v) {
   return double.tryParse(v.toString()) ?? 0;
 }
 
+Map<String, dynamic>? _tryCoerceMap(Object? raw) {
+  if (raw is Map<String, dynamic>) {
+    return raw;
+  }
+  if (raw is Map) {
+    return Map<String, dynamic>.from(raw);
+  }
+  return null;
+}
+
+List<Map<String, dynamic>> _coerceMapRows(Object? raw) {
+  if (raw is! List) {
+    return const <Map<String, dynamic>>[];
+  }
+  final List<Map<String, dynamic>> out = <Map<String, dynamic>>[];
+  for (final Object? item in raw) {
+    final Map<String, dynamic>? map = _tryCoerceMap(item);
+    if (map != null) {
+      out.add(map);
+    }
+  }
+  return out;
+}
+
+Map<String, dynamic> _profitDayFallbackPayload(Map<String, dynamic> data) {
+  final Map<String, dynamic>? today = _tryCoerceMap(data['today']);
+  if (today != null) {
+    return today;
+  }
+  if (data.containsKey('stationSales') ||
+      data.containsKey('total') ||
+      data.containsKey('vehicles')) {
+    return data;
+  }
+  return data;
+}
+
+Map<String, dynamic> _profitMonthFallbackPayload(Map<String, dynamic> data) {
+  final Map<String, dynamic>? current = _tryCoerceMap(data['current']);
+  if (current != null) {
+    return current;
+  }
+  if (data.containsKey('stationSales') ||
+      data.containsKey('total') ||
+      data.containsKey('vehicles')) {
+    return data;
+  }
+  return data;
+}
+
 /// الشهر التقويمي الذي يسبق [year]/[month].
 ({int y, int m}) _calendarPreviousMonth(int year, int month) {
   if (month == 1) {
@@ -81,9 +131,7 @@ List<Map<String, dynamic>> _filterSalesMonthsForDisplay(
       continue;
     }
     final Map<String, dynamic>? totals =
-        row['totals'] is Map<String, dynamic>
-            ? row['totals'] as Map<String, dynamic>
-            : null;
+        _tryCoerceMap(row['totals']);
     final double station = _toDouble(totals?['stationAmount']);
     final double vehicle = _toDouble(totals?['vehicleAmount']);
     final List<dynamic> st = row['stationSales'] is List<dynamic>
@@ -120,9 +168,10 @@ Map<String, List<Map<String, dynamic>>> _groupExpensesByLocalDay(
   final Map<String, List<Map<String, dynamic>>> map =
       <String, List<Map<String, dynamic>>>{};
   for (final dynamic raw in items) {
-    final Map<String, dynamic> m = raw is Map<String, dynamic>
-        ? raw
-        : Map<String, dynamic>.from(raw as Map<dynamic, dynamic>);
+    final Map<String, dynamic>? m = _tryCoerceMap(raw);
+    if (m == null) {
+      continue;
+    }
     final String? key = _expenseItemLocalYmd(m);
     if (key == null || key.isEmpty) {
       continue;
@@ -230,9 +279,10 @@ List<Map<String, dynamic>> _filterExpenseMonthsForDisplay(
         : <dynamic>[];
     double total = 0;
     for (final dynamic e in items) {
-      final Map<String, dynamic> map = e is Map<String, dynamic>
-          ? e
-          : Map<String, dynamic>.from(e as Map<dynamic, dynamic>);
+      final Map<String, dynamic>? map = _tryCoerceMap(e);
+      if (map == null) {
+        continue;
+      }
       total += _toDouble(map['amount']);
     }
     if (items.isNotEmpty || total > 0) {
@@ -488,14 +538,15 @@ class _ProfitDaysBody extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final List<dynamic>? days = data['profitDays'] as List<dynamic>?;
-    if (days == null || days.isEmpty) {
+    final List<Map<String, dynamic>> days =
+        _coerceMapRows(data['profitDays']);
+    if (days.isEmpty) {
       return ListView(
         physics: const AlwaysScrollableScrollPhysics(),
         padding: const EdgeInsets.all(20),
         children: <Widget>[
           _ProfitDayCard(
-            dayPayload: data,
+            dayPayload: _profitDayFallbackPayload(data),
             isToday: true,
             isYesterday: false,
           ),
@@ -515,9 +566,7 @@ class _ProfitDaysBody extends StatelessWidget {
       itemCount: days.length,
       separatorBuilder: (_, __) => const SizedBox(height: 16),
       itemBuilder: (BuildContext context, int i) {
-        final Map<String, dynamic> row = days[i] is Map<String, dynamic>
-            ? days[i] as Map<String, dynamic>
-            : Map<String, dynamic>.from(days[i] as Map<dynamic, dynamic>);
+        final Map<String, dynamic> row = days[i];
         final String dateStr = row['date']?.toString() ?? '';
         return _ProfitDayCard(
           dayPayload: row,
@@ -612,14 +661,15 @@ class _ProfitMonthsBody extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final List<dynamic>? months = data['profitMonths'] as List<dynamic>?;
-    if (months == null || months.isEmpty) {
+    final List<Map<String, dynamic>> months =
+        _coerceMapRows(data['profitMonths']);
+    if (months.isEmpty) {
       return ListView(
         physics: const AlwaysScrollableScrollPhysics(),
         padding: const EdgeInsets.all(20),
         children: <Widget>[
           _ProfitMonthCard(
-            monthPayload: data,
+            monthPayload: _profitMonthFallbackPayload(data),
             isCurrentCalendarMonth: true,
             isImmediatePreviousMonth: false,
           ),
@@ -636,9 +686,7 @@ class _ProfitMonthsBody extends StatelessWidget {
       itemCount: months.length,
       separatorBuilder: (_, __) => const SizedBox(height: 16),
       itemBuilder: (BuildContext context, int i) {
-        final Map<String, dynamic> row = months[i] is Map<String, dynamic>
-            ? months[i] as Map<String, dynamic>
-            : Map<String, dynamic>.from(months[i] as Map<dynamic, dynamic>);
+        final Map<String, dynamic> row = months[i];
         final int y = (row['year'] as num?)?.toInt() ?? n.year;
         final int m = (row['month'] as num?)?.toInt() ?? n.month;
         final bool isCurrent = y == n.year && m == n.month;
@@ -798,15 +846,8 @@ class _ProfitBreakdownMetrics extends StatelessWidget {
   }
 }
 
-List<Map<String, dynamic>> _profitVehicleRows(Object? raw) {
-  if (raw is! List) {
-    return const <Map<String, dynamic>>[];
-  }
-  return raw
-      .whereType<Map>()
-      .map((Map<dynamic, dynamic> row) => Map<String, dynamic>.from(row))
-      .toList(growable: false);
-}
+List<Map<String, dynamic>> _profitVehicleRows(Object? raw) =>
+    _coerceMapRows(raw);
 
 class _VehicleProfitBreakdown extends StatelessWidget {
   const _VehicleProfitBreakdown({required this.vehicle});
@@ -951,8 +992,9 @@ class _DailyExpensesBody extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final List<dynamic>? days = data['expenseDays'] as List<dynamic>?;
-    if (days == null || days.isEmpty) {
+    final List<Map<String, dynamic>> days =
+        _coerceMapRows(data['expenseDays']);
+    if (days.isEmpty) {
       return ListView(
         physics: const AlwaysScrollableScrollPhysics(),
         children: <Widget>[
@@ -975,13 +1017,10 @@ class _DailyExpensesBody extends StatelessWidget {
       itemCount: days.length,
       separatorBuilder: (_, __) => const SizedBox(height: 16),
       itemBuilder: (BuildContext context, int i) {
-        final Map<String, dynamic> row = days[i] is Map<String, dynamic>
-            ? days[i] as Map<String, dynamic>
-            : Map<String, dynamic>.from(days[i] as Map<dynamic, dynamic>);
+        final Map<String, dynamic> row = days[i];
         final String dateStr = row['date']?.toString() ?? '';
-        final List<dynamic> items = row['items'] is List<dynamic>
-            ? row['items'] as List<dynamic>
-            : <dynamic>[];
+        final List<Map<String, dynamic>> items =
+            _coerceMapRows(row['items']);
         final bool isToday = dateStr == todayYmd;
         final bool isYesterday = dateStr == yesterdayYmd;
         return _DailyExpensesDayCard(
@@ -1004,17 +1043,14 @@ class _DailyExpensesDayCard extends StatelessWidget {
   });
 
   final String dateYmd;
-  final List<dynamic> items;
+  final List<Map<String, dynamic>> items;
   final bool isToday;
   final bool isYesterday;
 
   @override
   Widget build(BuildContext context) {
     double total = 0;
-    for (final dynamic e in items) {
-      final Map<String, dynamic> m = e is Map<String, dynamic>
-          ? e
-          : Map<String, dynamic>.from(e as Map<dynamic, dynamic>);
+    for (final Map<String, dynamic> m in items) {
       total += _toDouble(m['amount']);
     }
     final DateTime? parsed = _parseYmdLocal(dateYmd);
@@ -1108,10 +1144,7 @@ class _DailyExpensesDayCard extends StatelessWidget {
               ),
               const SizedBox(height: 8),
               ...List<Widget>.generate(items.length, (int i) {
-                final dynamic raw = items[i];
-                final Map<String, dynamic> m = raw is Map<String, dynamic>
-                    ? raw
-                    : Map<String, dynamic>.from(raw as Map<dynamic, dynamic>);
+                final Map<String, dynamic> m = items[i];
                 final double amount = _toDouble(m['amount']);
                 final String id =
                     m['id']?.toString() ?? '${dateYmd}_$i';
@@ -1156,8 +1189,9 @@ class _MonthlyExpensesBody extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final List<dynamic>? months = data['expenseMonths'] as List<dynamic>?;
-    if (months == null || months.isEmpty) {
+    final List<Map<String, dynamic>> months =
+        _coerceMapRows(data['expenseMonths']);
+    if (months.isEmpty) {
       return ListView(
         physics: const AlwaysScrollableScrollPhysics(),
         children: const <Widget>[SizedBox(height: 1)],
@@ -1170,18 +1204,15 @@ class _MonthlyExpensesBody extends StatelessWidget {
       itemCount: months.length,
       separatorBuilder: (_, __) => const SizedBox(height: 16),
       itemBuilder: (BuildContext context, int i) {
-        final Map<String, dynamic> row = months[i] is Map<String, dynamic>
-            ? months[i] as Map<String, dynamic>
-            : Map<String, dynamic>.from(months[i] as Map<dynamic, dynamic>);
+        final Map<String, dynamic> row = months[i];
         final int y = (row['year'] as num?)?.toInt() ?? n.year;
         final int m = (row['month'] as num?)?.toInt() ?? n.month;
         final bool isCurrent = y == n.year && m == n.month;
         final ({int y, int m}) prev = _calendarPreviousMonth(n.year, n.month);
         final bool isImmediatePrevious =
             !isCurrent && y == prev.y && m == prev.m;
-        final List<dynamic> items = row['items'] is List<dynamic>
-            ? row['items'] as List<dynamic>
-            : <dynamic>[];
+        final List<Map<String, dynamic>> items =
+            _coerceMapRows(row['items']);
         return _MonthlyExpensesMonthCard(
           year: y,
           month: m,
@@ -1205,17 +1236,14 @@ class _MonthlyExpensesMonthCard extends StatelessWidget {
 
   final int year;
   final int month;
-  final List<dynamic> items;
+  final List<Map<String, dynamic>> items;
   final bool isCurrentCalendarMonth;
   final bool isImmediatePreviousMonth;
 
   @override
   Widget build(BuildContext context) {
     double total = 0;
-    for (final dynamic e in items) {
-      final Map<String, dynamic> m = e is Map<String, dynamic>
-          ? e
-          : Map<String, dynamic>.from(e as Map<dynamic, dynamic>);
+    for (final Map<String, dynamic> m in items) {
       total += _toDouble(m['amount']);
     }
     final String locale = Localizations.localeOf(context).toString();
@@ -1309,10 +1337,7 @@ class _MonthlyExpensesMonthCard extends StatelessWidget {
               ),
               const SizedBox(height: 8),
               ...List<Widget>.generate(items.length, (int i) {
-                final dynamic raw = items[i];
-                final Map<String, dynamic> m = raw is Map<String, dynamic>
-                    ? raw
-                    : Map<String, dynamic>.from(raw as Map<dynamic, dynamic>);
+                final Map<String, dynamic> m = items[i];
                 final double amount = _toDouble(m['amount']);
                 final String id =
                     m['id']?.toString() ?? '${year}_${month}_$i';
@@ -1343,8 +1368,8 @@ class _MonthlySalesBody extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final List<dynamic>? months = data['months'] as List<dynamic>?;
-    if (months != null && months.isNotEmpty) {
+    final List<Map<String, dynamic>> months = _coerceMapRows(data['months']);
+    if (months.isNotEmpty) {
       final DateTime n = DateTime.now();
       return ListView.separated(
         physics: const AlwaysScrollableScrollPhysics(),
@@ -1352,9 +1377,7 @@ class _MonthlySalesBody extends StatelessWidget {
         itemCount: months.length,
         separatorBuilder: (_, __) => const SizedBox(height: 16),
         itemBuilder: (BuildContext context, int i) {
-          final Map<String, dynamic> row = months[i] is Map<String, dynamic>
-              ? months[i] as Map<String, dynamic>
-              : Map<String, dynamic>.from(months[i] as Map<dynamic, dynamic>);
+          final Map<String, dynamic> row = months[i];
           final int y = (row['year'] as num?)?.toInt() ?? n.year;
           final int m = (row['month'] as num?)?.toInt() ?? n.month;
           final bool isCurrent = y == n.year && m == n.month;
@@ -1396,9 +1419,7 @@ class _MonthlySalesMonthCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final Map<String, dynamic>? totals = monthPayload['totals'] is Map<String, dynamic>
-        ? monthPayload['totals'] as Map<String, dynamic>
-        : null;
+    final Map<String, dynamic>? totals = _tryCoerceMap(monthPayload['totals']);
     final double station = _toDouble(totals?['stationAmount']);
     final double vehicle = _toDouble(totals?['vehicleAmount']);
     final double combined = station + vehicle;
