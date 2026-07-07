@@ -3,6 +3,7 @@ import 'package:amethyst/core/l10n/context_l10n.dart';
 import 'package:amethyst/core/theme/app_colors.dart';
 import 'package:amethyst/core/utils/parse_dynamic_double.dart';
 import 'package:amethyst/core/vehicle_sale/vehicle_sale_payment_method.dart';
+import 'package:amethyst/core/vehicle_sale/vehicle_sales_aggregates.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
@@ -187,6 +188,7 @@ class ProductSalesDaySummary extends StatelessWidget {
     );
     final SalePaymentMethodAmountTotals paymentTotals =
         sumSalePaymentMethodAmounts(sales);
+    final double debtRepaymentTotal = sumDebtRepaymentAmounts(sales);
 
     final TextStyle? headerStyle = theme.textTheme.labelSmall?.copyWith(
       fontWeight: FontWeight.w700,
@@ -376,6 +378,22 @@ class ProductSalesDaySummary extends StatelessWidget {
               ),
             ),
           ],
+        ],
+        if (debtRepaymentTotal > 0) ...<Widget>[
+          const SizedBox(height: 10),
+          Align(
+            alignment: AlignmentDirectional.centerStart,
+            child: Text(
+              l10n.salesSummaryTotalDebtRepayment(
+                money.format(debtRepaymentTotal),
+              ),
+              textAlign: TextAlign.start,
+              style: theme.textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.w600,
+                color: AppColors.brandPrimary,
+              ),
+            ),
+          ),
         ],
         if (volumeTotals.hasAny) ...<Widget>[
           const SizedBox(height: 10),

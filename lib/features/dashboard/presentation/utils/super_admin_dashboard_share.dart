@@ -146,3 +146,28 @@ Future<void> shareSuperAdminVehicleLoadsReport(BuildContext context) async {
     subject: l10n.vehicleLoads,
   );
 }
+
+Future<void> shareSuperAdminCartonReport(BuildContext context) async {
+  final AppLocalizations l10n = context.l10n;
+  final AmethystApi api = sl<AmethystApi>();
+  final DateTime now = DateTime.now();
+  final Map<String, dynamic> summary = await api.getSuperAdminCartonSummary(
+    year: now.year,
+    month: now.month,
+  );
+  if (!context.mounted) {
+    return;
+  }
+  await _sharePdfReport(
+    context,
+    l10n: l10n,
+    buildPdf: () => buildCartonSummaryPdf(
+      summary: summary,
+      l10n: l10n,
+      year: now.year,
+      month: now.month,
+    ),
+    filename: 'carton-summary.pdf',
+    subject: l10n.printCartonSection,
+  );
+}

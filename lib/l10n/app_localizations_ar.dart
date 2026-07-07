@@ -144,6 +144,15 @@ class AppLocalizationsAr extends AppLocalizations {
   String get printOverviewShareFailed => 'تعذّر تحضير الملخص';
 
   @override
+  String get printCartonSection => 'قسم الكراتين';
+
+  @override
+  String get printColumnMetric => 'البند';
+
+  @override
+  String get printColumnValue => 'القيمة';
+
+  @override
   String get printColumnProduct => 'المنتج';
 
   @override
@@ -729,6 +738,11 @@ class AppLocalizationsAr extends AppLocalizations {
   @override
   String salesSummaryTotalCliqAmount(String amount) {
     return 'مجموع مبلغ كليك: $amount';
+  }
+
+  @override
+  String salesSummaryTotalDebtRepayment(String amount) {
+    return 'مجموع السداد: $amount';
   }
 
   @override

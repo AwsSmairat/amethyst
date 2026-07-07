@@ -31,4 +31,22 @@ void main() {
     expect(totals.cliq, 8.5);
     expect(totals.hasAny, isTrue);
   });
+
+  test('sumSalePaymentMethodAmounts adds debt repayment to cash', () {
+    final SalePaymentMethodAmountTotals totals = sumSalePaymentMethodAmounts(
+      <Map<String, dynamic>>[
+        <String, dynamic>{
+          'totalAmount': 10,
+          'paymentMethod': 'cash',
+        },
+        <String, dynamic>{
+          'totalAmount': 1.5,
+          'settledFromDebtSaleId': 'debt-1',
+        },
+      ],
+    );
+
+    expect(totals.cash, 11.5);
+    expect(totals.cliq, 0);
+  });
 }

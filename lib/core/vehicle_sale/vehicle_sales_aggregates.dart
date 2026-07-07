@@ -24,6 +24,31 @@ bool isVehicleDebtRepaymentSale(Map<String, dynamic> row) {
   return settled != null && settled.isNotEmpty;
 }
 
+/// سداد دين مسجّل كمبيع محطة (مرتبط بسجل الدين الأصلي).
+bool isStationDebtRepaymentSale(Map<String, dynamic> row) {
+  final String? settled = row['settledFromDebtId']?.toString().trim();
+  return settled != null && settled.isNotEmpty;
+}
+
+/// سداد دين (محطة أو مركبة) ضمن قائمة المبيعات.
+bool isDebtRepaymentSale(Map<String, dynamic> row) =>
+    isVehicleDebtRepaymentSale(row) || isStationDebtRepaymentSale(row);
+
+/// مجموع مبالغ سداد الدين في قائمة مبيعات اليوم.
+double sumDebtRepaymentAmounts(Iterable<Map<String, dynamic>> sales) {
+  var total = 0.0;
+  for (final Map<String, dynamic> row in sales) {
+    if (!isDebtRepaymentSale(row)) {
+      continue;
+    }
+    final double amount = vehicleSaleRowMoney(row);
+    if (amount > 0) {
+      total += amount;
+    }
+  }
+  return total;
+}
+
 /// منتج دفتر كوبون (وليس مجرد سعر وحدة = ٠).
 bool isVehicleCouponBookProductRow(Map<String, dynamic> row) {
   final Map<String, dynamic>? product = row['product'] is Map<String, dynamic>

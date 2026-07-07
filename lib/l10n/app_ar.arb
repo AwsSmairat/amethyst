@@ -45,6 +45,9 @@
   "overview": "نظرة عامة",
   "printOverviewTooltip": "طباعة أو مشاركة تقارير",
   "printOverviewShareFailed": "تعذّر تحضير الملخص",
+  "printCartonSection": "قسم الكراتين",
+  "printColumnMetric": "البند",
+  "printColumnValue": "القيمة",
   "printColumnProduct": "المنتج",
   "printColumnUnitType": "نوع الوحدة",
   "printColumnDateTime": "التاريخ",
@@ -357,6 +360,12 @@
   },
   "salesSummaryTotalCliqAmount": "مجموع مبلغ كليك: {amount}",
   "@salesSummaryTotalCliqAmount": {
+    "placeholders": {
+      "amount": {"type": "String"}
+    }
+  },
+  "salesSummaryTotalDebtRepayment": "مجموع السداد: {amount}",
+  "@salesSummaryTotalDebtRepayment": {
     "placeholders": {
       "amount": {"type": "String"}
     }

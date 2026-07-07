@@ -364,6 +364,24 @@ abstract class AppLocalizations {
   /// **'تعذّر تحضير الملخص'**
   String get printOverviewShareFailed;
 
+  /// No description provided for @printCartonSection.
+  ///
+  /// In ar, this message translates to:
+  /// **'قسم الكراتين'**
+  String get printCartonSection;
+
+  /// No description provided for @printColumnMetric.
+  ///
+  /// In ar, this message translates to:
+  /// **'البند'**
+  String get printColumnMetric;
+
+  /// No description provided for @printColumnValue.
+  ///
+  /// In ar, this message translates to:
+  /// **'القيمة'**
+  String get printColumnValue;
+
   /// No description provided for @printColumnProduct.
   ///
   /// In ar, this message translates to:
@@ -1407,6 +1425,12 @@ abstract class AppLocalizations {
   /// In ar, this message translates to:
   /// **'مجموع مبلغ كليك: {amount}'**
   String salesSummaryTotalCliqAmount(String amount);
+
+  /// No description provided for @salesSummaryTotalDebtRepayment.
+  ///
+  /// In ar, this message translates to:
+  /// **'مجموع السداد: {amount}'**
+  String salesSummaryTotalDebtRepayment(String amount);
 
   /// No description provided for @salesSummaryTotalCoreVolumeQty.
   ///

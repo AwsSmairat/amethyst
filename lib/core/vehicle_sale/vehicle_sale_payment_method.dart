@@ -1,5 +1,6 @@
 import 'package:amethyst/l10n/app_localizations.dart';
 import 'package:amethyst/core/utils/parse_dynamic_double.dart';
+import 'package:amethyst/core/vehicle_sale/vehicle_sales_aggregates.dart';
 
 enum VehicleSalePaymentMethod {
   cash,
@@ -46,6 +47,10 @@ SalePaymentMethodAmountTotals sumSalePaymentMethodAmounts(
   for (final Map<String, dynamic> row in sales) {
     final double amount = parseDynamicDouble(row['totalAmount']) ?? 0;
     if (amount == 0) {
+      continue;
+    }
+    if (isDebtRepaymentSale(row)) {
+      cash += amount;
       continue;
     }
     switch (row['paymentMethod']?.toString().trim().toLowerCase()) {

@@ -551,6 +551,76 @@ Future<Uint8List> buildVehicleLoadsPdf({
   );
 }
 
+Future<Uint8List> buildCartonSummaryPdf({
+  required Map<String, dynamic> summary,
+  required AppLocalizations l10n,
+  required int year,
+  required int month,
+}) async {
+  final String locale = 'ar';
+  final NumberFormat intFmt = NumberFormat.decimalPattern(locale);
+  final NumberFormat moneyFmt = NumberFormat.decimalPattern(locale);
+  final String monthLabel = DateFormat.yMMMM(locale).format(DateTime(year, month));
+
+  int toInt(dynamic v) {
+    if (v is num) {
+      return v.round();
+    }
+    return int.tryParse(v?.toString() ?? '') ?? 0;
+  }
+
+  double toAmount(dynamic v) => parseDynamicDouble(v) ?? 0;
+
+  final List<List<String>> data = <List<String>>[
+    <String>[
+      l10n.cartonStockLabel,
+      intFmt.format(toInt(summary['cartonStock'])),
+    ],
+    <String>[
+      '${l10n.cartonMonthlyExpensesLabel} ($monthLabel)',
+      moneyFmt.format(toAmount(summary['monthlyCartonExpensesTotalAmount'])),
+    ],
+    <String>[
+      l10n.cartonDebtUnpaidLabel,
+      intFmt.format(toInt(summary['cartonDebtUnpaidQuantity'])),
+    ],
+    <String>[
+      '${l10n.cartonSalesTotalQtyLabel} ($monthLabel)',
+      intFmt.format(toInt(summary['monthlyCartonSalesTotalQty'])),
+    ],
+    <String>[
+      l10n.cartonSalesHomeLabel,
+      intFmt.format(toInt(summary['monthlyCartonSalesHomeQty'])),
+    ],
+    <String>[
+      l10n.cartonSalesStoreLabel,
+      intFmt.format(toInt(summary['monthlyCartonSalesStoreQty'])),
+    ],
+    <String>[
+      '${l10n.cartonPriceLabel} ($monthLabel)',
+      moneyFmt.format(toAmount(summary['monthlyCartonSalesTotalAmount'])),
+    ],
+  ];
+
+  return _buildExcelReportPdf(
+    title: '${l10n.printCartonSection} — $monthLabel',
+    l10n: l10n,
+    headers: <String>[
+      l10n.printColumnMetric,
+      l10n.printColumnValue,
+    ],
+    rows: data,
+    columnWidths: <int, pw.TableColumnWidth>{
+      0: const pw.FlexColumnWidth(2.4),
+      1: const pw.FlexColumnWidth(1),
+    },
+    columnAligns: <int, pw.TextAlign>{
+      1: pw.TextAlign.center,
+    },
+    landscape: false,
+  );
+}
+
 Future<Uint8List> _buildExcelReportPdf({
   required String title,
   required AppLocalizations l10n,
