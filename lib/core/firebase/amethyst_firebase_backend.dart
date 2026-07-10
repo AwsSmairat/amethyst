@@ -1800,6 +1800,18 @@ final class AmethystFirebaseBackend {
     return mapExpenseDoc(doc);
   }
 
+  Future<void> deleteExpense(String id) async {
+    await _requireSuperAdmin();
+    final DocumentReference<Map<String, dynamic>> ref =
+        _db.collection(FirestorePaths.expenses).doc(id);
+    final DocumentSnapshot<Map<String, dynamic>> snap = await ref.get();
+    if (!snap.exists) {
+      throw ApiException('Expense not found', code: 'NOT_FOUND');
+    }
+    await ref.delete();
+    clearDashboardCache();
+  }
+
   static const String _stationCashBalanceDocId = 'main';
 
   Future<({double today, double yesterday})> _stationCashBalanceSnapshot() async {

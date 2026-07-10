@@ -349,6 +349,20 @@ class AppLocalizationsAr extends AppLocalizations {
   String get expensesGrandTotal => 'مجموع المصاريف';
 
   @override
+  String get deleteExpense => 'حذف';
+
+  @override
+  String get deleteExpenseConfirmTitle => 'حذف المصروف';
+
+  @override
+  String deleteExpenseConfirmBody(String amount) {
+    return 'حذف مصروف بمبلغ $amount؟ لا يمكن التراجع.';
+  }
+
+  @override
+  String get expenseDeleted => 'تم حذف المصروف';
+
+  @override
   String expenseCategoryTodayLine(String amount) {
     return 'اليوم: $amount';
   }

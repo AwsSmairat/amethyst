@@ -1320,6 +1320,18 @@ final class PrototypeSampleData {
     return row;
   }
 
+  static bool deleteExpense(String id) {
+    final int idx = _expenses.indexWhere(
+      (Map<String, dynamic> e) => e['id']?.toString() == id,
+    );
+    if (idx < 0) {
+      return false;
+    }
+    _expenses.removeAt(idx);
+    _persist();
+    return true;
+  }
+
   static final List<Map<String, dynamic>> _returns = <Map<String, dynamic>>[];
 
   static void _ensureInitialReturns() {}

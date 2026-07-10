@@ -132,6 +132,15 @@
   "profitMonth": "الربح الشهري",
   "expensesToday": "مصاريف اليوم",
   "expensesGrandTotal": "مجموع المصاريف",
+  "deleteExpense": "حذف",
+  "deleteExpenseConfirmTitle": "حذف المصروف",
+  "deleteExpenseConfirmBody": "حذف مصروف بمبلغ {amount}؟ لا يمكن التراجع.",
+  "@deleteExpenseConfirmBody": {
+    "placeholders": {
+      "amount": {"type": "String"}
+    }
+  },
+  "expenseDeleted": "تم حذف المصروف",
   "expenseCategoryTodayLine": "اليوم: {amount}",
   "@expenseCategoryTodayLine": {
     "placeholders": {

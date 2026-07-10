@@ -120,6 +120,7 @@ service cloud.firestore {
     match /expenses/{expenseId} {
       allow read: if isActiveUser();
       allow create: if isActiveUser();
+      allow delete: if isSuperAdmin();
     }
 
     match /stock_movements/{movementId} {

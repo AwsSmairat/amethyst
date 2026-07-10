@@ -748,6 +748,30 @@ abstract class AppLocalizations {
   /// **'مجموع المصاريف'**
   String get expensesGrandTotal;
 
+  /// No description provided for @deleteExpense.
+  ///
+  /// In ar, this message translates to:
+  /// **'حذف'**
+  String get deleteExpense;
+
+  /// No description provided for @deleteExpenseConfirmTitle.
+  ///
+  /// In ar, this message translates to:
+  /// **'حذف المصروف'**
+  String get deleteExpenseConfirmTitle;
+
+  /// No description provided for @deleteExpenseConfirmBody.
+  ///
+  /// In ar, this message translates to:
+  /// **'حذف مصروف بمبلغ {amount}؟ لا يمكن التراجع.'**
+  String deleteExpenseConfirmBody(String amount);
+
+  /// No description provided for @expenseDeleted.
+  ///
+  /// In ar, this message translates to:
+  /// **'تم حذف المصروف'**
+  String get expenseDeleted;
+
   /// No description provided for @expenseCategoryTodayLine.
   ///
   /// In ar, this message translates to:

@@ -489,6 +489,12 @@ final class PrototypeAmethystBackend {
     return <String, dynamic>{'item': row};
   }
 
+  Future<void> deleteExpense(String id) async {
+    if (!PrototypeSampleData.deleteExpense(id)) {
+      throw ApiException('Expense not found', code: 'NOT_FOUND');
+    }
+  }
+
   Future<Map<String, dynamic>> listReturns({int page = 1, int limit = 100}) async =>
       _paginate(PrototypeSampleData.returns, page: page, limit: limit);
 

@@ -361,6 +361,8 @@ final class AmethystApi {
         receiptFilename: receiptFilename,
       );
 
+  Future<void> deleteExpense(String id) => _b.deleteExpense(id);
+
   Future<Map<String, dynamic>> listReturns({int page = 1, int limit = 100}) =>
       _b.listReturns(page: page, limit: limit);
 

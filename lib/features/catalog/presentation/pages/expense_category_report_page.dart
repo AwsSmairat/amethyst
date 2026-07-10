@@ -2,9 +2,13 @@ import 'package:amethyst/core/data/amethyst_api.dart';
 import 'package:amethyst/core/expenses/expense_aggregates.dart';
 import 'package:amethyst/core/expenses/expense_category_match.dart';
 import 'package:amethyst/core/l10n/context_l10n.dart';
+import 'package:amethyst/core/network/api_exception.dart';
 import 'package:amethyst/di/injection.dart';
+import 'package:amethyst/features/auth/presentation/cubit/auth_cubit.dart';
+import 'package:amethyst/features/auth/presentation/cubit/auth_state.dart';
 import 'package:amethyst/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
 
 export 'package:amethyst/core/expenses/expense_category_match.dart'
@@ -38,6 +42,7 @@ class _ExpenseCategoryReportPageState extends State<ExpenseCategoryReportPage> {
   String? _error;
   List<Map<String, dynamic>> _items = <Map<String, dynamic>>[];
   bool _didLoadOnce = false;
+  bool _deleting = false;
 
   @override
   void initState() {
@@ -51,6 +56,11 @@ class _ExpenseCategoryReportPageState extends State<ExpenseCategoryReportPage> {
     _didLoadOnce = true;
     // Safe to access inherited widgets like l10n here.
     _load(context.l10n);
+  }
+
+  bool get _canDeleteExpense {
+    final AuthState auth = context.read<AuthCubit>().state;
+    return auth is AuthAuthenticated && auth.user.role == 'super_admin';
   }
 
   Future<void> _load([AppLocalizations? l10nOverride]) async {
@@ -129,6 +139,65 @@ class _ExpenseCategoryReportPageState extends State<ExpenseCategoryReportPage> {
     return double.tryParse(v.toString()) ?? 0;
   }
 
+  Future<void> _confirmDeleteExpense(Map<String, dynamic> item) async {
+    if (_deleting) {
+      return;
+    }
+    final String? id = item['id']?.toString();
+    if (id == null || id.isEmpty) {
+      return;
+    }
+    final l10n = context.l10n;
+    final String amountLabel = l10n.amountDinars(
+      _formatMoney(_parseAmount(item['amount'])),
+    );
+    final bool? ok = await showDialog<bool>(
+      context: context,
+      builder: (BuildContext ctx) => AlertDialog(
+        title: Text(l10n.deleteExpenseConfirmTitle),
+        content: Text(l10n.deleteExpenseConfirmBody(amountLabel)),
+        actions: <Widget>[
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: Text(l10n.cancel),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: Text(l10n.deleteExpense),
+          ),
+        ],
+      ),
+    );
+    if (ok != true || !mounted) {
+      return;
+    }
+    setState(() => _deleting = true);
+    try {
+      await sl<AmethystApi>().deleteExpense(id);
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _items = _items
+            .where((Map<String, dynamic> e) => e['id']?.toString() != id)
+            .toList(growable: false);
+        _deleting = false;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(l10n.expenseDeleted)),
+      );
+    } on Object catch (e) {
+      if (!mounted) {
+        return;
+      }
+      setState(() => _deleting = false);
+      final String message = e is ApiException ? e.message : e.toString();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(message)),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = context.l10n;
@@ -140,7 +209,7 @@ class _ExpenseCategoryReportPageState extends State<ExpenseCategoryReportPage> {
         title: Text(title),
         actions: <Widget>[
           IconButton(
-            onPressed: () => _load(context.l10n),
+            onPressed: _deleting ? null : () => _load(context.l10n),
             icon: const Icon(Icons.refresh),
           ),
         ],
@@ -182,6 +251,7 @@ class _ExpenseCategoryReportPageState extends State<ExpenseCategoryReportPage> {
       (double s, Map<String, dynamic> m) => s + _parseAmount(m['amount']),
     );
     final totalLabel = l10n.expenseReportTotal(_formatMoney(total));
+    final bool canDelete = _canDeleteExpense;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -208,6 +278,18 @@ class _ExpenseCategoryReportPageState extends State<ExpenseCategoryReportPage> {
               final String detailNote = isStationExtra
                   ? stationExtraExpenseDetailNote(rawNote, l10n)
                   : '';
+              final Widget? deleteAction = canDelete
+                  ? IconButton(
+                      tooltip: l10n.deleteExpense,
+                      onPressed: _deleting
+                          ? null
+                          : () => _confirmDeleteExpense(m),
+                      icon: Icon(
+                        Icons.delete_outline,
+                        color: Theme.of(context).colorScheme.error,
+                      ),
+                    )
+                  : null;
 
               if (isStationExtra && detailNote.isNotEmpty) {
                 return ListTile(
@@ -216,12 +298,18 @@ class _ExpenseCategoryReportPageState extends State<ExpenseCategoryReportPage> {
                     style: const TextStyle(fontWeight: FontWeight.w800),
                   ),
                   subtitle: Text('$dateLine · $source'),
-                  trailing: Text(
-                    l10n.amountDinars(_formatMoney(amount)),
-                    style: TextStyle(
-                      fontWeight: FontWeight.w700,
-                      color: Theme.of(context).colorScheme.primary,
-                    ),
+                  trailing: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: <Widget>[
+                      Text(
+                        l10n.amountDinars(_formatMoney(amount)),
+                        style: TextStyle(
+                          fontWeight: FontWeight.w700,
+                          color: Theme.of(context).colorScheme.primary,
+                        ),
+                      ),
+                      if (deleteAction != null) deleteAction,
+                    ],
                   ),
                   isThreeLine: true,
                 );
@@ -233,12 +321,18 @@ class _ExpenseCategoryReportPageState extends State<ExpenseCategoryReportPage> {
                   style: const TextStyle(fontWeight: FontWeight.w600),
                 ),
                 subtitle: Text(source),
-                trailing: Text(
-                  l10n.amountDinars(_formatMoney(amount)),
-                  style: TextStyle(
-                    fontWeight: FontWeight.w700,
-                    color: Theme.of(context).colorScheme.primary,
-                  ),
+                trailing: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: <Widget>[
+                    Text(
+                      l10n.amountDinars(_formatMoney(amount)),
+                      style: TextStyle(
+                        fontWeight: FontWeight.w700,
+                        color: Theme.of(context).colorScheme.primary,
+                      ),
+                    ),
+                    if (deleteAction != null) deleteAction,
+                  ],
                 ),
                 isThreeLine: false,
               );
