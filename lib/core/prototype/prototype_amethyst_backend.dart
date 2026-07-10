@@ -341,9 +341,13 @@ final class PrototypeAmethystBackend {
     return _paginate(items, page: page, limit: limit);
   }
 
-  Future<Map<String, dynamic>> repayStationDebt({required String debtorName}) async {
+  Future<Map<String, dynamic>> repayStationDebt({
+    required String debtorName,
+    String? paymentMethod,
+  }) async {
     final int n = PrototypeSampleData.repayStationDebtForDebtor(
       debtorName: debtorName,
+      paymentMethod: paymentMethod,
     );
     if (n <= 0) {
       throw ApiException('No unpaid station debt', code: 'NOT_FOUND');
@@ -353,9 +357,11 @@ final class PrototypeAmethystBackend {
 
   Future<Map<String, dynamic>> repayStationDebtFromVehicle({
     required String debtorName,
+    String? paymentMethod,
   }) async {
     final int n = PrototypeSampleData.repayVehicleDebtForDebtor(
       debtorName: debtorName,
+      paymentMethod: paymentMethod,
     );
     if (n <= 0) {
       throw ApiException('No unpaid vehicle debt', code: 'NOT_FOUND');

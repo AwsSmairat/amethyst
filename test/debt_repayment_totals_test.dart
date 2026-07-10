@@ -26,4 +26,16 @@ void main() {
 
     expect(total, 3.5);
   });
+
+  test('sumDebtRepaymentAmounts detects note-based station repayments', () {
+    final double total = sumDebtRepaymentAmounts(
+      <Map<String, dynamic>>[
+        <String, dynamic>{
+          'totalAmount': 4,
+          'note': 'سداد دين — سامي',
+        },
+      ],
+    );
+    expect(total, 4);
+  });
 }

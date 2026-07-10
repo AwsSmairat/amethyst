@@ -49,4 +49,27 @@ void main() {
     expect(totals.cash, 11.5);
     expect(totals.cliq, 0);
   });
+
+  test('sumSalePaymentMethodAmounts routes cliq repayment to cliq', () {
+    final SalePaymentMethodAmountTotals totals = sumSalePaymentMethodAmounts(
+      <Map<String, dynamic>>[
+        <String, dynamic>{
+          'totalAmount': 10,
+          'paymentMethod': 'cash',
+        },
+        <String, dynamic>{
+          'totalAmount': 3,
+          'settledFromDebtId': 'debt-1',
+          'paymentMethod': 'cliq',
+        },
+        <String, dynamic>{
+          'totalAmount': 2,
+          'note': 'سداد دين — أحمد',
+        },
+      ],
+    );
+
+    expect(totals.cash, 12);
+    expect(totals.cliq, 3);
+  });
 }

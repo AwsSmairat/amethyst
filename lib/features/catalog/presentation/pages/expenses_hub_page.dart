@@ -6,6 +6,7 @@ import 'package:amethyst/core/prototype/ui_only.dart';
 import 'package:amethyst/core/theme/app_colors.dart';
 import 'package:amethyst/core/widgets/expense_category_hints_section.dart';
 import 'package:amethyst/di/injection.dart';
+import 'package:amethyst/features/admin/presentation/widgets/add_station_expense_sheet.dart';
 import 'package:amethyst/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
@@ -115,6 +116,14 @@ class _ExpensesHubPageState extends State<ExpensesHubPage> {
           ),
         ],
       ),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () => showAddStationExpenseSheet(
+          context,
+          onRecorded: _loadTotals,
+        ),
+        icon: const Icon(Icons.add),
+        label: Text(l10n.addExpense),
+      ),
       body: ListView(
         children: <Widget>[
           Padding(
@@ -141,6 +150,7 @@ class _ExpensesHubPageState extends State<ExpensesHubPage> {
             },
           ),
           const SizedBox(height: 12),
+          const SizedBox(height: 72),
         ],
       ),
     );

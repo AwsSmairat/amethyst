@@ -63,8 +63,14 @@ final class RepayStationDebtUseCase {
 
   final RecordOperationsRepository _repository;
 
-  Future<Map<String, dynamic>> call({required String debtorName}) =>
-      _repository.repayStationDebt(debtorName: debtorName);
+  Future<Map<String, dynamic>> call({
+    required String debtorName,
+    String? paymentMethod,
+  }) =>
+      _repository.repayStationDebt(
+        debtorName: debtorName,
+        paymentMethod: paymentMethod,
+      );
 }
 
 final class RepayStationDebtFromVehicleUseCase {
@@ -72,8 +78,14 @@ final class RepayStationDebtFromVehicleUseCase {
 
   final RecordOperationsRepository _repository;
 
-  Future<Map<String, dynamic>> call({required String debtorName}) =>
-      _repository.repayStationDebtFromVehicle(debtorName: debtorName);
+  Future<Map<String, dynamic>> call({
+    required String debtorName,
+    String? paymentMethod,
+  }) =>
+      _repository.repayStationDebtFromVehicle(
+        debtorName: debtorName,
+        paymentMethod: paymentMethod,
+      );
 }
 
 final class CreateVehicleSaleUseCase {

@@ -21,11 +21,13 @@ final class StationSalesListCubit extends Cubit<ListLoadState> {
               _api.listStationSales(page: page, limit: limit),
         ),
         fetchAllStationDebtSummaryEntries(_api),
+        fetchAllExpenses(_api),
       ]);
       emit(
         StationSalesListLoaded(
           sales: results[0] as List<Map<String, dynamic>>,
           debtEntries: results[1] as List<Map<String, dynamic>>,
+          expenses: results[2] as List<Map<String, dynamic>>,
         ),
       );
     } on Object catch (e) {

@@ -1,5 +1,7 @@
 import 'package:amethyst/core/l10n/context_l10n.dart';
 import 'package:amethyst/core/network/api_exception.dart';
+import 'package:amethyst/core/vehicle_sale/vehicle_sale_payment_method.dart';
+import 'package:amethyst/core/widgets/sale_payment_method_picker.dart';
 import 'package:amethyst/di/injection.dart';
 import 'package:amethyst/features/admin/presentation/station_debt/station_debt_api_error.dart';
 import 'package:amethyst/features/admin/presentation/station_debt/station_debt_formatting.dart';
@@ -67,26 +69,54 @@ class _StationDebtorDetailPageState extends State<StationDebtorDetailPage> {
         : hasVehicle
             ? l10n.stationDebtRepayConfirmMessageVehicle
             : l10n.stationDebtRepayConfirmMessage;
-    final bool? ok = await showDialog<bool>(
+    VehicleSalePaymentMethod selectedMethod = VehicleSalePaymentMethod.cash;
+    final VehicleSalePaymentMethod? chosen =
+        await showDialog<VehicleSalePaymentMethod>(
       context: context,
-      builder: (BuildContext ctx) => AlertDialog(
-        title: Text(l10n.stationDebtRepayConfirmTitle),
-        content: Text(confirmMessage),
-        actions: <Widget>[
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(false),
-            child: Text(l10n.cancel),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.of(ctx).pop(true),
-            child: Text(l10n.confirm),
-          ),
-        ],
-      ),
+      builder: (BuildContext ctx) {
+        return StatefulBuilder(
+          builder: (BuildContext context, StateSetter setDialogState) {
+            return AlertDialog(
+              title: Text(l10n.stationDebtRepayConfirmTitle),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: <Widget>[
+                  Text(confirmMessage),
+                  const SizedBox(height: 16),
+                  SalePaymentMethodPicker(
+                    title: l10n.vehicleSaleChoosePaymentMethod,
+                    cashLabel: l10n.vehicleSalePaymentCash,
+                    cliqLabel: l10n.vehicleSalePaymentCliq,
+                    selected: selectedMethod,
+                    onCashTap: () => setDialogState(
+                      () => selectedMethod = VehicleSalePaymentMethod.cash,
+                    ),
+                    onCliqTap: () => setDialogState(
+                      () => selectedMethod = VehicleSalePaymentMethod.cliq,
+                    ),
+                  ),
+                ],
+              ),
+              actions: <Widget>[
+                TextButton(
+                  onPressed: () => Navigator.of(ctx).pop(),
+                  child: Text(l10n.cancel),
+                ),
+                FilledButton(
+                  onPressed: () => Navigator.of(ctx).pop(selectedMethod),
+                  child: Text(l10n.confirm),
+                ),
+              ],
+            );
+          },
+        );
+      },
     );
-    if (!mounted || ok != true) {
+    if (!mounted || chosen == null) {
       return;
     }
+    final String paymentMethod = chosen.firestoreValue;
     setState(() => _submitting = true);
     try {
       var vehicleRepaid = 0;
@@ -100,9 +130,12 @@ class _StationDebtorDetailPageState extends State<StationDebtorDetailPage> {
           final Map<String, dynamic> result =
               await sl<RepayStationDebtFromVehicleUseCase>().call(
             debtorName: widget.debtorName,
+            paymentMethod: paymentMethod,
           );
           vehicleRepaid =
-              (result['salesCreated'] as num?)?.toInt() ?? 0;
+              (result['salesCreated'] as num?)?.toInt() ??
+              (result['repaidCount'] as num?)?.toInt() ??
+              0;
         } on ApiException catch (e) {
           if (e.code != 'NOT_FOUND') {
             rethrow;
@@ -114,9 +147,12 @@ class _StationDebtorDetailPageState extends State<StationDebtorDetailPage> {
           final Map<String, dynamic> result =
               await sl<RepayStationDebtUseCase>().call(
             debtorName: widget.debtorName,
+            paymentMethod: paymentMethod,
           );
           stationRepaid =
-              (result['salesCreated'] as num?)?.toInt() ?? 0;
+              (result['salesCreated'] as num?)?.toInt() ??
+              (result['repaidCount'] as num?)?.toInt() ??
+              0;
         } on ApiException catch (e) {
           if (e.code != 'NOT_FOUND') {
             rethrow;

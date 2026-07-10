@@ -50,11 +50,13 @@ abstract class RecordOperationsRepository {
 
   Future<Map<String, dynamic>> repayStationDebt({
     required String debtorName,
+    String? paymentMethod,
   });
 
   /// سداد دين لكن يُحتسب ضمن بيع السيارة (driver only).
   Future<Map<String, dynamic>> repayStationDebtFromVehicle({
     required String debtorName,
+    String? paymentMethod,
   });
 
   Future<void> createVehicleSale({

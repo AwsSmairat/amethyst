@@ -28,13 +28,15 @@ final class StationSalesListLoaded extends ListLoadState {
   const StationSalesListLoaded({
     required this.sales,
     required this.debtEntries,
+    this.expenses = const <Map<String, dynamic>>[],
   });
 
   final List<Map<String, dynamic>> sales;
   final List<Map<String, dynamic>> debtEntries;
+  final List<Map<String, dynamic>> expenses;
 
   @override
-  List<Object?> get props => <Object?>[sales, debtEntries];
+  List<Object?> get props => <Object?>[sales, debtEntries, expenses];
 }
 
 final class ListLoadFailure extends ListLoadState {

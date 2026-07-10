@@ -6,6 +6,7 @@ import 'package:amethyst/core/presentation/dashboard_load_state.dart';
 import 'package:amethyst/core/theme/app_colors.dart';
 import 'package:amethyst/core/utils/format_money.dart';
 import 'package:amethyst/di/injection.dart';
+import 'package:amethyst/features/admin/presentation/widgets/add_station_expense_sheet.dart';
 import 'package:amethyst/features/dashboard/presentation/cubit/super_admin_dashboard_cubit.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -175,34 +176,11 @@ class _SuperAdminDashboardBodyState extends State<_SuperAdminDashboardBody>
               _KpiGrid(
                 children: <Widget>[
                   _KpiCard(
-                    label: l10n.kpiUsers,
-                    value: '${d['totalUsers'] ?? 0}',
-                    icon: Icons.people,
-                    onTap: () => context.push('/super-admin/users'),
-                  ),
-                  _KpiCard(
-                    label: l10n.kpiAdmins,
-                    value: '${d['totalAdmins'] ?? 0}',
-                    icon: Icons.admin_panel_settings,
-                  ),
-                  _KpiCard(
                     label: l10n.kpiProductPrices,
                     value:
                         '${d['productsWithPrice'] ?? d['totalProducts'] ?? 0}',
                     icon: Icons.price_change_outlined,
                     onTap: () => context.push('/super-admin/product-prices'),
-                  ),
-                  _KpiCard(
-                    label: l10n.kpiDrivers,
-                    value: '${d['totalDrivers'] ?? 0}',
-                    icon: Icons.drive_eta,
-                    onTap: () => context.push('/super-admin/drivers'),
-                  ),
-                  _KpiCard(
-                    label: l10n.kpiVehicles,
-                    value: '${d['totalVehicles'] ?? 0}',
-                    icon: Icons.local_shipping,
-                    onTap: () => context.push('/super-admin/vehicles'),
                   ),
                   _KpiCard(
                     label: l10n.salesToday,
@@ -269,6 +247,19 @@ class _SuperAdminDashboardBodyState extends State<_SuperAdminDashboardBody>
                     value: '✉',
                     icon: Icons.note_alt_outlined,
                     onTap: () => showSendStaffNoteSheet(context),
+                  ),
+                  _KpiCard(
+                    label: l10n.addExpense,
+                    value: '+',
+                    icon: Icons.payments_outlined,
+                    onTap: () => showAddStationExpenseSheet(
+                      context,
+                      onRecorded: () {
+                        context
+                            .read<SuperAdminDashboardCubit>()
+                            .load(showLoading: false);
+                      },
+                    ),
                   ),
                 ],
               ),
@@ -480,17 +471,25 @@ class _KpiGrid extends StatelessWidget {
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        final w = constraints.maxWidth;
-        final cross = w > 900 ? 4 : (w > 600 ? 2 : 1);
+        final double w = constraints.maxWidth;
+        final int cross = w >= 900 ? 4 : 2;
+        const double gap = 12;
+        final double tileW = (w - gap * (cross - 1)) / cross;
+        final int orphan = children.length % cross;
         return Wrap(
-          spacing: 12,
-          runSpacing: 12,
-          children: children
-              .map(
-                (c) =>
-                    SizedBox(width: (w - 12 * (cross - 1)) / cross, child: c),
-              )
-              .toList(growable: false),
+          spacing: gap,
+          runSpacing: gap,
+          children: <Widget>[
+            for (int i = 0; i < children.length; i++)
+              SizedBox(
+                width: orphan != 0 && i >= children.length - orphan ? w : tileW,
+                child: children[i] is _KpiCard
+                    ? (children[i] as _KpiCard).copyWith(
+                        wide: orphan != 0 && i >= children.length - orphan,
+                      )
+                    : children[i],
+              ),
+          ],
         );
       },
     );
@@ -503,53 +502,152 @@ class _KpiCard extends StatelessWidget {
     required this.value,
     required this.icon,
     this.onTap,
+    this.wide = false,
   });
 
   final String label;
   final String value;
   final IconData icon;
   final VoidCallback? onTap;
+  final bool wide;
+
+  _KpiCard copyWith({bool? wide}) {
+    return _KpiCard(
+      label: label,
+      value: value,
+      icon: icon,
+      onTap: onTap,
+      wide: wide ?? this.wide,
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
-    final Widget content = Padding(
-      padding: const EdgeInsets.all(16),
-      child: Row(
-        children: <Widget>[
-          Icon(icon, color: AppColors.brandPrimary),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+    final ThemeData theme = Theme.of(context);
+    final Widget iconBadge = Container(
+      width: 40,
+      height: 40,
+      decoration: BoxDecoration(
+        color: AppColors.brandPrimary.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Icon(
+        icon,
+        color: AppColors.brandPrimary,
+        size: 22,
+      ),
+    );
+
+    final Widget content = wide
+        ? Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            child: Row(
               children: <Widget>[
-                Text(
-                  label.toUpperCase(),
-                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                    letterSpacing: 0.8,
-                    color: AppColors.onSurfaceVariant,
+                iconBadge,
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: <Widget>[
+                      Text(
+                        label,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: theme.textTheme.labelMedium?.copyWith(
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.onSurfaceVariant,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        value,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: theme.textTheme.titleLarge?.copyWith(
+                          fontWeight: FontWeight.w900,
+                          color: AppColors.primaryText,
+                          height: 1.1,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-                const SizedBox(height: 4),
+                if (onTap != null)
+                  Icon(
+                    Icons.chevron_left,
+                    size: 22,
+                    color: AppColors.onSurfaceVariant.withValues(alpha: 0.55),
+                  ),
+              ],
+            ),
+          )
+        : Padding(
+            padding: const EdgeInsets.fromLTRB(14, 14, 14, 14),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: <Widget>[
+                Row(
+                  children: <Widget>[
+                    iconBadge,
+                    const Spacer(),
+                    if (onTap != null)
+                      Icon(
+                        Icons.chevron_left,
+                        size: 20,
+                        color: AppColors.onSurfaceVariant.withValues(
+                          alpha: 0.55,
+                        ),
+                      ),
+                  ],
+                ),
+                const Spacer(),
+                Text(
+                  label,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  textAlign: TextAlign.start,
+                  style: theme.textTheme.labelMedium?.copyWith(
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.onSurfaceVariant,
+                    height: 1.25,
+                  ),
+                ),
+                const SizedBox(height: 6),
                 Text(
                   value,
-                  style: Theme.of(
-                    context,
-                  ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  textAlign: TextAlign.start,
+                  style: theme.textTheme.titleLarge?.copyWith(
+                    fontWeight: FontWeight.w900,
+                    color: AppColors.primaryText,
+                    height: 1.1,
+                  ),
                 ),
               ],
             ),
-          ),
-          if (onTap != null)
-            Icon(
-              Icons.chevron_right,
-              color: AppColors.onSurfaceVariant.withValues(alpha: 0.6),
-            ),
-        ],
+          );
+
+    final Widget card = Card(
+      elevation: 0,
+      color: AppColors.surfaceLowest,
+      margin: EdgeInsets.zero,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: BorderSide(
+          color: AppColors.outlineVariant.withValues(alpha: 0.55),
+        ),
       ),
+      clipBehavior: Clip.antiAlias,
+      child: onTap == null
+          ? content
+          : InkWell(onTap: onTap, child: content),
     );
-    return Card(
-      clipBehavior: onTap != null ? Clip.antiAlias : Clip.none,
-      child: onTap == null ? content : InkWell(onTap: onTap, child: content),
-    );
+
+    if (wide) {
+      return SizedBox(height: 76, child: card);
+    }
+    return AspectRatio(aspectRatio: 1, child: card);
   }
 }

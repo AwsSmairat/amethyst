@@ -370,6 +370,24 @@
       "amount": {"type": "String"}
     }
   },
+  "salesSummaryDebtRepaymentAmount": "مبلغ سداد: {amount}",
+  "@salesSummaryDebtRepaymentAmount": {
+    "placeholders": {
+      "amount": {"type": "String"}
+    }
+  },
+  "salesSummaryDayExpensesAmount": "مصاريف اليوم: {amount}",
+  "@salesSummaryDayExpensesAmount": {
+    "placeholders": {
+      "amount": {"type": "String"}
+    }
+  },
+  "salesSummaryDebtRepaymentPriceTotal": "مجموع السعر: {amount}",
+  "@salesSummaryDebtRepaymentPriceTotal": {
+    "placeholders": {
+      "amount": {"type": "String"}
+    }
+  },
   "salesSummaryTotalCoreVolumeQty": "إجمالي الكمية: {count}",
   "@salesSummaryTotalCoreVolumeQty": {
     "placeholders": {

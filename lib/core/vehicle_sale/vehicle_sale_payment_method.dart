@@ -49,11 +49,18 @@ SalePaymentMethodAmountTotals sumSalePaymentMethodAmounts(
     if (amount == 0) {
       continue;
     }
+    final String? method =
+        row['paymentMethod']?.toString().trim().toLowerCase();
     if (isDebtRepaymentSale(row)) {
-      cash += amount;
+      if (method == 'cliq') {
+        cliq += amount;
+      } else {
+        // سداد بدون طريقة دفع قديمة يُحسب كاش.
+        cash += amount;
+      }
       continue;
     }
-    switch (row['paymentMethod']?.toString().trim().toLowerCase()) {
+    switch (method) {
       case 'cash':
         cash += amount;
       case 'cliq':

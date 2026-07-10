@@ -1432,6 +1432,24 @@ abstract class AppLocalizations {
   /// **'مجموع السداد: {amount}'**
   String salesSummaryTotalDebtRepayment(String amount);
 
+  /// No description provided for @salesSummaryDebtRepaymentAmount.
+  ///
+  /// In ar, this message translates to:
+  /// **'مبلغ سداد: {amount}'**
+  String salesSummaryDebtRepaymentAmount(String amount);
+
+  /// No description provided for @salesSummaryDayExpensesAmount.
+  ///
+  /// In ar, this message translates to:
+  /// **'مصاريف اليوم: {amount}'**
+  String salesSummaryDayExpensesAmount(String amount);
+
+  /// No description provided for @salesSummaryDebtRepaymentPriceTotal.
+  ///
+  /// In ar, this message translates to:
+  /// **'مجموع السعر: {amount}'**
+  String salesSummaryDebtRepaymentPriceTotal(String amount);
+
   /// No description provided for @salesSummaryTotalCoreVolumeQty.
   ///
   /// In ar, this message translates to:

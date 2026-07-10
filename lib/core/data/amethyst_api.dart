@@ -262,13 +262,23 @@ final class AmethystApi {
   }) =>
       _b.listStationDebtEntriesForSummary(page: page, limit: limit);
 
-  Future<Map<String, dynamic>> repayStationDebt({required String debtorName}) =>
-      _b.repayStationDebt(debtorName: debtorName);
+  Future<Map<String, dynamic>> repayStationDebt({
+    required String debtorName,
+    String? paymentMethod,
+  }) =>
+      _b.repayStationDebt(
+        debtorName: debtorName,
+        paymentMethod: paymentMethod,
+      );
 
   Future<Map<String, dynamic>> repayStationDebtFromVehicle({
     required String debtorName,
+    String? paymentMethod,
   }) =>
-      _b.repayStationDebtFromVehicle(debtorName: debtorName);
+      _b.repayStationDebtFromVehicle(
+        debtorName: debtorName,
+        paymentMethod: paymentMethod,
+      );
 
   Future<Map<String, dynamic>> listVehicleSales({
     int page = 1,

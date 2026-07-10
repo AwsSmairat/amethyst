@@ -150,10 +150,12 @@ class ProductSalesDaySummary extends StatelessWidget {
     super.key,
     required this.sales,
     this.debtSales = const <Map<String, dynamic>>[],
+    this.dayExpensesTotal = 0,
   });
 
   final List<Map<String, dynamic>> sales;
   final List<Map<String, dynamic>> debtSales;
+  final double dayExpensesTotal;
 
   @override
   Widget build(BuildContext context) {
@@ -384,8 +386,24 @@ class ProductSalesDaySummary extends StatelessWidget {
           Align(
             alignment: AlignmentDirectional.centerStart,
             child: Text(
-              l10n.salesSummaryTotalDebtRepayment(
+              l10n.salesSummaryDebtRepaymentAmount(
                 money.format(debtRepaymentTotal),
+              ),
+              textAlign: TextAlign.start,
+              style: theme.textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.w600,
+                color: AppColors.brandPrimary,
+              ),
+            ),
+          ),
+        ],
+        if (dayExpensesTotal > 0) ...<Widget>[
+          const SizedBox(height: 10),
+          Align(
+            alignment: AlignmentDirectional.centerStart,
+            child: Text(
+              l10n.salesSummaryDayExpensesAmount(
+                money.format(dayExpensesTotal),
               ),
               textAlign: TextAlign.start,
               style: theme.textTheme.titleMedium?.copyWith(

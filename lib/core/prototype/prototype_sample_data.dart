@@ -10,6 +10,7 @@ import 'package:amethyst/core/firebase/date_range_utils.dart';
 import 'package:amethyst/core/expenses/profit_vehicle_expense_deduction.dart';
 import 'package:amethyst/core/vehicle_load/vehicle_load_aggregates.dart';
 import 'package:amethyst/core/vehicle_load/vehicle_load_catalog.dart';
+import 'package:amethyst/core/vehicle_sale/vehicle_sales_aggregates.dart';
 import 'package:amethyst/features/auth/domain/entities/user_entity.dart';
 
 /// Sample maps for UI prototype with optional local persistence.
@@ -667,7 +668,10 @@ final class PrototypeSampleData {
   }
 
   /// سداد دين المحطة: إغلاق السجل + مبيع محطة اليوم (بدون خصم مخزون مرة أخرى).
-  static int repayStationDebtForDebtor({required String debtorName}) {
+  static int repayStationDebtForDebtor({
+    required String debtorName,
+    String? paymentMethod,
+  }) {
     _ensureInitialStationDebt();
     final String want = debtorName.trim();
     if (want.isEmpty) {
@@ -688,6 +692,10 @@ final class PrototypeSampleData {
       }
       toSettle.add(e);
     }
+    final String method =
+        (paymentMethod?.trim().isNotEmpty == true)
+            ? paymentMethod!.trim().toLowerCase()
+            : 'cash';
     for (final Map<String, dynamic> debt in toSettle) {
       debt['repaidAt'] = now;
       addStationSale(
@@ -696,6 +704,7 @@ final class PrototypeSampleData {
         unitPrice: ((debt['unitPrice'] as num?) ?? 0).toDouble(),
         note: 'سداد دين — $want',
         settledFromDebtId: debt['id']?.toString(),
+        paymentMethod: method,
       );
       count++;
     }
@@ -1016,7 +1025,10 @@ final class PrototypeSampleData {
   static void _ensureInitialVehicleSales() {}
 
   /// سداد ديون المركبة: إغلاق سجل الدين + تسجيل مبيع اليوم **بدون** خصم مخزون.
-  static int repayVehicleDebtForDebtor({required String debtorName}) {
+  static int repayVehicleDebtForDebtor({
+    required String debtorName,
+    String? paymentMethod,
+  }) {
     _ensureInitialVehicleSales();
     final String want = debtorName.trim();
     if (want.isEmpty) {
@@ -1034,6 +1046,10 @@ final class PrototypeSampleData {
       }
       toSettle.add(vs);
     }
+    final String method =
+        (paymentMethod?.trim().isNotEmpty == true)
+            ? paymentMethod!.trim().toLowerCase()
+            : 'cash';
     for (final Map<String, dynamic> debt in toSettle) {
       debt['repaidAt'] = now.toIso8601String();
       addVehicleSale(
@@ -1046,6 +1062,7 @@ final class PrototypeSampleData {
         isDebt: false,
         skipLoadDeduction: true,
         settledFromDebtSaleId: debt['id']?.toString(),
+        paymentMethod: method,
       );
       count++;
     }
@@ -1771,7 +1788,10 @@ final class PrototypeSampleData {
   }
 
   static Map<String, dynamic> _cartonMonthlySummary(DateTime monthRef) {
-    final Map<String, dynamic> carton = productById('p_mahdi_carton');
+    final int cartonStock = aggregateStationStockForBalanceRow(
+      products: _products,
+      rowIndex: 0,
+    );
     var cartonExpenses = 0.0;
     var cartonSalesQtyHome = 0;
     var cartonSalesQtyStore = 0;
@@ -1788,6 +1808,13 @@ final class PrototypeSampleData {
       }
     }
     for (final Map<String, dynamic> s in _stationSales) {
+      if (isStationDebtRepaymentSale(s)) {
+        continue;
+      }
+      final String? note = s['note']?.toString();
+      if (note != null && note.startsWith('سداد دين')) {
+        continue;
+      }
       if (!_isCartonRow(s) ||
           !_isSameCalendarMonth(_rowDateOnly(s), monthRef)) {
         continue;
@@ -1798,6 +1825,7 @@ final class PrototypeSampleData {
     }
     for (final Map<String, dynamic> vs in _vehicleSales) {
       if (!_isCashVehicleSale(vs) ||
+          isVehicleDebtRepaymentSale(vs) ||
           !_isCartonRow(vs) ||
           !_isSameCalendarMonth(_rowDateOnly(vs), monthRef)) {
         continue;
@@ -1820,7 +1848,7 @@ final class PrototypeSampleData {
       debtAmount += _rowMoney(e);
     }
     return <String, dynamic>{
-      'cartonStock': _intField(carton, 'stationStock'),
+      'cartonStock': cartonStock,
       'monthlyCartonExpensesTotalAmount': cartonExpenses,
       'monthlyCartonSalesTotalAmount': monthlyCartonSales,
       'monthlyCartonSalesTotalQty': cartonSalesQtyHome + cartonSalesQtyStore,

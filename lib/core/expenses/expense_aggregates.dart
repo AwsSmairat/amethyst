@@ -98,6 +98,66 @@ ExpenseSummaryTotals summarizeExpenseRows(
   return ExpenseSummaryTotals(today: today, month: month, allTime: allTime);
 }
 
+String? expenseRowLocalYmd(Map<String, dynamic> row) {
+  final DateTime? created = expenseRowDate(row['createdAt']);
+  if (created == null) {
+    return null;
+  }
+  final DateTime local = created.toLocal();
+  return '${local.year.toString().padLeft(4, '0')}-'
+      '${local.month.toString().padLeft(2, '0')}-'
+      '${local.day.toString().padLeft(2, '0')}';
+}
+
+/// مصروف مرتبط بمركبة/سائق (يظهر في ملخص يوم المركبة).
+bool isVehicleScopedExpense(
+  Map<String, dynamic> expense, {
+  required String vehicleId,
+  String? driverId,
+}) {
+  final String vid = expense['vehicleId']?.toString().trim() ?? '';
+  if (vid.isNotEmpty) {
+    return vid == vehicleId;
+  }
+  final String wantDriver = driverId?.trim() ?? '';
+  if (wantDriver.isEmpty) {
+    return false;
+  }
+  final String did = expense['driverId']?.toString().trim() ?? '';
+  return did == wantDriver;
+}
+
+/// مصروف محطة (بدون مركبة/سائق) — يظهر في ملخص مبيعات المحطة.
+bool isStationScopedExpense(Map<String, dynamic> expense) {
+  final String vid = expense['vehicleId']?.toString().trim() ?? '';
+  if (vid.isNotEmpty) {
+    return false;
+  }
+  final String did = expense['driverId']?.toString().trim() ?? '';
+  return did.isEmpty;
+}
+
+double sumExpenseAmountsForLocalDay(
+  Iterable<Map<String, dynamic>> expenses, {
+  required String dayYmd,
+  bool Function(Map<String, dynamic> expense)? include,
+}) {
+  var total = 0.0;
+  for (final Map<String, dynamic> row in expenses) {
+    if (expenseRowLocalYmd(row) != dayYmd) {
+      continue;
+    }
+    if (include != null && !include(row)) {
+      continue;
+    }
+    final double amount = parseDynamicDouble(row['amount']) ?? 0;
+    if (amount > 0) {
+      total += amount;
+    }
+  }
+  return total;
+}
+
 Map<String, CategoryExpenseTotals> summarizeExpensesByCategory({
   required List<Map<String, dynamic>> rows,
   required AppLocalizations l10n,

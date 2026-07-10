@@ -746,6 +746,21 @@ class AppLocalizationsAr extends AppLocalizations {
   }
 
   @override
+  String salesSummaryDebtRepaymentAmount(String amount) {
+    return 'مبلغ سداد: $amount';
+  }
+
+  @override
+  String salesSummaryDayExpensesAmount(String amount) {
+    return 'مصاريف اليوم: $amount';
+  }
+
+  @override
+  String salesSummaryDebtRepaymentPriceTotal(String amount) {
+    return 'مجموع السعر: $amount';
+  }
+
+  @override
   String salesSummaryTotalCoreVolumeQty(String count) {
     return 'إجمالي الكمية: $count';
   }

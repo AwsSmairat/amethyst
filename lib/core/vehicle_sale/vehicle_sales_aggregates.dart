@@ -31,8 +31,13 @@ bool isStationDebtRepaymentSale(Map<String, dynamic> row) {
 }
 
 /// سداد دين (محطة أو مركبة) ضمن قائمة المبيعات.
-bool isDebtRepaymentSale(Map<String, dynamic> row) =>
-    isVehicleDebtRepaymentSale(row) || isStationDebtRepaymentSale(row);
+bool isDebtRepaymentSale(Map<String, dynamic> row) {
+  if (isVehicleDebtRepaymentSale(row) || isStationDebtRepaymentSale(row)) {
+    return true;
+  }
+  final String note = row['note']?.toString() ?? '';
+  return note.startsWith('سداد دين');
+}
 
 /// مجموع مبالغ سداد الدين في قائمة مبيعات اليوم.
 double sumDebtRepaymentAmounts(Iterable<Map<String, dynamic>> sales) {

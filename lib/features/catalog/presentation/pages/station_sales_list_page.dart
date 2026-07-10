@@ -1,9 +1,12 @@
 import 'package:amethyst/core/catalog/catalog_product_display_label.dart';
+import 'package:amethyst/core/expenses/expense_aggregates.dart';
 import 'package:amethyst/core/l10n/context_l10n.dart';
 import 'package:amethyst/core/vehicle_sale/vehicle_sale_payment_method.dart';
+import 'package:amethyst/core/vehicle_sale/vehicle_sales_aggregates.dart';
 import 'package:amethyst/core/presentation/list_load_state.dart';
 import 'package:amethyst/core/theme/app_colors.dart';
 import 'package:amethyst/core/utils/parse_api_datetime.dart';
+import 'package:amethyst/core/utils/parse_dynamic_double.dart';
 import 'package:amethyst/features/catalog/presentation/cubit/station_sales_list_cubit.dart';
 import 'package:amethyst/features/catalog/presentation/widgets/product_sales_day_summary.dart';
 import 'package:flutter/material.dart';
@@ -60,12 +63,15 @@ class StationSalesListPage extends StatelessWidget {
             );
           }
           final StationSalesListLoaded loaded = state as StationSalesListLoaded;
-          if (loaded.sales.isEmpty && loaded.debtEntries.isEmpty) {
+          if (loaded.sales.isEmpty &&
+              loaded.debtEntries.isEmpty &&
+              !loaded.expenses.any(isStationScopedExpense)) {
             return Center(child: Text(context.l10n.nothingHereYet));
           }
           final List<_StationSalesDayGroup> groups = _groupBySaleDay(
             loaded.sales,
             loaded.debtEntries,
+            loaded.expenses,
           );
           return ListView.builder(
             padding: EdgeInsets.fromLTRB(16, 12, 16, bottomPad),
@@ -88,21 +94,25 @@ class _StationSalesDayGroup {
     required this.day,
     required this.sales,
     required this.debtSales,
+    this.dayExpensesTotal = 0,
   });
 
   final DateTime? day;
   final List<Map<String, dynamic>> sales;
   final List<Map<String, dynamic>> debtSales;
+  final double dayExpensesTotal;
 }
 
 List<_StationSalesDayGroup> _groupBySaleDay(
   List<Map<String, dynamic>> salesItems,
   List<Map<String, dynamic>> debtItems,
+  List<Map<String, dynamic>> expenseItems,
 ) {
   final Map<DateTime, List<Map<String, dynamic>>> salesByDay =
       <DateTime, List<Map<String, dynamic>>>{};
   final Map<DateTime, List<Map<String, dynamic>>> debtByDay =
       <DateTime, List<Map<String, dynamic>>>{};
+  final Map<DateTime, double> expensesByDay = <DateTime, double>{};
   final List<Map<String, dynamic>> unknownSales = <Map<String, dynamic>>[];
   final List<Map<String, dynamic>> unknownDebt = <Map<String, dynamic>>[];
 
@@ -126,9 +136,35 @@ List<_StationSalesDayGroup> _groupBySaleDay(
     debtByDay.putIfAbsent(day, () => <Map<String, dynamic>>[]).add(item);
   }
 
+  for (final Map<String, dynamic> item in expenseItems) {
+    if (!isStationScopedExpense(item)) {
+      continue;
+    }
+    final String? ymd = expenseRowLocalYmd(item);
+    if (ymd == null) {
+      continue;
+    }
+    final List<String> parts = ymd.split('-');
+    if (parts.length != 3) {
+      continue;
+    }
+    final int? y = int.tryParse(parts[0]);
+    final int? m = int.tryParse(parts[1]);
+    final int? d = int.tryParse(parts[2]);
+    if (y == null || m == null || d == null) {
+      continue;
+    }
+    final DateTime day = DateTime(y, m, d);
+    final double amount = parseDynamicDouble(item['amount']) ?? 0;
+    if (amount > 0) {
+      expensesByDay[day] = (expensesByDay[day] ?? 0) + amount;
+    }
+  }
+
   final Set<DateTime> allDays = <DateTime>{
     ...salesByDay.keys,
     ...debtByDay.keys,
+    ...expensesByDay.keys,
   };
   final List<_StationSalesDayGroup> out = allDays
       .map(
@@ -136,6 +172,7 @@ List<_StationSalesDayGroup> _groupBySaleDay(
           day: day,
           sales: salesByDay[day] ?? <Map<String, dynamic>>[],
           debtSales: debtByDay[day] ?? <Map<String, dynamic>>[],
+          dayExpensesTotal: expensesByDay[day] ?? 0,
         ),
       )
       .toList()
@@ -255,10 +292,13 @@ class _StationSalesDayCard extends StatelessWidget {
             ],
           ),
           children: <Widget>[
-            if (group.sales.isNotEmpty || group.debtSales.isNotEmpty) ...<Widget>[
+            if (group.sales.isNotEmpty ||
+                group.debtSales.isNotEmpty ||
+                group.dayExpensesTotal > 0) ...<Widget>[
               ProductSalesDaySummary(
                 sales: group.sales,
                 debtSales: group.debtSales,
+                dayExpensesTotal: group.dayExpensesTotal,
               ),
               if (group.sales.isNotEmpty)
                 const Padding(
@@ -356,8 +396,7 @@ class _StationSaleLine extends StatelessWidget {
     final dynamic qty = item['quantity'];
     final String unitStr = _formatMoney(item['unitPrice']);
     final String totalStr = _formatMoney(item['totalAmount']);
-    final bool debtRepayment =
-        (item['settledFromDebtId']?.toString().trim().isNotEmpty ?? false);
+    final bool debtRepayment = isDebtRepaymentSale(item);
     String note = item['note']?.toString().trim() ?? '';
     if (note.isEmpty) {
       final double? up = _parseMoneyAmount(item['unitPrice']);
@@ -365,12 +404,10 @@ class _StationSaleLine extends StatelessWidget {
         note = l10n.couponButton;
       }
     }
-    final String? paymentLabel = debtRepayment
-        ? null
-        : vehicleSalePaymentMethodLabel(
-            l10n,
-            item['paymentMethod']?.toString(),
-          );
+    final String? paymentLabel = vehicleSalePaymentMethodLabel(
+      l10n,
+      item['paymentMethod']?.toString(),
+    );
     final String? paymentRaw = item['paymentMethod']?.toString().trim().toLowerCase();
 
     return Column(
@@ -389,6 +426,13 @@ class _StationSaleLine extends StatelessWidget {
                 ),
               ),
             ),
+            if (debtRepayment) ...<Widget>[
+              const SizedBox(width: 8),
+              _StationSalePaymentBadge(
+                label: l10n.vehicleSaleDebtRepaymentBadge,
+                color: theme.colorScheme.primary,
+              ),
+            ],
             if (paymentLabel != null) ...<Widget>[
               const SizedBox(width: 8),
               _StationSalePaymentBadge(

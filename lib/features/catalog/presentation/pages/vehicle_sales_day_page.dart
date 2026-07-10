@@ -1,6 +1,7 @@
 import 'package:amethyst/core/catalog/catalog_product_display_label.dart';
 import 'package:amethyst/core/data/amethyst_api.dart';
 import 'package:amethyst/core/data/api_list_fetch.dart';
+import 'package:amethyst/core/expenses/expense_aggregates.dart';
 import 'package:amethyst/core/vehicle_sale/vehicle_sale_payment_method.dart';
 import 'package:amethyst/core/vehicle_sale/vehicle_sales_aggregates.dart';
 import 'package:amethyst/core/vehicle_sale/vehicle_sales_list_refresh.dart';
@@ -39,6 +40,7 @@ class _VehicleSalesDayPageState extends State<VehicleSalesDayPage> {
   String? _error;
   List<Map<String, dynamic>> _items = <Map<String, dynamic>>[];
   List<Map<String, dynamic>> _debtItems = <Map<String, dynamic>>[];
+  double _dayExpensesTotal = 0;
   late DateTime _day;
 
   @override
@@ -100,16 +102,24 @@ class _VehicleSalesDayPageState extends State<VehicleSalesDayPage> {
     });
     final String dayStr = _ymd(_day);
     try {
-      final List<Map<String, dynamic>> list =
-          await fetchAllVehicleSalesInRange(
-        sl<AmethystApi>(),
-        vehicleId: widget.vehicleId,
-        dateFrom: dayStr,
-        dateTo: dayStr,
-      );
+      final AmethystApi api = sl<AmethystApi>();
+      final String? driverId = widget.vehicleRow?['driverId']?.toString();
+      final List<Object> results = await Future.wait<Object>(<Future<Object>>[
+        fetchAllVehicleSalesInRange(
+          api,
+          vehicleId: widget.vehicleId,
+          dateFrom: dayStr,
+          dateTo: dayStr,
+        ),
+        fetchAllExpenses(api),
+      ]);
       if (!mounted) {
         return;
       }
+      final List<Map<String, dynamic>> list =
+          results[0] as List<Map<String, dynamic>>;
+      final List<Map<String, dynamic>> expenses =
+          results[1] as List<Map<String, dynamic>>;
       setState(() {
         _items = list
             .where(isVehicleSaleVisibleInSalesList)
@@ -117,6 +127,15 @@ class _VehicleSalesDayPageState extends State<VehicleSalesDayPage> {
         _debtItems = list
             .where(isVehicleDebtSaleRow)
             .toList(growable: false);
+        _dayExpensesTotal = sumExpenseAmountsForLocalDay(
+          expenses,
+          dayYmd: dayStr,
+          include: (Map<String, dynamic> e) => isVehicleScopedExpense(
+            e,
+            vehicleId: widget.vehicleId,
+            driverId: driverId,
+          ),
+        );
         _loading = false;
       });
     } on Object catch (e) {
@@ -283,7 +302,7 @@ class _VehicleSalesDayPageState extends State<VehicleSalesDayPage> {
                     ),
                   ),
                 )
-              : _items.isEmpty && _debtItems.isEmpty
+              : _items.isEmpty && _debtItems.isEmpty && _dayExpensesTotal <= 0
                   ? Center(child: Text(l10n.nothingHereYet))
                   : ListView(
                       padding: EdgeInsets.zero,
@@ -294,6 +313,7 @@ class _VehicleSalesDayPageState extends State<VehicleSalesDayPage> {
                           child: ProductSalesDaySummary(
                             sales: _items,
                             debtSales: _debtItems,
+                            dayExpensesTotal: _dayExpensesTotal,
                           ),
                         ),
                         if (_items.isNotEmpty) ...<Widget>[
@@ -430,12 +450,10 @@ class _VehicleSaleLineTile extends StatelessWidget {
         unit != null ? money.format(unit) : (item['unitPrice']?.toString() ?? '—');
 
     final bool debtRepayment = isVehicleDebtRepaymentSale(item);
-    final String? paymentLabel = debtRepayment
-        ? null
-        : vehicleSalePaymentMethodLabel(
-            l10n,
-            item['paymentMethod']?.toString(),
-          );
+    final String? paymentLabel = vehicleSalePaymentMethodLabel(
+      l10n,
+      item['paymentMethod']?.toString(),
+    );
     final bool coupon = shouldShowVehicleSaleCouponBadge(
       item,
       displayProductName: productName,
