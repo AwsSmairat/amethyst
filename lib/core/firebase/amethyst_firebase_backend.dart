@@ -2144,32 +2144,24 @@ final class AmethystFirebaseBackend {
         );
       }
       final String productId = load['productId'] as String;
-      final DocumentSnapshot<Map<String, dynamic>> productSnap = await _db
-          .collection(FirestorePaths.products)
-          .doc(productId)
-          .get();
       final WriteBatch batch = _db.batch();
       batch.update(loadSnap.reference, <String, dynamic>{
         'quantityReturned': FieldValue.increment(quantityReturned),
         'updatedAt': serverTimestamp(),
       });
-      if (productSnap.exists) {
-        batch.update(productSnap.reference, <String, dynamic>{
-          'stationStock': FieldValue.increment(quantityReturned),
-          'updatedAt': serverTimestamp(),
-        });
-        final DocumentReference<Map<String, dynamic>> movRef =
-            _db.collection(FirestorePaths.stockMovements).doc();
-        batch.set(movRef, <String, dynamic>{
-          'productId': productId,
-          'type': 'in',
-          'quantity': quantityReturned,
-          'reason': 'vehicle_return',
-          'referenceId': vehicleLoadId,
-          'createdById': actor['id'],
-          'createdAt': serverTimestamp(),
-        });
-      }
+      // التحميل لا يخصم مخزون المحطة؛ لذلك الإرجاع لا يزيده — وإلا ينتفخ
+      // «مخزون كراتين» مع كل إرجاع سائق.
+      final DocumentReference<Map<String, dynamic>> movRef =
+          _db.collection(FirestorePaths.stockMovements).doc();
+      batch.set(movRef, <String, dynamic>{
+        'productId': productId,
+        'type': 'transfer',
+        'quantity': quantityReturned,
+        'reason': 'vehicle_return',
+        'referenceId': vehicleLoadId,
+        'createdById': actor['id'],
+        'createdAt': serverTimestamp(),
+      });
       await batch.commit();
       clearCatalogCache();
       return <String, dynamic>{'ok': true};
@@ -3199,19 +3191,18 @@ final class AmethystFirebaseBackend {
         continue;
       }
       if (sale['isDebt'] == true) {
+        // دين مفتوح فقط — السداد يُحسب كمبيع نقدي أدناه.
         if (sale['repaidAt'] == null) {
           debtQty += (sale['quantity'] as num?)?.toInt() ?? 0;
           debtAmount += _num(sale['totalAmount']);
         }
         continue;
       }
-      if (isVehicleDebtRepaymentSale(sale)) {
-        continue;
-      }
       final DateTime? created = timestampToDate(sale['createdAt']);
       if (!isInRange(created, start, end)) {
         continue;
       }
+      // يشمل البيع النقدي + سداد الدين (settledFromDebtSaleId) في شهر السداد.
       monthlyAmount += _num(sale['totalAmount']);
       final int qty = (sale['quantity'] as num?)?.toInt() ?? 0;
       if (sale['saleDestination']?.toString() == 'store') {

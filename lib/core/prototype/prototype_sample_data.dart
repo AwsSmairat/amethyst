@@ -1837,11 +1837,11 @@ final class PrototypeSampleData {
     }
     for (final Map<String, dynamic> vs in _vehicleSales) {
       if (!_isCashVehicleSale(vs) ||
-          isVehicleDebtRepaymentSale(vs) ||
           !_isCartonRow(vs) ||
           !_isSameCalendarMonth(_rowDateOnly(vs), monthRef)) {
         continue;
       }
+      // يشمل سداد الدين (نقدي) — الدين المفتوح يُحسب في unpaid فقط.
       final int q = _intField(vs, 'quantity');
       monthlyCartonSales += _rowMoney(vs);
       if (_vehicleCartonSaleIsStore(vs)) {
