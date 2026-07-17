@@ -1,16 +1,43 @@
 import 'package:amethyst/core/data/amethyst_api.dart';
 
-/// حد أقصى لجلب القائمة دفعة واحدة — الخادم يجلب المجموعة كاملة ثم يقطّعها.
-const int kApiListFetchMaxLimit = 5000;
+/// حجم صفحة الجلب — يطابق سقف `_paginate` في الـ backend (حد أقصى 100).
+const int kApiListFetchPageLimit = 100;
 
+/// سقف أمان لعدد الصفحات حتى لا تعلق الحلقة عند بيانات تالفة.
+const int kApiListFetchMaxPages = 500;
+
+/// يجلب **كل** عناصر القائمة عبر الصفحات (لأن السيرفر يقطع كل طلب عند 100).
 Future<List<Map<String, dynamic>>> fetchAllListItems(
-  Future<Map<String, dynamic>> Function({required int page, required int limit}) listPage, {
-  int limit = kApiListFetchMaxLimit,
+  Future<Map<String, dynamic>> Function({required int page, required int limit})
+      listPage, {
+  int limit = kApiListFetchPageLimit,
 }) async {
-  final Map<String, dynamic> res = await listPage(page: 1, limit: limit);
-  return (res['items'] as List<dynamic>? ?? <dynamic>[])
-      .whereType<Map<String, dynamic>>()
-      .toList(growable: false);
+  final int pageLimit = limit.clamp(1, kApiListFetchPageLimit);
+  final List<Map<String, dynamic>> all = <Map<String, dynamic>>[];
+  for (int page = 1; page <= kApiListFetchMaxPages; page++) {
+    final Map<String, dynamic> res = await listPage(
+      page: page,
+      limit: pageLimit,
+    );
+    final List<Map<String, dynamic>> batch =
+        (res['items'] as List<dynamic>? ?? <dynamic>[])
+            .whereType<Map<String, dynamic>>()
+            .toList(growable: false);
+    all.addAll(batch);
+    if (batch.length < pageLimit) {
+      break;
+    }
+    final Object? totalRaw = res['total'];
+    final int? total = totalRaw is int
+        ? totalRaw
+        : totalRaw is num
+            ? totalRaw.toInt()
+            : null;
+    if (total != null && all.length >= total) {
+      break;
+    }
+  }
+  return all;
 }
 
 Future<List<Map<String, dynamic>>> fetchAllProducts(AmethystApi api) =>
@@ -68,7 +95,7 @@ Future<List<Map<String, dynamic>>> fetchAllVehicleSalesInRange(
   String? dateFrom,
   String? dateTo,
 }) async {
-  const int limit = 100;
+  const int limit = kApiListFetchPageLimit;
   int page = 1;
   final List<Map<String, dynamic>> all = <Map<String, dynamic>>[];
   while (true) {
@@ -89,7 +116,7 @@ Future<List<Map<String, dynamic>>> fetchAllVehicleSalesInRange(
       break;
     }
     page += 1;
-    if (page > 500) {
+    if (page > kApiListFetchMaxPages) {
       break;
     }
   }
