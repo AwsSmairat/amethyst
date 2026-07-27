@@ -53,6 +53,12 @@ final class AmethystFirebaseBackend {
   DateTime? _vehiclesLookupCachedAt;
   final Map<String, Map<String, dynamic>> _userBriefMemCache =
       <String, Map<String, dynamic>>{};
+  List<Map<String, dynamic>>? _hydratedStationSalesCache;
+  DateTime? _hydratedStationSalesCachedAt;
+  List<Map<String, dynamic>>? _stationDebtSummaryCache;
+  DateTime? _stationDebtSummaryCachedAt;
+  List<Map<String, dynamic>>? _hydratedExpensesCache;
+  DateTime? _hydratedExpensesCachedAt;
   static const Duration _dashboardCacheTtl = Duration(minutes: 3);
   static const Duration _catalogCacheTtl = Duration(seconds: 90);
 
@@ -76,7 +82,17 @@ final class AmethystFirebaseBackend {
     _vehiclesLookupCache = null;
     _vehiclesLookupCachedAt = null;
     _userBriefMemCache.clear();
+    _clearListCaches();
     clearDashboardCache();
+  }
+
+  void _clearListCaches() {
+    _hydratedStationSalesCache = null;
+    _hydratedStationSalesCachedAt = null;
+    _stationDebtSummaryCache = null;
+    _stationDebtSummaryCachedAt = null;
+    _hydratedExpensesCache = null;
+    _hydratedExpensesCachedAt = null;
   }
 
   bool _catalogCacheFresh(DateTime? cachedAt) =>
@@ -639,8 +655,11 @@ final class AmethystFirebaseBackend {
     return <String, dynamic>{'ok': true};
   }
 
-  Future<Map<String, dynamic>> listStationSales({int page = 1, int limit = 100}) async {
-    await _requireStaff();
+  Future<List<Map<String, dynamic>>> _loadHydratedStationSalesList() async {
+    if (_hydratedStationSalesCache != null &&
+        _catalogCacheFresh(_hydratedStationSalesCachedAt)) {
+      return _hydratedStationSalesCache!;
+    }
     final QuerySnapshot<Map<String, dynamic>> snap = await _db
         .collection(FirestorePaths.stationSales)
         .orderBy('createdAt', descending: true)
@@ -668,6 +687,14 @@ final class AmethystFirebaseBackend {
           );
         })
         .toList(growable: false);
+    _hydratedStationSalesCache = items;
+    _hydratedStationSalesCachedAt = DateTime.now();
+    return items;
+  }
+
+  Future<Map<String, dynamic>> listStationSales({int page = 1, int limit = 100}) async {
+    await _requireStaff();
+    final List<Map<String, dynamic>> items = await _loadHydratedStationSalesList();
     return _paginate(items, page: page, limit: limit);
   }
 
@@ -1207,12 +1234,11 @@ final class AmethystFirebaseBackend {
     return _paginate(merged, page: page, limit: limit);
   }
 
-  /// كل سجلات دين المحطة (مفتوحة ومسدّدة) لملخص مبيعات المحطة اليومي.
-  Future<Map<String, dynamic>> listStationDebtEntriesForSummary({
-    int page = 1,
-    int limit = 100,
-  }) async {
-    await _requireStaff();
+  Future<List<Map<String, dynamic>>> _loadStationDebtSummaryList() async {
+    if (_stationDebtSummaryCache != null &&
+        _catalogCacheFresh(_stationDebtSummaryCachedAt)) {
+      return _stationDebtSummaryCache!;
+    }
     final QuerySnapshot<Map<String, dynamic>> snap = await _db
         .collection(FirestorePaths.stationDebtEntries)
         .orderBy('createdAt', descending: true)
@@ -1222,6 +1248,19 @@ final class AmethystFirebaseBackend {
     final List<Map<String, dynamic>> stationOnly = items
         .where(isStationDebtSummaryEntry)
         .toList(growable: false);
+    _stationDebtSummaryCache = stationOnly;
+    _stationDebtSummaryCachedAt = DateTime.now();
+    return stationOnly;
+  }
+
+  /// كل سجلات دين المحطة (مفتوحة ومسدّدة) لملخص مبيعات المحطة اليومي.
+  Future<Map<String, dynamic>> listStationDebtEntriesForSummary({
+    int page = 1,
+    int limit = 100,
+  }) async {
+    await _requireStaff();
+    final List<Map<String, dynamic>> stationOnly =
+        await _loadStationDebtSummaryList();
     return _paginate(stationOnly, page: page, limit: limit);
   }
 
@@ -1742,6 +1781,23 @@ final class AmethystFirebaseBackend {
     return <String, dynamic>{'ok': true};
   }
 
+  Future<List<Map<String, dynamic>>> _loadHydratedExpensesList() async {
+    if (_hydratedExpensesCache != null &&
+        _catalogCacheFresh(_hydratedExpensesCachedAt)) {
+      return _hydratedExpensesCache!;
+    }
+    final QuerySnapshot<Map<String, dynamic>> snap = await _db
+        .collection(FirestorePaths.expenses)
+        .orderBy('createdAt', descending: true)
+        .get();
+    final List<Map<String, dynamic>> items = snap.docs
+        .map(mapExpenseDoc)
+        .toList(growable: false);
+    _hydratedExpensesCache = items;
+    _hydratedExpensesCachedAt = DateTime.now();
+    return items;
+  }
+
   Future<Map<String, dynamic>> listExpenses({
     int page = 1,
     int limit = 100,
@@ -1749,22 +1805,19 @@ final class AmethystFirebaseBackend {
     String? dateTo,
   }) async {
     await _requireStaffOrDriver();
-    final QuerySnapshot<Map<String, dynamic>> snap = await _db
-        .collection(FirestorePaths.expenses)
-        .orderBy('createdAt', descending: true)
-        .get();
+    final List<Map<String, dynamic>> all = await _loadHydratedExpensesList();
     final DateTime? from = parseYmd(dateFrom);
     final DateTime? to = parseYmd(dateTo);
     final List<Map<String, dynamic>> items = <Map<String, dynamic>>[];
-    for (final QueryDocumentSnapshot<Map<String, dynamic>> doc in snap.docs) {
-      final DateTime? created = timestampToDate(doc.data()['createdAt']);
+    for (final Map<String, dynamic> row in all) {
+      final DateTime? created = timestampToDate(row['createdAt']);
       if (from != null && created != null && created.isBefore(startOfDay(from))) {
         continue;
       }
       if (to != null && created != null && created.isAfter(endOfDay(to))) {
         continue;
       }
-      items.add(mapExpenseDoc(doc));
+      items.add(row);
     }
     return _paginate(items, page: page, limit: limit.clamp(1, 100));
   }
@@ -1797,6 +1850,7 @@ final class AmethystFirebaseBackend {
       'updatedAt': serverTimestamp(),
     });
     final DocumentSnapshot<Map<String, dynamic>> doc = await ref.get();
+    _clearListCaches();
     return mapExpenseDoc(doc);
   }
 
@@ -1809,6 +1863,7 @@ final class AmethystFirebaseBackend {
       throw ApiException('Expense not found', code: 'NOT_FOUND');
     }
     await ref.delete();
+    _clearListCaches();
     clearDashboardCache();
   }
 
