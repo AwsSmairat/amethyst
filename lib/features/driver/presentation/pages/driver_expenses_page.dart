@@ -1,4 +1,5 @@
 import 'package:amethyst/core/data/amethyst_api.dart';
+import 'package:amethyst/core/data/api_list_fetch.dart';
 import 'package:amethyst/core/expenses/expense_aggregates.dart';
 import 'package:amethyst/core/expenses/expense_category_match.dart';
 import 'package:amethyst/core/l10n/context_l10n.dart';
@@ -65,7 +66,11 @@ class _DriverExpensesPageState extends State<DriverExpensesPage> {
     try {
       final AppLocalizations l10n = context.l10n;
       final AmethystApi api = sl<AmethystApi>();
-      final List<Map<String, dynamic>> all = await fetchAllExpenseRows(api);
+      final List<Map<String, dynamic>> all = await fetchAllExpensesInRange(
+        api,
+        dateFrom: operationalLookbackDateFromYmd(days: 365),
+        dateTo: operationalTodayYmd(),
+      );
       final List<Map<String, dynamic>> mine = expenseRowsForDriver(
         all,
         driverId: _currentDriverId(),

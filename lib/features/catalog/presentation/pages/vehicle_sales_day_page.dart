@@ -111,7 +111,11 @@ class _VehicleSalesDayPageState extends State<VehicleSalesDayPage> {
           dateFrom: dayStr,
           dateTo: dayStr,
         ),
-        fetchAllExpenses(api),
+        fetchAllExpensesInRange(
+          api,
+          dateFrom: dayStr,
+          dateTo: dayStr,
+        ),
       ]);
       if (!mounted) {
         return;

@@ -32,7 +32,11 @@ class _DriverSalesPageState extends State<DriverSalesPage> {
     super.initState();
     _cubit = JsonListCubit(
       () async => <String, dynamic>{
-        'items': await fetchAllVehicleSalesInRange(sl<AmethystApi>()),
+        'items': await fetchAllVehicleSalesInRange(
+          sl<AmethystApi>(),
+          dateFrom: operationalLookbackDateFromYmd(),
+          dateTo: operationalTodayYmd(),
+        ),
       },
     )..load();
     DriverSalesListRefresh.onSalesTabSelected = _cubit.load;

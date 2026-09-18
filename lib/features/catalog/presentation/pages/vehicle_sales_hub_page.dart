@@ -1,4 +1,5 @@
 import 'package:amethyst/core/data/amethyst_api.dart';
+import 'package:amethyst/core/data/api_list_fetch.dart';
 import 'package:amethyst/core/l10n/context_l10n.dart';
 import 'package:amethyst/core/prototype/ui_only.dart';
 import 'package:amethyst/core/theme/app_colors.dart';
@@ -58,7 +59,11 @@ class _VehicleSalesHubPageState extends State<VehicleSalesHubPage> {
       final AmethystApi api = sl<AmethystApi>();
       final List<Object> results = await Future.wait<Object>(<Future<Object>>[
         fetchAllVehicleRows(api),
-        fetchAllVehicleSaleRows(api),
+        fetchAllVehicleSalesInRange(
+          api,
+          dateFrom: operationalMonthStartYmd(),
+          dateTo: operationalTodayYmd(),
+        ),
       ]);
       if (!mounted || generation != _loadGeneration) {
         return;

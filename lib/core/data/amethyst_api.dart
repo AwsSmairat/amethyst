@@ -213,8 +213,18 @@ final class AmethystApi {
         loadBatchId: loadBatchId,
       );
 
-  Future<Map<String, dynamic>> listStationSales({int page = 1, int limit = 100}) =>
-      _b.listStationSales(page: page, limit: limit);
+  Future<Map<String, dynamic>> listStationSales({
+    int page = 1,
+    int limit = 100,
+    String? dateFrom,
+    String? dateTo,
+  }) =>
+      _b.listStationSales(
+        page: page,
+        limit: limit,
+        dateFrom: dateFrom,
+        dateTo: dateTo,
+      );
 
   Future<Map<String, dynamic>> createStationSale({
     required String productId,

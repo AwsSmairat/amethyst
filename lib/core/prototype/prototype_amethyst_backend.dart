@@ -244,8 +244,41 @@ final class PrototypeAmethystBackend {
     }
   }
 
-  Future<Map<String, dynamic>> listStationSales({int page = 1, int limit = 100}) async =>
-      _paginate(PrototypeSampleData.stationSales, page: page, limit: limit);
+  Future<Map<String, dynamic>> listStationSales({
+    int page = 1,
+    int limit = 100,
+    String? dateFrom,
+    String? dateTo,
+  }) async {
+    final DateTime? from = dateFrom == null || dateFrom.isEmpty
+        ? null
+        : DateTime.tryParse(dateFrom);
+    final DateTime? to = dateTo == null || dateTo.isEmpty
+        ? null
+        : DateTime.tryParse(dateTo);
+    final List<Map<String, dynamic>> items = PrototypeSampleData.stationSales
+        .where((Map<String, dynamic> row) {
+          if (from == null && to == null) {
+            return true;
+          }
+          final Object? raw = row['createdAt'];
+          final DateTime? created = raw is DateTime
+              ? raw
+              : DateTime.tryParse(raw?.toString() ?? '');
+          if (created == null) {
+            return false;
+          }
+          if (from != null && created.isBefore(from)) {
+            return false;
+          }
+          if (to != null && created.isAfter(DateTime(to.year, to.month, to.day, 23, 59, 59))) {
+            return false;
+          }
+          return true;
+        })
+        .toList(growable: false);
+    return _paginate(items, page: page, limit: limit);
+  }
 
   Future<void> createStationSalesBatch({
     required List<Map<String, dynamic>> lines,

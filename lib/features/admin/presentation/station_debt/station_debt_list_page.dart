@@ -2,6 +2,7 @@ import 'package:amethyst/core/l10n/context_l10n.dart';
 import 'package:amethyst/core/station_debt/station_debt_entry_utils.dart';
 import 'package:amethyst/core/widgets/fab_hero_tags.dart';
 import 'package:amethyst/core/data/amethyst_api.dart';
+import 'package:amethyst/core/data/api_list_fetch.dart';
 import 'package:amethyst/core/presentation/list_load_state.dart';
 import 'package:amethyst/di/injection.dart';
 import 'package:amethyst/features/admin/presentation/station_debt/station_debt_api_error.dart';
@@ -29,7 +30,9 @@ class StationDebtListPage extends StatelessWidget {
     final l10n = context.l10n;
     return BlocProvider<JsonListCubit>(
       create: (_) => JsonListCubit(
-        () => sl<AmethystApi>().listStationDebtEntries(),
+        () async => <String, dynamic>{
+          'items': await fetchAllStationDebtEntries(sl<AmethystApi>()),
+        },
         mapLoadError: mapStationDebtListLoadError,
       )..load(),
       child: Scaffold(

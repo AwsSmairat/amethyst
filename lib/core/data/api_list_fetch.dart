@@ -1,10 +1,31 @@
 import 'package:amethyst/core/data/amethyst_api.dart';
+import 'package:amethyst/core/firebase/date_range_utils.dart';
 
 /// حجم صفحة الجلب — يطابق سقف `_paginate` في الـ backend (حد أقصى 100).
 const int kApiListFetchPageLimit = 100;
 
 /// سقف أمان لعدد الصفحات حتى لا تعلق الحلقة عند بيانات تالفة.
 const int kApiListFetchMaxPages = 500;
+
+/// نافذة التاريخ الافتراضية للقوائم الثقيلة (أيام البيع / مبيعات السائق).
+const int kOperationalHistoryLookbackDays = 180;
+
+String operationalLookbackDateFromYmd({
+  int days = kOperationalHistoryLookbackDays,
+  DateTime? asOf,
+}) {
+  final DateTime now = asOf ?? DateTime.now();
+  final DateTime from = DateTime(now.year, now.month, now.day)
+      .subtract(Duration(days: days));
+  return ymd(from);
+}
+
+String operationalTodayYmd({DateTime? asOf}) => ymd(asOf ?? DateTime.now());
+
+String operationalMonthStartYmd({DateTime? asOf}) {
+  final DateTime now = asOf ?? DateTime.now();
+  return ymd(DateTime(now.year, now.month, 1));
+}
 
 /// يجلب **كل** عناصر القائمة عبر الصفحات (لأن السيرفر يقطع كل طلب عند 100).
 Future<List<Map<String, dynamic>>> fetchAllListItems(
@@ -58,16 +79,38 @@ Future<List<Map<String, dynamic>>> fetchAllExpenses(AmethystApi api) =>
           api.listExpenses(page: page, limit: limit),
     );
 
+Future<List<Map<String, dynamic>>> fetchAllExpensesInRange(
+  AmethystApi api, {
+  String? dateFrom,
+  String? dateTo,
+}) =>
+    fetchAllListItems(
+      ({required int page, required int limit}) => api.listExpenses(
+        page: page,
+        limit: limit,
+        dateFrom: dateFrom,
+        dateTo: dateTo,
+      ),
+    );
+
 Future<List<Map<String, dynamic>>> fetchAllVehicleLoads(AmethystApi api) =>
     fetchAllListItems(
       ({required int page, required int limit}) =>
           api.listVehicleLoads(page: page, limit: limit),
     );
 
-Future<List<Map<String, dynamic>>> fetchAllStationSales(AmethystApi api) =>
+Future<List<Map<String, dynamic>>> fetchAllStationSales(
+  AmethystApi api, {
+  String? dateFrom,
+  String? dateTo,
+}) =>
     fetchAllListItems(
-      ({required int page, required int limit}) =>
-          api.listStationSales(page: page, limit: limit),
+      ({required int page, required int limit}) => api.listStationSales(
+        page: page,
+        limit: limit,
+        dateFrom: dateFrom,
+        dateTo: dateTo,
+      ),
     );
 
 Future<List<Map<String, dynamic>>> fetchAllVehicleSales(AmethystApi api) =>

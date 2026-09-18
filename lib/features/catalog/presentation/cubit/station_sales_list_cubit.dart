@@ -15,14 +15,16 @@ final class StationSalesListCubit extends Cubit<ListLoadState> {
   Future<void> load() async {
     emit(const ListLoadLoading());
     try {
+      final String from = operationalLookbackDateFromYmd();
+      final String to = operationalTodayYmd();
       final List<Object> results = await Future.wait<Object>(<Future<Object>>[
-        fetchAllListItems(
-          ({required int page, required int limit}) =>
-              _api.listStationSales(page: page, limit: limit),
-        ),
+        fetchAllStationSales(_api, dateFrom: from, dateTo: to),
         fetchAllStationDebtSummaryEntries(_api),
-        fetchAllExpenses(_api),
+        fetchAllExpensesInRange(_api, dateFrom: from, dateTo: to),
       ]);
+      if (isClosed) {
+        return;
+      }
       emit(
         StationSalesListLoaded(
           sales: results[0] as List<Map<String, dynamic>>,
@@ -31,6 +33,9 @@ final class StationSalesListCubit extends Cubit<ListLoadState> {
         ),
       );
     } on Object catch (e) {
+      if (isClosed) {
+        return;
+      }
       emit(ListLoadFailure(e.toString()));
     }
   }

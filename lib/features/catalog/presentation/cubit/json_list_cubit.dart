@@ -20,6 +20,9 @@ final class JsonListCubit extends Cubit<ListLoadState> {
     emit(const ListLoadLoading());
     try {
       final data = await _fetch();
+      if (isClosed) {
+        return;
+      }
       final raw = data['items'];
       final items = <Map<String, dynamic>>[];
       if (raw is List<dynamic>) {
@@ -31,6 +34,9 @@ final class JsonListCubit extends Cubit<ListLoadState> {
       }
       emit(ListLoadLoaded(items));
     } on Object catch (e) {
+      if (isClosed) {
+        return;
+      }
       final String msg = mapLoadError?.call(e) ?? e.toString();
       emit(ListLoadFailure(msg));
     }
