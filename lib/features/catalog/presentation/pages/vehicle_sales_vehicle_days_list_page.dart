@@ -50,7 +50,7 @@ class _VehicleSalesVehicleDaysListPageState
           await fetchAllVehicleSalesInRange(
         api,
         vehicleId: widget.vehicleId,
-        dateFrom: operationalLookbackDateFromYmd(days: 365),
+        dateFrom: operationalLookbackDateFromYmd(),
         dateTo: operationalTodayYmd(),
       );
       final Set<DateTime> daySet = <DateTime>{};

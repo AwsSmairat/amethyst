@@ -66,7 +66,7 @@ class _ExpensesHubPageState extends State<ExpensesHubPage> {
       final AmethystApi api = sl<AmethystApi>();
       final List<Map<String, dynamic>> all = await fetchAllExpensesInRange(
         api,
-        dateFrom: operationalLookbackDateFromYmd(days: 365),
+        dateFrom: operationalLookbackDateFromYmd(),
         dateTo: operationalTodayYmd(),
       );
 

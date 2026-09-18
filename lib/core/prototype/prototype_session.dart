@@ -13,7 +13,7 @@ final class PrototypeSession {
   static bool get isSignedIn => _current != null;
 
   static Future<UserEntity> signInAsRole(String role) async {
-    final UserEntity user = PrototypeSampleData.previewUserForRole(role);
+    final UserEntity user = PrototypeSampleData.instance.previewUserForRole(role);
     await signIn(user);
     return user;
   }
@@ -28,7 +28,7 @@ final class PrototypeSession {
     if (userId == null || userId.isEmpty) {
       return false;
     }
-    final UserEntity? user = PrototypeSampleData.userEntityById(userId);
+    final UserEntity? user = PrototypeSampleData.instance.userEntityById(userId);
     if (user == null || !user.isActive) {
       await PrototypeLocalStore.persistSessionUserId(null);
       return false;

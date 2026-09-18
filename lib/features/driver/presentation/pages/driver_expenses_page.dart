@@ -68,7 +68,7 @@ class _DriverExpensesPageState extends State<DriverExpensesPage> {
       final AmethystApi api = sl<AmethystApi>();
       final List<Map<String, dynamic>> all = await fetchAllExpensesInRange(
         api,
-        dateFrom: operationalLookbackDateFromYmd(days: 365),
+        dateFrom: operationalLookbackDateFromYmd(),
         dateTo: operationalTodayYmd(),
       );
       final List<Map<String, dynamic>> mine = expenseRowsForDriver(

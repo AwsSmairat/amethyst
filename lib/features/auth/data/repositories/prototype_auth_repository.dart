@@ -10,8 +10,8 @@ final class PrototypeAuthRepository implements AuthRepository {
     required String email,
     required String password,
   }) async {
-    await PrototypeSampleData.ensureLoaded();
-    final UserEntity? user = PrototypeSampleData.authenticate(
+    await PrototypeSampleData.instance.ensureLoaded();
+    final UserEntity? user = PrototypeSampleData.instance.authenticate(
       email: email,
       password: password,
     );
@@ -27,7 +27,7 @@ final class PrototypeAuthRepository implements AuthRepository {
 
   @override
   Future<UserEntity> loadCurrentUser() async {
-    await PrototypeSampleData.ensureLoaded();
+    await PrototypeSampleData.instance.ensureLoaded();
     if (PrototypeSession.current != null) {
       return PrototypeSession.current!;
     }

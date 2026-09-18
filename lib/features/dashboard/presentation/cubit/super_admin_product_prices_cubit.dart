@@ -20,7 +20,7 @@ final class SuperAdminProductPricesCubit extends Cubit<ListLoadState> {
   Future<void> load() async {
     emit(const ListLoadLoading());
     try {
-      PrototypeSampleData.ensurePricingCatalogProducts();
+      PrototypeSampleData.instance.ensurePricingCatalogProducts();
       final List<Map<String, dynamic>> catalog = await _fetchAllProducts();
       final List<SuperAdminPricingRow> rows = <SuperAdminPricingRow>[
         for (final int slot in kSuperAdminFillingSalePricingExtraSlots)
@@ -95,31 +95,31 @@ final class SuperAdminProductPricesCubit extends Cubit<ListLoadState> {
     try {
       switch (rowIndex) {
         case kSuperAdminFillingGallonPricingExtraSlot:
-          PrototypeSampleData.ensureFillingGallonProduct();
+          PrototypeSampleData.instance.ensureFillingGallonProduct();
           break;
         case kSuperAdminFillingBottlePricingExtraSlot:
-          PrototypeSampleData.ensureFillingBottleProduct();
+          PrototypeSampleData.instance.ensureFillingBottleProduct();
           break;
         case kSuperAdminFillingSmallGallonPricingExtraSlot:
-          PrototypeSampleData.ensureWaterSmallGallonProduct();
+          PrototypeSampleData.instance.ensureWaterSmallGallonProduct();
           break;
         case kSuperAdminFillingSmallBottlePricingExtraSlot:
-          PrototypeSampleData.ensureWaterSmallBottleProduct();
+          PrototypeSampleData.instance.ensureWaterSmallBottleProduct();
           break;
         case kSuperAdminEmptySaleWithFillingRow1PricingExtraSlot:
-          PrototypeSampleData.ensureEmptySaleWithFillingRow1Product();
+          PrototypeSampleData.instance.ensureEmptySaleWithFillingRow1Product();
           break;
         case kSuperAdminEmptySaleWithFillingRow2PricingExtraSlot:
-          PrototypeSampleData.ensureEmptySaleWithFillingRow2Product();
+          PrototypeSampleData.instance.ensureEmptySaleWithFillingRow2Product();
           break;
         case kSuperAdminStoreGallonPricingExtraSlot:
-          PrototypeSampleData.ensureStoreGallonSaleProduct();
+          PrototypeSampleData.instance.ensureStoreGallonSaleProduct();
           break;
         case kSuperAdminStoreBottlePricingExtraSlot:
-          PrototypeSampleData.ensureStoreBottleSaleProduct();
+          PrototypeSampleData.instance.ensureStoreBottleSaleProduct();
           break;
         case kSuperAdminStoreMahdiPricingExtraSlot:
-          PrototypeSampleData.ensureStoreMahdiSaleProduct();
+          PrototypeSampleData.instance.ensureStoreMahdiSaleProduct();
           break;
         default:
           await _api.upsertStationBalanceRowStock(

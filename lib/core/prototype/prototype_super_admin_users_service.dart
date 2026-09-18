@@ -8,9 +8,9 @@ final class PrototypeSuperAdminUsersService implements SuperAdminUsersPort {
   @override
   Future<List<Map<String, dynamic>>> listUsers({String? roleFilter}) async {
     _requireSuperAdmin();
-    await PrototypeSampleData.ensureLoaded();
+    await PrototypeSampleData.instance.ensureLoaded();
     List<Map<String, dynamic>> items =
-        List<Map<String, dynamic>>.from(PrototypeSampleData.users);
+        List<Map<String, dynamic>>.from(PrototypeSampleData.instance.users);
     if (roleFilter != null && roleFilter.isNotEmpty) {
       items = items
           .where((Map<String, dynamic> u) => u['role'] == roleFilter)
@@ -28,8 +28,8 @@ final class PrototypeSuperAdminUsersService implements SuperAdminUsersPort {
     required String role,
   }) async {
     _requireSuperAdmin();
-    await PrototypeSampleData.ensureLoaded();
-    return PrototypeSampleData.createUser(
+    await PrototypeSampleData.instance.ensureLoaded();
+    return PrototypeSampleData.instance.createUser(
       fullName: fullName,
       email: email,
       password: password,
@@ -44,8 +44,8 @@ final class PrototypeSuperAdminUsersService implements SuperAdminUsersPort {
     required bool isActive,
   }) async {
     _requireSuperAdmin();
-    await PrototypeSampleData.ensureLoaded();
-    return PrototypeSampleData.setUserActive(uid: uid, isActive: isActive);
+    await PrototypeSampleData.instance.ensureLoaded();
+    return PrototypeSampleData.instance.setUserActive(uid: uid, isActive: isActive);
   }
 
   @override
@@ -56,8 +56,8 @@ final class PrototypeSuperAdminUsersService implements SuperAdminUsersPort {
     required String role,
   }) async {
     _requireSuperAdmin();
-    await PrototypeSampleData.ensureLoaded();
-    return PrototypeSampleData.updateUser(
+    await PrototypeSampleData.instance.ensureLoaded();
+    return PrototypeSampleData.instance.updateUser(
       uid: uid,
       fullName: fullName,
       phone: phone,
@@ -68,8 +68,8 @@ final class PrototypeSuperAdminUsersService implements SuperAdminUsersPort {
   @override
   Future<String?> sendPasswordReset({required String email}) async {
     _requireSuperAdmin();
-    await PrototypeSampleData.ensureLoaded();
-    return PrototypeSampleData.resetUserPassword(email: email);
+    await PrototypeSampleData.instance.ensureLoaded();
+    return PrototypeSampleData.instance.resetUserPassword(email: email);
   }
 
   void _requireSuperAdmin() {

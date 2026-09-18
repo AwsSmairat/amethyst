@@ -1,0 +1,670 @@
+part of 'add_vehicle_sale_sheet.dart';
+
+class _AddVehicleSaleBody extends StatefulWidget {
+  const _AddVehicleSaleBody();
+
+  @override
+  State<_AddVehicleSaleBody> createState() => _AddVehicleSaleBodyState();
+}
+
+class _AddVehicleSaleBodyState extends State<_AddVehicleSaleBody> {
+  static const List<String> _kHomeProductNames = kVehicleHomeProductApiNames;
+
+  /// أسماء المنتجات في الـ API — مطابقة لقوالب السوبر أدمن وصف التحميل.
+  static const List<String> _kStoreProductNames = kVehicleStoreProductApiNames;
+
+  static const List<String> _kStoreMahdiCanonicalProductNames =
+      kVehicleStoreMahdiStockNameCandidates;
+
+  int _columnCount = 6;
+  List<int> _quantities = List<int>.filled(6, 0);
+  List<String?> _productIds = List<String?>.filled(6, null);
+  List<String?> _stockProductIds = List<String?>.filled(6, null);
+  List<String> _productLabels = List<String>.filled(6, '');
+  List<double?> _unitPrices = List<double?>.filled(6, null);
+  List<int> _stationStocks = List<int>.filled(6, 0);
+
+  /// قائمة المنتجات من الـ API (بحث بالاسم مع تطبيع بسيط).
+  List<Map<String, dynamic>> _productItems = <Map<String, dynamic>>[];
+
+  /// أسطر حمولة السائق الحالية (من `driverCurrentLoad`).
+  List<Map<String, dynamic>> _driverLoadLines = <Map<String, dynamic>>[];
+
+  String? _vehicleId;
+  String _vehicleNumber = '';
+  bool _loadingCtx = true;
+  String? _ctxError;
+
+  VehicleSalePlace? _selectedPlace;
+  VehicleSalePaymentMethod? _paymentMethod;
+
+  /// أزرار كوبون منفصلة لمنتج 1 و2 عند البيع من المنزل (لا تربط بعمود دفتر الكوبون).
+  bool _homeCouponLine1On = false;
+  bool _homeCouponLine2On = false;
+
+  void _toggleHomeCouponLine(int productIndex) {
+    if (productIndex != 0 && productIndex != 1) return;
+    setState(() {
+      if (productIndex == 0) {
+        _homeCouponLine1On = !_homeCouponLine1On;
+      } else {
+        _homeCouponLine2On = !_homeCouponLine2On;
+      }
+    });
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  static Future<List<Map<String, dynamic>>> _fetchAllProducts(AmethystApi api) =>
+      fetchAllProducts(api);
+
+  Future<void> _load() async {
+    try {
+      final api = sl<AmethystApi>();
+      final dash = await api.getDashboardDriver();
+      final vehicle = dash['assignedVehicle'] as Map<String, dynamic>?;
+      final items = await _fetchAllProducts(api);
+      final currentLoad = await api.driverCurrentLoad();
+      final List<Map<String, dynamic>> loads =
+          (currentLoad['loads'] as List<dynamic>? ??
+                  currentLoad['loadLines'] as List<dynamic>? ??
+                  <dynamic>[])
+              .whereType<Map<String, dynamic>>()
+              .toList(growable: false);
+      if (!mounted) return;
+      setState(() {
+        _vehicleId = vehicle?['id'] as String?;
+        _vehicleNumber = vehicle?['vehicleNumber']?.toString() ?? '';
+        _productItems = items;
+        _driverLoadLines = loads;
+        _loadingCtx = false;
+        if (_selectedPlace != null) {
+          _applyPlaceBindings(_selectedPlace!);
+        }
+      });
+    } on Object catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _ctxError = e.toString();
+        _loadingCtx = false;
+      });
+    }
+  }
+
+  void _applyPlaceBindings(VehicleSalePlace place) {
+    final names = place == VehicleSalePlace.store
+        ? _kStoreProductNames
+        : _kHomeProductNames;
+    _columnCount = names.length;
+    _quantities = List<int>.filled(_columnCount, 0);
+    _productIds = List<String?>.filled(_columnCount, null);
+    _stockProductIds = List<String?>.filled(_columnCount, null);
+    _productLabels = List<String>.filled(_columnCount, '');
+    _unitPrices = List<double?>.filled(_columnCount, null);
+    _stationStocks = List<int>.filled(_columnCount, 0);
+    final VehicleProductColumnPlace columnPlace = place == VehicleSalePlace.store
+        ? VehicleProductColumnPlace.store
+        : VehicleProductColumnPlace.home;
+    for (var i = 0; i < _columnCount; i++) {
+      if (place == VehicleSalePlace.store) {
+        final VehicleProductColumnBinding binding = bindVehicleProductColumn(
+          place: columnPlace,
+          columnIndex: i,
+          products: _productItems,
+        );
+        _productIds[i] = binding.saleProductId;
+        _stockProductIds[i] = binding.stockProductId;
+        _productLabels[i] = binding.displayLabel;
+        _unitPrices[i] = binding.unitPrice;
+        _stationStocks[i] = i == 2
+            ? _storeMahdiStationStockFromCatalog()
+            : 0;
+        continue;
+      }
+      final String name = names[i];
+      Map<String, dynamic>? match;
+      if (i < kVehicleLoadFixedRowCount) {
+        match = resolveVehicleLoadRowProduct(
+          products: _productItems,
+          rowIndex: i,
+        );
+      }
+      match ??= _findProductByCatalogName(name);
+      final String? pid = match?['id']?.toString();
+      _stockProductIds[i] = pid;
+      if (i == kVehicleHomeMahdiColumnIndex) {
+        _stationStocks[i] = aggregateStationStockForBalanceRow(
+          products: _productItems,
+          rowIndex: 0,
+        );
+      } else if (i >= kVehicleHomeFirstCouponColumnIndex &&
+          i < kVehicleLoadFixedRowCount) {
+        _stationStocks[i] = stationStockForBalanceRowCanonical(
+          products: _productItems,
+          rowIndex: stationBalanceRowIndexForVehicleCouponColumn(i),
+        );
+      } else {
+        _stationStocks[i] =
+            stationStockFromProductJson(match ?? <String, dynamic>{});
+      }
+      _productIds[i] = pid;
+      _productLabels[i] =
+          vehicleProductDisplayLabel(VehicleProductColumnPlace.home, i);
+      _unitPrices[i] = parseDynamicDouble(match?['price']);
+    }
+  }
+
+  /// مخزون المحطة لبند «مهدي متجر»: جمع مخزون كل أسماء صف الكرتون في كتالوج المحطة (مطابقة مرنة).
+  int _storeMahdiStationStockFromCatalog() {
+    final int rowSum = aggregateStationStockForBalanceRow(
+      products: _productItems,
+      rowIndex: 0,
+    );
+    if (rowSum > 0) {
+      return rowSum;
+    }
+    for (final Map<String, dynamic> p in _productItems) {
+      if (p['isActive'] == false) {
+        continue;
+      }
+      final String ut =
+          (p['unitType'] ?? p['type'])?.toString().trim().toLowerCase() ?? '';
+      if (ut != 'carton') {
+        continue;
+      }
+      final String raw = p['name']?.toString() ?? '';
+      if (raw.contains('مهدي') || raw.toLowerCase().contains('mahdi')) {
+        return stationStockFromProductJson(p);
+      }
+    }
+    var sum = 0;
+    final Set<String> seen = <String>{};
+    for (final String n in _kStoreMahdiCanonicalProductNames) {
+      final Map<String, dynamic>? m = _findProductByCatalogName(n);
+      final String? id = m?['id']?.toString();
+      if (m == null || id == null || seen.contains(id)) {
+        continue;
+      }
+      seen.add(id);
+      sum += stationStockFromProductJson(m);
+    }
+    return sum;
+  }
+
+  int _vehicleRemainingForColumn(int columnIndex) {
+    if (_selectedPlace == null || _driverLoadLines.isEmpty) {
+      return 0;
+    }
+    final VehicleProductColumnPlace columnPlace =
+        _selectedPlace == VehicleSalePlace.store
+            ? VehicleProductColumnPlace.store
+            : VehicleProductColumnPlace.home;
+    final String? stockId = columnIndex < _stockProductIds.length
+        ? _stockProductIds[columnIndex]
+        : null;
+    final String? saleId =
+        columnIndex < _productIds.length ? _productIds[columnIndex] : null;
+    return vehicleRemainingFromDriverLoad(
+      loadLines: _driverLoadLines,
+      place: columnPlace,
+      columnIndex: columnIndex,
+      stockProductId: stockId,
+      saleProductId: saleId,
+    );
+  }
+
+  /// يطابق اسم القالب مع `products.name` بعد `trim` (وتطابق حالة الأحرف للأسماء اللاتينية).
+  /// يُفضَّل منتج نشط فقط؛ البيع من السيرفر يُرفض إن كان المنتج غير نشط.
+  Map<String, dynamic>? _findProductByCatalogName(String requestedName) {
+    final String want = requestedName.trim();
+    if (want.isEmpty) {
+      return null;
+    }
+    for (final Map<String, dynamic> pr in _productItems) {
+      if (pr['isActive'] == false) {
+        continue;
+      }
+      final String? n = pr['name']?.toString().trim();
+      if (n != null && n == want) {
+        return pr;
+      }
+    }
+    final String wantLower = want.toLowerCase();
+    for (final Map<String, dynamic> pr in _productItems) {
+      if (pr['isActive'] == false) {
+        continue;
+      }
+      final String? n = pr['name']?.toString().trim();
+      if (n != null && n.toLowerCase() == wantLower) {
+        return pr;
+      }
+    }
+    return null;
+  }
+
+  int _stationStockForColumn(int columnIndex) {
+    if (_selectedPlace == VehicleSalePlace.store && columnIndex == 2) {
+      return _storeMahdiStationStockFromCatalog();
+    }
+    if (_selectedPlace == VehicleSalePlace.home) {
+      if (columnIndex == kVehicleHomeMahdiColumnIndex) {
+        return aggregateStationStockForBalanceRow(
+          products: _productItems,
+          rowIndex: 0,
+        );
+      }
+      if (columnIndex >= kVehicleHomeFirstCouponColumnIndex &&
+          columnIndex < kVehicleLoadFixedRowCount) {
+        return stationStockForBalanceRowCanonical(
+          products: _productItems,
+          rowIndex: stationBalanceRowIndexForVehicleCouponColumn(columnIndex),
+        );
+      }
+    }
+    return columnIndex < _stationStocks.length ? _stationStocks[columnIndex] : 0;
+  }
+
+  /// أقصى كمية للبيع: جالون/قارورة من حمولة السيارة فقط؛ مهدي/كوبونات منزل أو مهدي متجر = أقل (حمولة + محطة).
+  int _maxSellableQuantity(int columnIndex) {
+    final bool vehicleLoadOnly =
+        (_selectedPlace == VehicleSalePlace.home &&
+            columnIndex < kVehicleHomeMahdiColumnIndex) ||
+        (_selectedPlace == VehicleSalePlace.store && columnIndex < 2);
+    if (vehicleLoadOnly) {
+      return _vehicleRemainingForColumn(columnIndex);
+    }
+    final bool homeRows =
+        _selectedPlace == VehicleSalePlace.home &&
+            columnIndex >= kVehicleHomeMahdiColumnIndex &&
+            columnIndex < kVehicleLoadFixedRowCount;
+    final bool storeMahdi =
+        _selectedPlace == VehicleSalePlace.store && columnIndex == 2;
+    if (!homeRows && !storeMahdi) {
+      return 999999;
+    }
+    final int onVehicle = _vehicleRemainingForColumn(columnIndex);
+    final int atStation = _stationStockForColumn(columnIndex);
+    return onVehicle < atStation ? onVehicle : atStation;
+  }
+
+  void _adjustQuantity(int index, int delta) {
+    setState(() {
+      var next = _quantities[index] + delta;
+      if (next < 0) {
+        next = 0;
+      }
+      if (_maxSellableQuantity(index) < 999999) {
+        final int cap = _maxSellableQuantity(index);
+        if (next > cap) {
+          next = cap;
+        }
+      }
+      _quantities[index] = next;
+    });
+  }
+
+  String _columnTitle(BuildContext context, int index) {
+    if (_selectedPlace == VehicleSalePlace.home) {
+      return vehicleProductDisplayLabel(VehicleProductColumnPlace.home, index);
+    }
+    final label = _productLabels[index];
+    return label.isNotEmpty ? label : '—';
+  }
+
+  String _badgeLabel(BuildContext context, int index) {
+    if (_selectedPlace == VehicleSalePlace.home) {
+      return vehicleProductBadgeLabel(VehicleProductColumnPlace.home, index) ??
+          context.l10n.productRow(index + 1);
+    }
+    return context.l10n.productRow(index + 1);
+  }
+
+  List<VehicleSaleLineInput>? _collectLines() {
+    final l10n = context.l10n;
+    final lines = <VehicleSaleLineInput>[];
+    for (var i = 0; i < _columnCount; i++) {
+      final pid = _productIds[i];
+      final q = _quantities[i];
+      final unit = _unitPrices[i];
+      if (q <= 0) continue;
+      if (pid == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(l10n.stationProductNotInCatalog)),
+        );
+        return null;
+      }
+      if (unit == null || unit < 0) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(l10n.checkQtyPrice)),
+        );
+        return null;
+      }
+      final bool homeStationStockDeduct =
+          _selectedPlace == VehicleSalePlace.home &&
+              i >= kVehicleHomeMahdiColumnIndex &&
+              i < kVehicleLoadFixedRowCount;
+      final bool storeStationStockDeduct =
+          _selectedPlace == VehicleSalePlace.store && i == 2;
+      final bool needsStationStockCheck =
+          homeStationStockDeduct || storeStationStockDeduct;
+      final int stationAvailable = _stationStockForColumn(i);
+      final bool needsVehicleCheck =
+          (_selectedPlace == VehicleSalePlace.home &&
+              i < kVehicleLoadFixedRowCount) ||
+          (_selectedPlace == VehicleSalePlace.store && i <= 2);
+
+      // أولاً: متبقي السيارة (منتج ٣ متجر = كرتون مهدي على الحمولة).
+      if (needsVehicleCheck) {
+        final int onVehicle = _vehicleRemainingForColumn(i);
+        if (q > onVehicle) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(l10n.stationSaleValidationInsufficientStock)),
+          );
+          return null;
+        }
+      }
+
+      // ثانياً: مخزون المحطة (مهدي متجر / منتجات ٣–٦ منزل).
+      if (needsStationStockCheck && q > stationAvailable) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(l10n.stationSaleValidationInsufficientStock)),
+        );
+        return null;
+      }
+
+      final bool couponPriceZero =
+          _selectedPlace == VehicleSalePlace.home &&
+              ((i == 0 && _homeCouponLine1On) ||
+                  (i == 1 && _homeCouponLine2On));
+      final String? stockPid = i < _stockProductIds.length
+          ? _stockProductIds[i]
+          : null;
+      final bool deductFromVehicleLoad =
+          (_selectedPlace == VehicleSalePlace.home &&
+              i < kVehicleLoadFixedRowCount) ||
+          (_selectedPlace == VehicleSalePlace.store && i <= 2);
+      String? lineStockId;
+      if (deductFromVehicleLoad &&
+          stockPid != null &&
+          stockPid.isNotEmpty) {
+        lineStockId = stockPid;
+      } else if (stockPid != null && stockPid.isNotEmpty && stockPid != pid) {
+        lineStockId = stockPid;
+      } else if (storeStationStockDeduct && i == 2) {
+        lineStockId = stockPid;
+      } else if (homeStationStockDeduct && i == kVehicleHomeMahdiColumnIndex) {
+        lineStockId = stockPid;
+      }
+      lines.add(
+        (
+          productId: pid,
+          quantity: q,
+          unitPrice: couponPriceZero ? 0.0 : unit,
+          deductStationStock:
+              homeStationStockDeduct || storeStationStockDeduct,
+          stationStockSnapshot: stationAvailable,
+          stockProductId: lineStockId,
+        ),
+      );
+    }
+    if (lines.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(l10n.vehicleLoadNeedOneLine)),
+      );
+      return null;
+    }
+    return lines;
+  }
+
+  String _paymentMethodLabel(
+    AppLocalizations l10n,
+    VehicleSalePaymentMethod method,
+  ) {
+    return switch (method) {
+      VehicleSalePaymentMethod.cash => l10n.vehicleSalePaymentCash,
+      VehicleSalePaymentMethod.cliq => l10n.vehicleSalePaymentCliq,
+    };
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final bottom = MediaQuery.viewInsetsOf(context).bottom;
+    final l10n = context.l10n;
+    return Padding(
+      padding: EdgeInsets.only(
+        left: 16,
+        right: 16,
+        bottom: bottom + 20,
+        top: 8,
+      ),
+      child: BlocConsumer<VehicleSaleSubmitCubit, SubmitState>(
+        listener: (context, state) {
+          if (state is SubmitSuccess) {
+            StationBalanceListRefresh.request();
+            final AuthState auth = context.read<AuthCubit>().state;
+            final String driverName = auth is AuthAuthenticated
+                ? auth.user.fullName
+                : l10n.driver;
+            final SaleReceiptData receipt =
+                DriverReceiptFactory.buildSaleReceipt(
+              l10n: l10n,
+              driverName: driverName,
+              vehicleName: _vehicleNumber.isEmpty
+                  ? l10n.noVehicleAssignedFull
+                  : _vehicleNumber,
+              place: _selectedPlace,
+              quantities: _quantities,
+              productLabels: _productLabels,
+              unitPrices: _unitPrices,
+              driverLoadLines: _driverLoadLines,
+              columnCount: _columnCount,
+              paymentMethodLabel: _paymentMethodLabel(l10n, _paymentMethod!),
+            );
+            Navigator.of(context).pop(receipt);
+          }
+          if (state is SubmitFailure) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text(state.message)),
+            );
+          }
+        },
+        builder: (context, state) {
+          final busy = state is SubmitLoading;
+          if (_loadingCtx) {
+            return const SizedBox(
+              height: 200,
+              child: Center(child: CircularProgressIndicator()),
+            );
+          }
+          if (_ctxError != null) {
+            return Text(_ctxError!);
+          }
+          if (_vehicleId == null) {
+            return Text(context.l10n.noVehicleContactAdmin);
+          }
+          return SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: <Widget>[
+                Text(
+                  l10n.newVehicleSale,
+                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.w800,
+                      ),
+                ),
+                const SizedBox(height: 16),
+                DropdownButtonFormField<VehicleSalePlace?>(
+                  value: _selectedPlace,
+                  decoration: InputDecoration(
+                    labelText: l10n.vehicleSaleChoosePlaceTitle,
+                    hintText: l10n.vehicleSaleTapToChoosePlace,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    contentPadding: const EdgeInsetsDirectional.symmetric(
+                      horizontal: 14,
+                      vertical: 12,
+                    ),
+                  ),
+                  isExpanded: true,
+                  items: <DropdownMenuItem<VehicleSalePlace?>>[
+                    DropdownMenuItem<VehicleSalePlace?>(
+                      value: VehicleSalePlace.home,
+                      child: Text(l10n.vehicleSalePlaceHome),
+                    ),
+                    DropdownMenuItem<VehicleSalePlace?>(
+                      value: VehicleSalePlace.store,
+                      child: Text(l10n.vehicleSalePlaceStore),
+                    ),
+                  ],
+                  onChanged: busy
+                      ? null
+                      : (VehicleSalePlace? v) {
+                          if (v == null) return;
+                          setState(() {
+                            _selectedPlace = v;
+                            _paymentMethod = null;
+                            if (v != VehicleSalePlace.home) {
+                              _homeCouponLine1On = false;
+                              _homeCouponLine2On = false;
+                            }
+                            _applyPlaceBindings(v);
+                          });
+                        },
+                ),
+                if (_selectedPlace != null) ...<Widget>[
+                  const SizedBox(height: 12),
+                  Text(
+                    _selectedPlace == VehicleSalePlace.home
+                        ? l10n.vehicleSaleFromHome
+                        : l10n.vehicleSaleFromStore,
+                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                          fontWeight: FontWeight.w700,
+                          color: Theme.of(context).colorScheme.primary,
+                        ),
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    l10n.vehicleLoadProductsSection,
+                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                          fontWeight: FontWeight.w800,
+                          color: Theme.of(context).colorScheme.primary,
+                        ),
+                  ),
+                  const SizedBox(height: 12),
+                  _VehicleSaleProductsGrid(
+                    columnCount: _columnCount,
+                    columnBuilder: (BuildContext context, int i) =>
+                        _VehicleSaleColumn(
+                      index: i,
+                      badgeLabel: _badgeLabel(context, i),
+                      productLabel: _columnTitle(context, i),
+                      vehicleRemaining: _vehicleRemainingForColumn(i),
+                      quantity: _quantities[i],
+                      onDecrement: () => _adjustQuantity(i, -1),
+                      onIncrement: () => _adjustQuantity(i, 1),
+                      busy: busy,
+                      showHomeCouponButton:
+                          _selectedPlace == VehicleSalePlace.home &&
+                              (i == 0 || i == 1),
+                      homeCouponActive: i == 0
+                          ? _homeCouponLine1On
+                          : i == 1
+                              ? _homeCouponLine2On
+                              : false,
+                      onHomeCouponToggle:
+                          _selectedPlace == VehicleSalePlace.home &&
+                                  (i == 0 || i == 1)
+                              ? () => _toggleHomeCouponLine(i)
+                              : null,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    l10n.vehicleSaleChoosePaymentMethod,
+                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                          fontWeight: FontWeight.w800,
+                          color: Theme.of(context).colorScheme.primary,
+                        ),
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: <Widget>[
+                      _PaymentMethodTile(
+                        label: l10n.vehicleSalePaymentCash,
+                        selected:
+                            _paymentMethod == VehicleSalePaymentMethod.cash,
+                        onTap: busy
+                            ? null
+                            : () => setState(
+                                  () => _paymentMethod =
+                                      VehicleSalePaymentMethod.cash,
+                                ),
+                      ),
+                      const SizedBox(width: 10),
+                      _PaymentMethodTile(
+                        label: l10n.vehicleSalePaymentCliq,
+                        selected:
+                            _paymentMethod == VehicleSalePaymentMethod.cliq,
+                        onTap: busy
+                            ? null
+                            : () => setState(
+                                  () => _paymentMethod =
+                                      VehicleSalePaymentMethod.cliq,
+                                ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 20),
+                  FilledButton.icon(
+                    onPressed: busy
+                        ? null
+                        : () {
+                            if (_paymentMethod == null) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text(
+                                    l10n.vehicleSalePaymentMethodRequired,
+                                  ),
+                                ),
+                              );
+                              return;
+                            }
+                            final lines = _collectLines();
+                            if (lines == null) return;
+                            context
+                                .read<VehicleSaleSubmitCubit>()
+                                .submitLinesAndDeductStationStock(
+                                  vehicleId: _vehicleId!,
+                                  lines: lines,
+                                  saleDestination:
+                                      _selectedPlace == VehicleSalePlace.store
+                                          ? 'store'
+                                          : 'home',
+                                  paymentMethod:
+                                      _paymentMethod!.firestoreValue,
+                                );
+                          },
+                    icon: busy
+                        ? const SizedBox(
+                            height: 20,
+                            width: 20,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Icon(Icons.print_outlined),
+                    label: Text(l10n.addSaleAndPrintInvoice),
+                  ),
+                ],
+              ],
+            ),
+          );
+        },
+      ),
+    );
+  }
+}

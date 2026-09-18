@@ -1,14 +1,14 @@
 import 'package:amethyst/core/data/amethyst_api.dart';
 import 'package:amethyst/core/firebase/date_range_utils.dart';
 
-/// حجم صفحة الجلب — يطابق سقف `_paginate` في الـ backend (حد أقصى 100).
-const int kApiListFetchPageLimit = 100;
+/// حجم صفحة الجلب — يطابق سقف `_paginate` في الـ backend (حد أقصى 500).
+const int kApiListFetchPageLimit = 500;
 
 /// سقف أمان لعدد الصفحات حتى لا تعلق الحلقة عند بيانات تالفة.
-const int kApiListFetchMaxPages = 500;
+const int kApiListFetchMaxPages = 20;
 
 /// نافذة التاريخ الافتراضية للقوائم الثقيلة (أيام البيع / مبيعات السائق).
-const int kOperationalHistoryLookbackDays = 180;
+const int kOperationalHistoryLookbackDays = 60;
 
 String operationalLookbackDateFromYmd({
   int days = kOperationalHistoryLookbackDays,
