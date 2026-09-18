@@ -2131,22 +2131,9 @@ final class AmethystFirebaseBackend {
     await _requireStaff();
     final ({double today, double yesterday}) snapshot =
         await _stationCashBalanceSnapshot();
-    final DocumentSnapshot<Map<String, dynamic>> snap = await _db
-        .collection(FirestorePaths.stationCashBalance)
-        .doc(_stationCashBalanceDocId)
-        .get();
-    if (!snap.exists) {
-      return <String, dynamic>{
-        'amount': snapshot.today,
-        'yesterdayAmount': snapshot.yesterday,
-      };
-    }
-    final Map<String, dynamic> data = snap.data() ?? <String, dynamic>{};
     return <String, dynamic>{
       'amount': snapshot.today,
       'yesterdayAmount': snapshot.yesterday,
-      'updatedAt': timestampToDate(data['updatedAt']),
-      'updatedById': data['updatedById'],
     };
   }
 
@@ -2155,14 +2142,21 @@ final class AmethystFirebaseBackend {
     int limit = 50,
   }) async {
     await _requireStaff();
+    final int safeLimit = limit.clamp(1, 100);
     final QuerySnapshot<Map<String, dynamic>> snap = await _db
         .collection(FirestorePaths.stationCashEntries)
         .orderBy('createdAt', descending: true)
+        .limit(safeLimit)
         .get();
     final List<Map<String, dynamic>> items = snap.docs
         .map(mapStationCashEntryDoc)
         .toList(growable: false);
-    return _paginate(items, page: page, limit: limit.clamp(1, 100));
+    return <String, dynamic>{
+      'items': items,
+      'total': items.length,
+      'page': 1,
+      'limit': safeLimit,
+    };
   }
 
   Future<Map<String, dynamic>> setStationCashBalance({
@@ -2222,21 +2216,13 @@ final class AmethystFirebaseBackend {
     final QuerySnapshot<Map<String, dynamic>> entries = await _db
         .collection(FirestorePaths.driverCashEntries)
         .where('driverId', isEqualTo: driverId)
+        .orderBy('createdAt', descending: true)
+        .limit(1)
         .get();
-    QueryDocumentSnapshot<Map<String, dynamic>>? latestEntry;
-    DateTime? latestCreatedAt;
-    for (final QueryDocumentSnapshot<Map<String, dynamic>> doc in entries.docs) {
-      final DateTime? createdAt = timestampToDate(doc.data()['createdAt']);
-      if (latestEntry == null ||
-          (createdAt != null &&
-              (latestCreatedAt == null || createdAt.isAfter(latestCreatedAt)))) {
-        latestEntry = doc;
-        latestCreatedAt = createdAt;
-      }
-    }
-    final double yesterday = latestEntry == null
+    final double yesterday = entries.docs.isEmpty
         ? 0.0
-        : (latestEntry.data()['previousAmount'] as num?)?.toDouble() ?? 0.0;
+        : (entries.docs.first.data()['previousAmount'] as num?)?.toDouble() ??
+            0.0;
     return (today: today, yesterday: yesterday);
   }
 
@@ -2256,24 +2242,10 @@ final class AmethystFirebaseBackend {
     final String driverId = await _requireDriverActorId();
     final ({double today, double yesterday}) snapshot =
         await _driverCashBalanceSnapshot(driverId);
-    final DocumentSnapshot<Map<String, dynamic>> snap = await _db
-        .collection(FirestorePaths.driverCashBalance)
-        .doc(driverId)
-        .get();
-    if (!snap.exists) {
-      return <String, dynamic>{
-        'amount': snapshot.today,
-        'yesterdayAmount': snapshot.yesterday,
-        'driverId': driverId,
-      };
-    }
-    final Map<String, dynamic> data = snap.data() ?? <String, dynamic>{};
     return <String, dynamic>{
       'amount': snapshot.today,
       'yesterdayAmount': snapshot.yesterday,
       'driverId': driverId,
-      'updatedAt': timestampToDate(data['updatedAt']),
-      'updatedById': data['updatedById'],
     };
   }
 
@@ -2282,26 +2254,22 @@ final class AmethystFirebaseBackend {
     int limit = 50,
   }) async {
     final String driverId = await _requireDriverActorId();
+    final int safeLimit = limit.clamp(1, 100);
     final QuerySnapshot<Map<String, dynamic>> snap = await _db
         .collection(FirestorePaths.driverCashEntries)
         .where('driverId', isEqualTo: driverId)
+        .orderBy('createdAt', descending: true)
+        .limit(safeLimit)
         .get();
-    final List<QueryDocumentSnapshot<Map<String, dynamic>>> sortedDocs =
-        snap.docs.toList(growable: true)
-          ..sort(
-            (
-              QueryDocumentSnapshot<Map<String, dynamic>> a,
-              QueryDocumentSnapshot<Map<String, dynamic>> b,
-            ) {
-              final DateTime? aAt = timestampToDate(a.data()['createdAt']);
-              final DateTime? bAt = timestampToDate(b.data()['createdAt']);
-              return (bAt ?? DateTime(0)).compareTo(aAt ?? DateTime(0));
-            },
-          );
-    final List<Map<String, dynamic>> items = sortedDocs
+    final List<Map<String, dynamic>> items = snap.docs
         .map(mapDriverCashEntryDoc)
         .toList(growable: false);
-    return _paginate(items, page: page, limit: limit.clamp(1, 100));
+    return <String, dynamic>{
+      'items': items,
+      'total': items.length,
+      'page': 1,
+      'limit': safeLimit,
+    };
   }
 
   Future<Map<String, dynamic>> setDriverCashBalance({
@@ -2356,18 +2324,28 @@ final class AmethystFirebaseBackend {
     Map<String, double> yesterdayByDriverId,
     Map<String, Map<String, double>> recordedOnDayByDriverId,
     Map<String, Map<String, double>> recordedByMonthByDriverId,
-  })> _driverCashProfitContext() async {
-    final QuerySnapshot<Map<String, dynamic>> balanceSnap = await _db
-        .collection(FirestorePaths.driverCashBalance)
-        .get();
+  })> _driverCashProfitContext({DateTime? createdFrom}) async {
+    Query<Map<String, dynamic>> entriesQuery =
+        _db.collection(FirestorePaths.driverCashEntries);
+    if (createdFrom != null) {
+      entriesQuery = entriesQuery.where(
+        'createdAt',
+        isGreaterThanOrEqualTo: Timestamp.fromDate(createdFrom),
+      );
+    }
+    final List<Object> snaps = await Future.wait<Object>(<Future<Object>>[
+      _db.collection(FirestorePaths.driverCashBalance).get(),
+      entriesQuery.get(),
+    ]);
+    final QuerySnapshot<Map<String, dynamic>> balanceSnap =
+        snaps[0] as QuerySnapshot<Map<String, dynamic>>;
+    final QuerySnapshot<Map<String, dynamic>> entriesSnap =
+        snaps[1] as QuerySnapshot<Map<String, dynamic>>;
     final Map<String, double> todayByDriverId = <String, double>{
       for (final QueryDocumentSnapshot<Map<String, dynamic>> doc
           in balanceSnap.docs)
         doc.id: _num(doc.data()['amount']),
     };
-    final QuerySnapshot<Map<String, dynamic>> entriesSnap = await _db
-        .collection(FirestorePaths.driverCashEntries)
-        .get();
     final List<Map<String, dynamic>> entries = entriesSnap.docs
         .map(mapDriverCashEntryDoc)
         .toList(growable: false);
@@ -2914,11 +2892,18 @@ final class AmethystFirebaseBackend {
 
     final List<Object> snaps = await Future.wait<Object>(<Future<Object>>[
       _db.collection(FirestorePaths.vehicles).get(),
-      _driverCashProfitContext(),
+      _driverCashProfitContext(createdFrom: monthStart),
       _stationCashBalanceSnapshot(),
       _db
           .collection(FirestorePaths.stationCashEntries)
-          .orderBy('createdAt')
+          .where(
+            'createdAt',
+            isGreaterThanOrEqualTo: Timestamp.fromDate(monthStart),
+          )
+          .where(
+            'createdAt',
+            isLessThanOrEqualTo: Timestamp.fromDate(monthEnd),
+          )
           .get(),
       _db
           .collection(FirestorePaths.stationSales)
@@ -3498,7 +3483,10 @@ final class AmethystFirebaseBackend {
           .collection(FirestorePaths.vehicleSales)
           .where('isDebt', isEqualTo: true)
           .get(),
-      _db.collection(FirestorePaths.stationDebtEntries).get(),
+      _db
+          .collection(FirestorePaths.stationDebtEntries)
+          .where('repaidAt', isNull: true)
+          .get(),
       _db
           .collection(FirestorePaths.expenses)
           .where(

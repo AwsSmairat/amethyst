@@ -20,22 +20,47 @@ final class StationCashBalanceCubit extends Cubit<StationCashBalanceState> {
   final SetStationCashBalanceUseCase _setBalance;
 
   Future<void> load() async {
-    emit(const StationCashBalanceLoading());
+    if (isClosed) {
+      return;
+    }
+    final StationCashBalanceState previous = state;
+    final bool keepVisible = previous is StationCashBalanceLoaded ||
+        previous is StationCashBalanceSubmitting;
+    if (!keepVisible) {
+      emit(const StationCashBalanceLoading());
+    }
     try {
-      final List<Object> results = await Future.wait<Object>(<Future<Object>>[
-        _getSnapshot(),
-        _listEntries(),
-      ]);
-      final StationCashBalanceSnapshot snapshot =
-          results[0] as StationCashBalanceSnapshot;
+      final StationCashBalanceSnapshot snapshot = await _getSnapshot();
+      if (isClosed) {
+        return;
+      }
+      final List<Map<String, dynamic>> previousEntries = switch (previous) {
+        StationCashBalanceLoaded s => s.entries,
+        StationCashBalanceSubmitting s => s.entries,
+        _ => const <Map<String, dynamic>>[],
+      };
       emit(
         StationCashBalanceLoaded(
           amount: snapshot.todayAmount,
           yesterdayAmount: snapshot.yesterdayAmount,
-          entries: results[1] as List<Map<String, dynamic>>,
+          entries: previousEntries,
+        ),
+      );
+      final List<Map<String, dynamic>> entries = await _listEntries();
+      if (isClosed) {
+        return;
+      }
+      emit(
+        StationCashBalanceLoaded(
+          amount: snapshot.todayAmount,
+          yesterdayAmount: snapshot.yesterdayAmount,
+          entries: entries,
         ),
       );
     } on Object catch (e) {
+      if (isClosed) {
+        return;
+      }
       emit(StationCashBalanceFailure(e.toString()));
     }
   }

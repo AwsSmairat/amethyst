@@ -13,7 +13,13 @@ final class StationSalesListCubit extends Cubit<ListLoadState> {
   final AmethystApi _api;
 
   Future<void> load() async {
-    emit(const ListLoadLoading());
+    if (isClosed) {
+      return;
+    }
+    final bool keepVisible = state is StationSalesListLoaded;
+    if (!keepVisible) {
+      emit(const ListLoadLoading());
+    }
     try {
       final String from = operationalLookbackDateFromYmd();
       final String to = operationalTodayYmd();

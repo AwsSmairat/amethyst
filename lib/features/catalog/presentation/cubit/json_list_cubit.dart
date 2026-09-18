@@ -17,7 +17,13 @@ final class JsonListCubit extends Cubit<ListLoadState> {
   final JsonListErrorMapper? mapLoadError;
 
   Future<void> load() async {
-    emit(const ListLoadLoading());
+    if (isClosed) {
+      return;
+    }
+    final bool keepVisible = state is ListLoadLoaded;
+    if (!keepVisible) {
+      emit(const ListLoadLoading());
+    }
     try {
       final data = await _fetch();
       if (isClosed) {
